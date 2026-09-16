@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "productId": "storybook",
+  "projectId": "sample-demo",
+  "status": "published",
+  "themeId": "spiderman",
+  "occasionPreset": "romantic",
+  "identity": { "recipient": "Nadia", "sender": "Alden", "eventDate": "2026-09-17" },
+  "opening": {
+    "eyebrow": "A little story for you",
+    "title": "For the one who makes every ordinary day feel heroic",
+    "message": "Four small pages are waiting here, each holding something I never want us to forget."
+  },
+  "modules": [
+    { "type": "reasons", "enabled": true, "order": 0, "title": "Why You Matter", "subtitle": "The little things that make you extraordinary." },
+    { "type": "gallery", "enabled": true, "order": 1, "title": "Memory Archive", "subtitle": "Scenes from our favorite timeline." },
+    { "type": "music", "enabled": true, "order": 2, "title": "Our Soundtrack", "subtitle": "Songs that always lead me back to you." },
+    { "type": "letter", "enabled": true, "order": 3, "title": "A Letter", "subtitle": "One last thing I need you to know." }
+  ],
+  "reasons": { "items": ["You make ordinary days worth remembering.", "You listen even when my thoughts are messy.", "Your laugh is still my favorite sound.", "You make me want to become a kinder person.", "You always find light in the smallest things.", "Being myself feels easy when I am with you."] },
+  "gallery": { "items": [
+    { "id": "memory-1", "mediaType": "image", "mediaUrl": "/assets/themes/spiderman/greeting-hero.webp", "title": "The day our story changed", "caption": "Some moments quietly become the beginning of everything." },
+    { "id": "memory-2", "mediaType": "image", "mediaUrl": "/assets/themes/spiderman/finale-hero.webp", "title": "Still choosing you", "caption": "Across every universe, this is the one I would keep." }
+  ] },
+  "music": { "tracks": [
+    { "id": "everything-u-are", "sourceType": "catalog", "catalogId": "everything-u-are", "title": "Everything u are", "artist": "Hindia", "coverUrl": "https://arcade-edition.aldoramadhan16.workers.dev/files/1773903605475-oxmn9.jpg", "audioUrl": "https://arcade-edition.aldoramadhan16.workers.dev/files/1773903597346-a20vzf.mp3" }
+  ] },
+  "letter": { "greeting": "Dear Nadia,", "paragraphs": ["I wanted to give you something that could hold a few of the things I struggle to say out loud.", "Thank you for every quiet kindness, every unexpected laugh, and every moment that feels lighter because you are there.", "Whatever chapter comes next, I hope we keep choosing the same story."], "signoff": "Always yours, Alden" },
+  "finale": { "title": "Across every universe", "message": "I would still find my way back to you.", "signoff": "With all my love," },
+  "settings": { "language": "en" },
+  "createdAt": "2026-09-17T00:00:00.000Z",
+  "updatedAt": "2026-09-17T00:00:00.000Z",
+  "publishedAt": "2026-09-17T00:00:00.000Z"
+}

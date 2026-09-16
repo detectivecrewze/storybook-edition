@@ -1,0 +1,12 @@
+{
+  "id": "paper-sunrise",
+  "label": "Paper Sunrise",
+  "description": "Fixture-only theme used to prove the renderer contract.",
+  "thumbnail": "/fixture/thumbnail.webp",
+  "stylesheet": "/fixture/theme.css",
+  "palette": { "primary": "#d97855", "primaryDark": "#743b31", "secondary": "#42687a", "accent": "#efc46a", "paper": "#fff9eb", "surface": "#e7b18b", "ink": "#24212a", "muted": "#746d75" },
+  "fonts": { "display": "serif", "body": "sans-serif", "handwritten": "cursive" },
+  "textures": { "surface": "/fixture/surface.webp", "paper": "/fixture/paper.webp" },
+  "assets": { "openingEmblem": "/fixture/opening.webp", "greeting": "/fixture/greeting.webp", "finale": "/fixture/finale.webp", "skyline": "/fixture/skyline.webp", "reasons": "/fixture/reasons.webp", "gallery": "/fixture/gallery.webp", "music": "/fixture/music.webp", "letter": "/fixture/letter.webp", "decals": [] },
+  "motion": { "room": "paper-slide", "card": "card-flip", "letter": "envelope-open", "duration": 360 }
+}

@@ -1,0 +1,11 @@
+node_modules/
+dist/
+.data/
+.env
+.env.local
+.DS_Store
+Thumbs.db
+.wrangler/
+*.sqlite*
+assets/themes/*/asset-contact-sheet.*
+lighthouse-results/

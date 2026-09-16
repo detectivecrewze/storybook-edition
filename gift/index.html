@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#7b0d1b">
+  <meta name="gift-api-base" content="">
+  <title>Storybook Edition</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bangers&family=Caveat:wght@500;600;700&family=DM+Sans:wght@400;500;600;700;800&display=swap">
+  <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Caveat:wght@500;600;700&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Bangers&family=Caveat:wght@500;600;700&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
+  <link rel="preload" as="image" href="/assets/themes/spiderman/red-web-paper.webp" fetchpriority="high">
+  <link rel="preload" as="image" href="/assets/themes/spiderman/opening-emblem.webp">
+  <link rel="preload" as="style" href="/styles.css">
+  <link rel="stylesheet" href="/styles.css">
+  <link id="theme-stylesheet" rel="stylesheet" href="/assets/themes/spiderman/theme.css">
+</head>
+<body>
+  <div class="app-state" id="app-state" role="status" aria-live="polite">
+    <span class="state-spinner" aria-hidden="true"></span>
+    <strong data-state-title>Menyiapkan ceritamu...</strong>
+    <p data-state-message>Tunggu sebentar, halaman spesial sedang disusun.</p>
+    <button class="comic-button" data-retry hidden type="button" data-i18n="common.retry">Coba Lagi</button>
+  </div>
+
+  <main id="gift-app" hidden>
+    <section class="screen gate is-active" id="gate" aria-labelledby="gate-title">
+      <button class="gift-wrap" id="open-wrap" type="button" aria-label="Buka kado">
+        <span class="wrap-paper"></span><span class="ribbon ribbon--vertical"></span><span class="ribbon ribbon--horizontal"></span>
+        <img id="opening-emblem" alt="" class="opening-emblem" hidden>
+        <span class="tap-copy" data-i18n="gift.tap">Ketuk untuk membuka</span>
+      </button>
+    </section>
+
+    <section class="screen greeting-screen" id="greeting" aria-labelledby="greeting-title">
+      <article class="paper greeting-card">
+        <img id="greeting-art" class="greeting-art" alt="" hidden>
+        <p class="eyebrow" id="opening-eyebrow"></p>
+        <h1 id="greeting-title"></h1>
+        <p class="greeting-message" id="opening-message"></p>
+        <p class="gift-to"><span data-i18n="gift.for">Dibuat khusus untuk</span> <strong id="recipient-name"></strong></p>
+        <button class="comic-button" id="enter-story" type="button"><span data-i18n="common.next">Lanjut</span><span aria-hidden="true">→</span></button>
+      </article>
+    </section>
+
+    <section class="screen menu-screen" id="menu" aria-labelledby="menu-title">
+      <div class="menu-shell">
+        <header class="menu-heading">
+          <p class="eyebrow" data-i18n="gift.menuEyebrow">BAGIAN CERITA</p>
+          <h2 id="menu-title" data-i18n="gift.menuTitle">Pilih halaman yang ingin kamu buka</h2>
+          <p class="menu-recipient"><span id="menu-recipient"></span> <span aria-hidden="true">×</span> <span id="menu-sender"></span></p>
+        </header>
+        <div class="module-grid" id="module-grid"></div>
+        <button class="finale-launch" id="finale-launch" type="button" disabled><span data-i18n="gift.finish">Buka penutup</span><span aria-hidden="true">✦</span></button>
+      </div>
+    </section>
+
+    <section class="screen room-screen" id="room" aria-labelledby="room-title">
+      <button class="back-button" id="room-back" type="button"><span aria-hidden="true">←</span><span data-i18n="common.back">Kembali</span></button>
+      <div class="room-shell">
+        <header class="room-heading"><p class="eyebrow" id="room-kicker"></p><h2 id="room-title"></h2><p id="room-subtitle"></p></header>
+        <div class="room-content" id="room-content"></div>
+      </div>
+    </section>
+
+    <section class="screen finale-screen" id="finale" aria-labelledby="finale-title">
+      <div class="skyline" id="finale-skyline"></div>
+      <article class="finale-card paper">
+        <img id="finale-art" class="finale-art" alt="" hidden>
+        <p class="eyebrow">THE END · FOR NOW</p>
+        <h2 id="finale-title"></h2>
+        <p id="finale-message"></p>
+        <p class="finale-signature"><span id="finale-signoff"></span><strong id="finale-sender"></strong></p>
+        <button class="comic-button" id="replay-story" type="button" data-i18n="gift.replay">Putar ulang cerita</button>
+      </article>
+    </section>
+  </main>
+
+  <audio id="story-audio" preload="none"></audio>
+
+  <template id="module-card-template">
+    <button class="module-card" type="button">
+      <span class="module-number"></span><img class="module-icon" alt="" hidden>
+      <span class="module-copy"><strong></strong><small></small></span>
+      <span class="module-status" aria-hidden="true">✓</span>
+    </button>
+  </template>
+
+  <script defer src="/shared/themes.js"></script>
+  <script defer src="/shared/project.js"></script>
+  <script defer src="/shared/i18n.js"></script>
+  <script defer src="/runtime-config.js"></script>
+  <script defer src="/dev/mock-api.js"></script>
+  <script defer src="/shared/api.js"></script>
+  <script defer src="/app.js"></script>
+</body>
+</html>

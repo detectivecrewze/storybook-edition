@@ -1,0 +1,12 @@
+worker/
+tests/
+dev/
+fixtures/
+design-source/
+tools/
+lighthouse-results/
+api/
+server.js
+assets/photos/cindy.png
+assets/audio/song.mp3
+*.md

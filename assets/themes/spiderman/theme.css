@@ -1,0 +1,12 @@
+[data-theme="spiderman"] .module-card:nth-child(4n+1){background-color:#fff7ed}
+[data-theme="spiderman"] .module-card:nth-child(4n+2){background-color:#e8f1ff}
+[data-theme="spiderman"] .module-card:nth-child(4n+3){background-color:#fff0f1}
+[data-theme="spiderman"] .module-card:nth-child(4n+4){background-color:#fff9dc}
+[data-theme="spiderman"] .module-card::after{content:"";position:absolute;right:-32px;bottom:-42px;width:100px;height:100px;border:2px solid rgba(201,24,43,.14);border-radius:50%;box-shadow:0 0 0 12px rgba(201,24,43,.06),0 0 0 25px rgba(201,24,43,.035);pointer-events:none}
+[data-theme="spiderman"] .paper{position:relative}
+[data-theme="spiderman"] .paper::selection{background:#f3c84b;color:#17191f}
+[data-theme="spiderman"] .room-heading h2,[data-theme="spiderman"] .menu-heading h2{text-transform:uppercase}
+[data-theme="spiderman"] .reason-card:nth-child(3n+2){border-radius:45% 8px 45% 8px/18% 8px 18% 8px}
+[data-theme="spiderman"] .reason-card:nth-child(3n){background-color:#eaf2ff}
+[data-theme="spiderman"] .greeting-card,[data-theme="spiderman"] .finale-card{clip-path:polygon(1% 0,100% 1%,99% 98%,2% 100%,0 52%)}
+@media(max-width:620px){[data-theme="spiderman"] .greeting-card,[data-theme="spiderman"] .finale-card{clip-path:none}}
