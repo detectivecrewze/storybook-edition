@@ -32,9 +32,7 @@
 .atlas-popup-photo { width: 100%; aspect-ratio: 16 / 10; max-height: 135px; object-fit: cover; border: 2px solid var(--theme-ink); border-radius: 8px; display: block; margin-bottom: 7px; }
 .atlas-popup-number { display: inline-block; color: var(--theme-primary); font-family: var(--font-display); font-size: 0.9rem; letter-spacing: .08em; }
 .atlas-popup-card h3 { margin: 2px 0 5px; font-family: var(--font-display); font-size: 1.35rem; line-height: 1.15; }
-.atlas-popup-card p { margin: 0 0 8px; max-height: 85px; overflow-y: auto; line-height: 1.4; font-size: 0.88rem; }
-.atlas-map-link { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 7px 12px; border: 2px solid var(--theme-ink); border-radius: 7px; background: var(--theme-paper); color: var(--theme-secondary); font-weight: 800; font-size: 0.82rem; text-decoration: none; white-space: nowrap; box-shadow: 2px 2px 0 var(--theme-ink); box-sizing: border-box; transition: transform .12s ease, box-shadow .12s ease, background-color .12s ease; }
-.atlas-map-link:hover { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--theme-ink); background: color-mix(in srgb, var(--theme-secondary) 10%, var(--theme-paper)); }
+.atlas-popup-card p { margin: 0; max-height: 90px; overflow-y: auto; line-height: 1.4; font-size: 0.88rem; }
 .atlas-controls { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
 .atlas-control,.atlas-fit { min-width: 44px; min-height: 44px; border: 3px solid var(--theme-ink); border-radius: 999px; background: var(--theme-paper); color: var(--theme-ink); box-shadow: 3px 4px 0 var(--theme-ink); font-weight: 900; cursor: pointer; }
 .atlas-fit { padding: 0 20px; background: var(--theme-accent); }

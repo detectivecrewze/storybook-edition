@@ -5,15 +5,13 @@
   const mapsUrl = location => `https://www.google.com/maps/search/?api=1&query=${Number(location.latitude)},${Number(location.longitude)}`;
   function element(tag, className, text) { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; }
 
-  function locationCard(location, index, language) {
+  function locationCard(location, index) {
     const card = element("article", "atlas-popup-card");
     if (location.photoUrl) { const image = element("img", "atlas-popup-photo"); image.alt = location.label; image.loading = "lazy"; image.src = location.photoUrl; image.onerror = () => image.remove(); card.append(image); }
     const badge = element("span", "atlas-popup-number", String(index + 1).padStart(2, "0"));
     const title = element("h3", "", location.label);
     card.append(badge, title);
     if (location.note) card.append(element("p", "", location.note));
-    const link = element("a", "atlas-map-link", language === "en" ? "Open in Google Maps ↗" : "Buka di Google Maps ↗");
-    link.href = mapsUrl(location); link.target = "_blank"; link.rel = "noopener noreferrer"; card.append(link);
     return card;
   }
 
