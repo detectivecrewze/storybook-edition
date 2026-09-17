@@ -65,10 +65,10 @@
       scrollWheelZoom: true
     });
 
-    tileLayer = root.L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-      subdomains: "abcd",
+    tileLayer = root.L.tileLayer("https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png", {
+      subdomains: "abc",
       maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/">Humanitarian OpenStreetMap Team</a>'
     });
     tileLayer.on("tileerror", () => {
       tileErrors += 1;
@@ -107,10 +107,11 @@
       const marker = root.L.marker([location.latitude, location.longitude], { icon, keyboard: true, opacity: 1 }).addTo(map);
       marker.bindPopup(locationCard(location, index, language), {
         className: "atlas-comic-popup",
-        maxWidth: 320,
-        minWidth: 260,
-        autoPan: false,
-        autoPanPadding: [20, 20]
+        maxWidth: 300,
+        minWidth: 240,
+        autoPan: true,
+        autoPanPaddingTopLeft: [15, 20],
+        autoPanPaddingBottomRight: [15, 15]
       });
       marker.on("click", () => {
         cancelAnimation();
@@ -124,6 +125,15 @@
         const head = marker.getElement?.()?.querySelector(".atlas-pin-head") || document.getElementById(`atlas-pin-head-${i}`);
         if (head) head.classList.toggle("is-active", i === index);
       });
+    }
+
+    function getCameraCenterForPin(location, zoom) {
+      if (!map) return [location.latitude, location.longitude];
+      const size = map.getSize();
+      const targetPoint = map.project([location.latitude, location.longitude], zoom);
+      const offsetY = Math.min(130, Math.max(75, Math.round(size.y * 0.26)));
+      const cameraPoint = targetPoint.subtract([0, offsetY]);
+      return map.unproject(cameraPoint, zoom);
     }
 
     function fitAll(animate = false) {
@@ -147,10 +157,12 @@
       const location = locations[activeIndex];
       current.textContent = `${activeIndex + 1} / ${locations.length}`;
       updateActiveMarker(activeIndex);
+      const targetZoom = Math.max(map.getZoom(), 13);
+      const cameraCenter = getCameraCenterForPin(location, targetZoom);
       if (!reducedMotion) {
-        map.flyTo([location.latitude, location.longitude], Math.max(map.getZoom(), 13), { duration: 0.65 });
+        map.flyTo(cameraCenter, targetZoom, { duration: 0.65 });
       } else {
-        map.setView([location.latitude, location.longitude], Math.max(map.getZoom(), 13));
+        map.setView(cameraCenter, targetZoom);
       }
       markers[activeIndex].openPopup();
     }
@@ -183,7 +195,8 @@
         activeIndex = index;
         current.textContent = `${index + 1} / ${locations.length}`;
         updateActiveMarker(index);
-        map.flyTo([locations[index].latitude, locations[index].longitude], zoom, {
+        const cameraCenter = getCameraCenterForPin(locations[index], zoom);
+        map.flyTo(cameraCenter, zoom, {
           duration,
           easeLinearity: 0.25
         });
