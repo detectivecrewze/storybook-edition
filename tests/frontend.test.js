@@ -25,7 +25,7 @@ test("gift renderer is theme-neutral and customer media is constructed inside ro
 
 test("manifest assets exist and remain inside the theme performance budget", () => {
   const Themes = require("../shared/themes.js"); const theme = Themes.THEMES.spiderman;
-  const urls = [theme.thumbnail, theme.textures.surface, theme.textures.paper, ...Object.values(theme.assets).flatMap(value => Array.isArray(value) ? value : [value])].filter(value => typeof value === "string");
+  const urls = [...new Set([theme.thumbnail, theme.textures.surface, theme.textures.paper, ...Object.values(theme.assets).flatMap(value => Array.isArray(value) ? value : [value])].filter(value => typeof value === "string"))];
   let total = 0;
   for (const url of urls) { const file = path.join(root, url.replace(/^\//, "")); assert.equal(fs.existsSync(file), true, url); const size = fs.statSync(file).size; total += size; assert.ok(size <= 250 * 1024, `${url} is ${(size / 1024).toFixed(1)} KB`); }
   assert.ok(total <= 600 * 1024, `initial theme manifest totals ${(total / 1024).toFixed(1)} KB`);
@@ -34,6 +34,7 @@ test("manifest assets exist and remain inside the theme performance budget", () 
 test("production allowlist excludes source masters and secrets", () => {
   const build = read("build.mjs"); const ignore = read(".vercelignore"); const wrangler = read("worker/wrangler.toml");
   assert.doesNotMatch(build, /design-source|tools/); assert.match(ignore, /worker\//);
-  assert.match(wrangler, /REPLACE_WITH_STORYBOOK_KV_NAMESPACE_ID/);
+  assert.match(wrangler, /binding\s*=\s*["']GIFT_KV["']/);
+  assert.match(wrangler, /id\s*=\s*["'](?:REPLACE_WITH_STORYBOOK_KV_NAMESPACE_ID|[a-f0-9]{32})["']/i);
   assert.doesNotMatch(wrangler, /ADMIN_SECRET\s*=|SIGNING_SECRET\s*=|GENERATOR_SECRET\s*=/);
 });

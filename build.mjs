@@ -13,7 +13,8 @@ const files = [
   "index.html",
   "app.js",
   "styles.css",
-  "runtime-config.js"
+  "runtime-config.js",
+  "404.html"
 ];
 
 const directories = [

@@ -12,7 +12,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Caveat:wght@500;600;700&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Bangers&family=Caveat:wght@500;600;700&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
   <link rel="preload" as="image" href="/assets/themes/spiderman/red-web-paper.webp" fetchpriority="high">
-  <link rel="preload" as="image" href="/assets/themes/spiderman/opening-emblem.webp">
+  <link rel="preload" as="image" href="/assets/themes/spiderman/gift-box-v2.webp">
   <link rel="preload" as="style" href="/styles.css">
   <link rel="stylesheet" href="/styles.css">
   <link id="theme-stylesheet" rel="stylesheet" href="/assets/themes/spiderman/theme.css">
@@ -26,10 +26,24 @@
   </div>
 
   <main id="gift-app" hidden>
+    <div class="comic-transition" id="comic-transition" hidden aria-hidden="true">
+      <div class="comic-transition-stage">
+        <span class="comic-transition-panel comic-transition-panel--one"></span>
+        <span class="comic-transition-panel comic-transition-panel--two"></span>
+        <span class="comic-transition-panel comic-transition-panel--three"></span>
+        <span class="comic-transition-panel comic-transition-panel--four"></span>
+        <span class="comic-speed-lines"></span>
+        <div class="comic-impact">
+          <span class="comic-impact-kicker">STORYBOOK</span>
+          <strong id="comic-transition-copy">A LITTLE STORY FOR YOU</strong>
+        </div>
+      </div>
+    </div>
     <section class="screen gate is-active" id="gate" aria-labelledby="gate-title">
       <button class="gift-wrap" id="open-wrap" type="button" aria-label="Buka kado">
+        <img id="gift-box-art" class="gift-box-art" alt="" hidden>
         <span class="wrap-paper"></span><span class="ribbon ribbon--vertical"></span><span class="ribbon ribbon--horizontal"></span>
-        <img id="opening-emblem" alt="" class="opening-emblem" hidden>
+        <span class="emblem-backdrop" aria-hidden="true"></span>
         <span class="tap-copy" data-i18n="gift.tap">Ketuk untuk membuka</span>
       </button>
     </section>

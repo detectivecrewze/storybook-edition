@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Storybook Edition</title>
+  <script>
+    (function () {
+      var path = location.pathname;
+      var studioMatch = path.match(/^\/studio\/([^/?#]+)/i);
+      if (studioMatch) {
+        location.replace("/studio/index.html?project=" + encodeURIComponent(studioMatch[1]) + location.hash);
+        return;
+      }
+      var giftMatch = path.match(/^\/gift\/([^/?#]+)/i);
+      if (giftMatch) {
+        var query = location.search ? location.search.replace(/^\?/, "&") : "";
+        location.replace("/gift/index.html?project=" + encodeURIComponent(giftMatch[1]) + query + location.hash);
+        return;
+      }
+      if (/^\/admin(?:\/.*)?$/i.test(path)) {
+        location.replace("/admin/index.html" + location.search + location.hash);
+        return;
+      }
+      location.replace("/");
+    })();
+  </script>
+</head>
+<body style="font-family:sans-serif;text-align:center;padding:40px;background:#17191f;color:#fffaf0;">
+  <p>Membuka halaman...</p>
+</body>
+</html>

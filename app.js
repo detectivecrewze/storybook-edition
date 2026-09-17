@@ -14,7 +14,8 @@
   let theme;
   let currentRoom = "";
   let roomCleanup = () => {};
-  let transitionTimer = 0;
+  let activeTrackIndex = 0;
+  const transitionTimers = new Set();
   let lastTrigger = null;
   const opened = new Set();
 
@@ -33,13 +34,45 @@
     screens.forEach(screen => screen.classList.toggle("is-active", screen.id === id));
     if (focus) requestAnimationFrame(() => { const target = $("button:not([disabled]), h1, h2", $(`#${id}`)); if (!target) return; if (/^H[12]$/.test(target.tagName)) target.tabIndex = -1; target.focus({ preventScroll: true }); });
   }
+  function trackTimeout(callback, delay) {
+    const timer = setTimeout(() => { transitionTimers.delete(timer); callback(); }, delay);
+    transitionTimers.add(timer); return timer;
+  }
+  function clearOpeningTransition() {
+    transitionTimers.forEach(clearTimeout); transitionTimers.clear();
+    const overlay = $("#comic-transition");
+    overlay.classList.remove("is-revealing", "is-opening"); overlay.hidden = true;
+  }
+  function runOpeningTransition() {
+    clearOpeningTransition();
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) { showScreen("greeting"); return; }
+    const overlay = $("#comic-transition");
+    $("#comic-transition-copy").textContent = project?.settings?.language === "en" ? "A LITTLE STORY FOR YOU" : "CERITA KECIL UNTUKMU";
+    overlay.hidden = false;
+    trackTimeout(() => overlay.classList.add("is-revealing"), 260);
+    trackTimeout(() => showScreen("greeting", { focus: false }), 1850);
+    trackTimeout(() => overlay.classList.add("is-opening"), 2050);
+    trackTimeout(() => { overlay.hidden = true; overlay.classList.remove("is-revealing", "is-opening"); showScreen("greeting"); }, 3300);
+  }
+  function availableTracks() { return project?.music?.tracks?.filter(track => track.audioUrl) || []; }
+  function loadStoryTrack(index, autoplay = false) {
+    const tracks = availableTracks(); if (!tracks.length) return;
+    activeTrackIndex = (index + tracks.length) % tracks.length; const track = tracks[activeTrackIndex];
+    const resolved = new URL(track.audioUrl, location.href).href;
+    if (storyAudio.src !== resolved) { storyAudio.src = track.audioUrl; storyAudio.load(); }
+    storyAudio.loop = tracks.length === 1;
+    if (autoplay) storyAudio.play().catch(() => {});
+  }
+  function startOpeningMusic() { storyAudio.volume = .78; loadStoryTrack(0, true); storyAudio.loop = true; }
   function applyTheme() {
     theme = Themes.applyTheme(project.themeId);
     $("#theme-stylesheet").href = theme.stylesheet;
     document.body.style.setProperty("--surface-texture", `url('${theme.textures.surface}')`);
     document.body.style.setProperty("--paper-texture", `url('${theme.textures.paper}')`);
     $("meta[name='theme-color']").content = theme.palette.primaryDark;
-    setImage($("#opening-emblem"), theme.assets.openingEmblem, `${theme.label} gift emblem`);
+    const giftWrap = $("#open-wrap");
+    giftWrap.classList.toggle("has-gift-art", Boolean(theme.assets.giftBox));
+    setImage($("#gift-box-art"), theme.assets.giftBox, "", () => giftWrap.classList.remove("has-gift-art"));
   }
   function prepareGreeting() { setImage($("#greeting-art"), theme.assets.greeting, `${theme.label} greeting illustration`); }
   function prepareFinale() { setImage($("#finale-art"), theme.assets.finale, `${theme.label} finale illustration`); $("#finale-skyline").style.backgroundImage = `url('${theme.assets.skyline}')`; }
@@ -103,7 +136,7 @@
     if (!items.length) { roomContent.textContent = I18n.t("gift.empty"); return () => {}; }
     let index = 0; let resumeMusic = false; let touchStartX = 0; let touchStartY = 0;
     const shell = document.createElement("div"); shell.className = "gallery-view";
-    shell.innerHTML = `<button class="round-button gallery-prev" type="button" aria-label="${I18n.t("gift.galleryPrev")}">←</button><article class="polaroid"><div class="gallery-media"></div><h3></h3><p></p><div class="gallery-count"></div></article><button class="round-button gallery-next" type="button" aria-label="${I18n.t("gift.galleryNext")}">→</button>`;
+    shell.innerHTML = `<button class="round-button gallery-prev" type="button" aria-label="${I18n.t("gift.galleryPrev")}">←</button><article class="polaroid polaroid-current"><div class="gallery-media"></div><figcaption><h3></h3><p></p><div class="gallery-count"></div></figcaption></article><button class="round-button gallery-next" type="button" aria-label="${I18n.t("gift.galleryNext")}">→</button><div class="gallery-dots" aria-label="Choose a memory"></div>`;
     const mediaHost = $(".gallery-media", shell);
     function stopCurrent() { const video = $("video", mediaHost); if (video) { video.pause(); video.removeAttribute("src"); video.load(); } mediaHost.replaceChildren(); if (resumeMusic) { storyAudio.play().catch(() => {}); resumeMusic = false; } }
     function draw() {
@@ -114,35 +147,40 @@
         media.addEventListener("pause", () => { if (resumeMusic) { storyAudio.play().catch(() => {}); resumeMusic = false; } });
       } else { media = document.createElement("img"); media.loading = "eager"; media.alt = item.title || "Memory"; media.src = item.mediaUrl; }
       mediaHost.append(media); $("h3", shell).textContent = item.title || `Memory ${index + 1}`; $("p", shell).textContent = item.caption; $(".gallery-count", shell).textContent = `${index + 1} / ${items.length}`;
+      $$(".gallery-dots button", shell).forEach((dot, dotIndex) => dot.classList.toggle("is-active", dotIndex === index));
+      $(".polaroid-current", shell).animate?.([{ opacity: .35, transform: "translateX(12px) rotate(.8deg)" }, { opacity: 1, transform: "rotate(-.65deg)" }], { duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : 260, easing: "ease-out" });
       $(".gallery-prev", shell).disabled = items.length < 2; $(".gallery-next", shell).disabled = items.length < 2;
     }
     const move = delta => { index = (index + delta + items.length) % items.length; draw(); };
     $(".gallery-prev", shell).addEventListener("click", () => move(-1)); $(".gallery-next", shell).addEventListener("click", () => move(1));
+    items.forEach((_, dotIndex) => { const dot = document.createElement("button"); dot.type = "button"; dot.setAttribute("aria-label", `Memory ${dotIndex + 1}`); dot.addEventListener("click", () => { index = dotIndex; draw(); }); $(".gallery-dots", shell).append(dot); });
     shell.addEventListener("touchstart", event => { touchStartX = event.changedTouches[0].clientX; touchStartY = event.changedTouches[0].clientY; }, { passive: true });
     shell.addEventListener("touchend", event => { const distanceX = event.changedTouches[0].clientX - touchStartX; const distanceY = event.changedTouches[0].clientY - touchStartY; if (Math.abs(distanceX) > 45 && Math.abs(distanceX) > Math.abs(distanceY) * 1.2) move(distanceX > 0 ? -1 : 1); }, { passive: true });
     roomContent.append(shell); draw(); return stopCurrent;
   }
   function renderMusic() {
-    const tracks = project.music.tracks.filter(track => track.audioUrl);
+    const tracks = availableTracks();
     if (!tracks.length) { roomContent.textContent = I18n.t("gift.empty"); return () => {}; }
-    let active = 0;
+    let active = Math.min(activeTrackIndex, tracks.length - 1);
     const player = document.createElement("div"); player.className = "music-player";
-    player.innerHTML = `<div class="album-art"><img alt="" hidden><span>♫</span></div><div class="track-copy"><small></small><h3></h3><p></p></div><input class="seek" type="range" min="0" max="100" value="0" aria-label="Song progress"><div class="player-controls"><button class="round-button track-prev" type="button">←</button><button class="play-button" type="button"><span>▶</span></button><button class="round-button track-next" type="button">→</button></div><div class="playlist"></div>`;
+    player.innerHTML = `<div class="music-poster"><span class="poster-tape" aria-hidden="true"></span><div class="vinyl-disc" aria-hidden="true"><span>FOR<br>YOU</span></div><div class="album-art"><img alt="" hidden><span>♫</span></div></div><div class="music-panel"><div class="track-copy"><small>SONG DEDICATED FOR YOU · <b></b></small><h3></h3><p></p></div><div class="progress-row"><span class="current-time">0:00</span><input class="seek" type="range" min="0" max="100" value="0" aria-label="Song progress"><span class="duration-time">0:00</span></div><div class="player-controls"><button class="round-button track-prev" type="button" aria-label="Previous song">←</button><button class="play-button" type="button" aria-label="Play"><span>▶</span></button><button class="round-button track-next" type="button" aria-label="Next song">→</button></div><div class="playlist"></div></div>`;
     function select(index, autoplay = false) {
-      active = (index + tracks.length) % tracks.length; const track = tracks[active]; storyAudio.src = track.audioUrl; storyAudio.loop = false; storyAudio.load();
-      $(".track-copy small", player).textContent = `${active + 1} / ${tracks.length}`; $(".track-copy h3", player).textContent = track.title; $(".track-copy p", player).textContent = track.artist;
-      const placeholder = $(".album-art span", player); placeholder.hidden = Boolean(track.coverUrl);
+      active = (index + tracks.length) % tracks.length; const track = tracks[active]; loadStoryTrack(active, autoplay);
+      $(".track-copy b", player).textContent = `${active + 1} / ${tracks.length}`; $(".track-copy h3", player).textContent = track.title; $(".track-copy p", player).textContent = track.artist;
+      const placeholder = $(".album-art span", player); placeholder.hidden = false;
+      $(".album-art img", player).onload = () => { placeholder.hidden = true; };
       setImage($(".album-art img", player), track.coverUrl, track.title, () => { placeholder.hidden = false; });
       $$(".playlist button", player).forEach((button, buttonIndex) => button.classList.toggle("is-active", buttonIndex === active)); if (autoplay) storyAudio.play().catch(() => {});
     }
     tracks.forEach((track, index) => { const button = document.createElement("button"); button.type = "button"; button.innerHTML = `<span>${String(index + 1).padStart(2, "0")}</span><strong></strong><small></small>`; $("strong", button).textContent = track.title; $("small", button).textContent = track.artist; button.addEventListener("click", () => select(index, true)); $(".playlist", player).append(button); });
     $(".play-button", player).addEventListener("click", () => storyAudio.paused ? storyAudio.play().catch(() => {}) : storyAudio.pause());
     $(".track-prev", player).addEventListener("click", () => select(active - 1, true)); $(".track-next", player).addEventListener("click", () => select(active + 1, true));
-    const syncPlay = () => { $(".play-button span", player).textContent = storyAudio.paused ? "▶" : "Ⅱ"; };
-    const syncTime = () => { $(".seek", player).value = storyAudio.duration ? String((storyAudio.currentTime / storyAudio.duration) * 100) : "0"; };
-    const ended = () => select(active + 1, true); storyAudio.addEventListener("play", syncPlay); storyAudio.addEventListener("pause", syncPlay); storyAudio.addEventListener("timeupdate", syncTime); storyAudio.addEventListener("ended", ended);
+    const formatTime = value => Number.isFinite(value) ? `${Math.floor(value / 60)}:${String(Math.floor(value % 60)).padStart(2, "0")}` : "0:00";
+    const syncPlay = () => { const playing = !storyAudio.paused; $(".play-button span", player).textContent = playing ? "Ⅱ" : "▶"; $(".vinyl-disc", player).classList.toggle("is-playing", playing); };
+    const syncTime = () => { $(".seek", player).value = storyAudio.duration ? String((storyAudio.currentTime / storyAudio.duration) * 100) : "0"; $(".current-time", player).textContent = formatTime(storyAudio.currentTime); $(".duration-time", player).textContent = formatTime(storyAudio.duration); };
+    const ended = () => { if (tracks.length > 1) select(active + 1, true); else syncPlay(); }; storyAudio.addEventListener("play", syncPlay); storyAudio.addEventListener("pause", syncPlay); storyAudio.addEventListener("timeupdate", syncTime); storyAudio.addEventListener("loadedmetadata", syncTime); storyAudio.addEventListener("ended", ended);
     $(".seek", player).addEventListener("input", event => { if (storyAudio.duration) storyAudio.currentTime = storyAudio.duration * Number(event.target.value) / 100; });
-    roomContent.append(player); select(0); return () => { storyAudio.pause(); storyAudio.removeAttribute("src"); storyAudio.load(); storyAudio.removeEventListener("play", syncPlay); storyAudio.removeEventListener("pause", syncPlay); storyAudio.removeEventListener("timeupdate", syncTime); storyAudio.removeEventListener("ended", ended); };
+    roomContent.append(player); select(active); syncPlay(); syncTime(); return () => { if (tracks.length > 1) storyAudio.loop = true; storyAudio.removeEventListener("play", syncPlay); storyAudio.removeEventListener("pause", syncPlay); storyAudio.removeEventListener("timeupdate", syncTime); storyAudio.removeEventListener("loadedmetadata", syncTime); storyAudio.removeEventListener("ended", ended); };
   }
   function renderLetter() {
     let timer = 0; let revealTimer = 0; const shell = document.createElement("div"); shell.className = "letter-experience";
@@ -154,7 +192,7 @@
     roomContent.append(shell); return () => { clearInterval(timer); clearTimeout(revealTimer); };
   }
 
-  function renderAll() { clearTimeout(transitionTimer); roomCleanup(); roomCleanup = () => {}; storyAudio.pause(); storyAudio.removeAttribute("src"); opened.clear(); $("#open-wrap").classList.remove("is-opening"); $("#greeting-art").removeAttribute("src"); $("#greeting-art").hidden = true; $("#finale-art").removeAttribute("src"); $("#finale-art").hidden = true; $("#finale-skyline").style.backgroundImage = ""; $("#module-grid").replaceChildren(); applyTheme(); renderStaticCopy(); }
+  function renderAll() { clearOpeningTransition(); roomCleanup(); roomCleanup = () => {}; storyAudio.pause(); storyAudio.removeAttribute("src"); storyAudio.load(); activeTrackIndex = 0; opened.clear(); $("#open-wrap").classList.remove("is-opening"); $("#greeting-art").removeAttribute("src"); $("#greeting-art").hidden = true; $("#finale-art").removeAttribute("src"); $("#finale-art").hidden = true; $("#finale-skyline").style.backgroundImage = ""; $("#module-grid").replaceChildren(); applyTheme(); renderStaticCopy(); }
   async function loadGift() {
     const projectId = Project.projectIdFromPath(location.pathname, location.search) || "sample-demo";
     try {
@@ -162,14 +200,14 @@
     } catch (error) { showState("Gift belum bisa dibuka", error.status === 404 ? "Link tidak ditemukan atau gift belum dipublish." : error.message, true); }
   }
   $("[data-retry]").addEventListener("click", () => location.reload());
-  $("#open-wrap").addEventListener("click", event => { prepareGreeting(); event.currentTarget.classList.add("is-opening"); clearTimeout(transitionTimer); transitionTimer = setTimeout(() => showScreen("greeting"), matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 650); });
+  $("#open-wrap").addEventListener("click", event => { if (event.currentTarget.classList.contains("is-opening")) return; prepareGreeting(); startOpeningMusic(); event.currentTarget.classList.add("is-opening"); runOpeningTransition(); });
   $("#enter-story").addEventListener("click", () => { renderMenu(); showScreen("menu"); });
   $("#room-back").addEventListener("click", returnToMenu);
   $("#finale-launch").addEventListener("click", () => { prepareFinale(); showScreen("finale"); });
-  $("#replay-story").addEventListener("click", () => { opened.clear(); $("#open-wrap").classList.remove("is-opening"); renderMenu(); showScreen("gate"); });
+  $("#replay-story").addEventListener("click", () => { clearOpeningTransition(); opened.clear(); $("#open-wrap").classList.remove("is-opening"); renderMenu(); showScreen("gate"); });
   document.addEventListener("keydown", event => { if (event.key !== "Escape") return; if ($("#room").classList.contains("is-active")) returnToMenu(); else if ($("#finale").classList.contains("is-active")) showScreen("menu"); });
   window.addEventListener("message", event => { if (event.origin !== location.origin || event.data?.type !== "storybook-preview" || !event.data.project) return; project = Project.normalizeProject(event.data.project, event.data.project.projectId || "sample-demo"); renderAll(); stateBox.hidden = true; app.hidden = false; showScreen("gate", { focus: false }); });
-  window.addEventListener("pagehide", () => { clearTimeout(transitionTimer); roomCleanup(); storyAudio.pause(); storyAudio.removeAttribute("src"); });
+  window.addEventListener("pagehide", () => { clearOpeningTransition(); roomCleanup(); storyAudio.pause(); storyAudio.removeAttribute("src"); });
   if (new URLSearchParams(location.search).get("preview") === "1") showState("Menyiapkan preview...", "Studio sedang mengirim perubahan terbaru.");
   else loadGift();
 })();

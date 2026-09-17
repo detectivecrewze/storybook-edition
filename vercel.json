@@ -6,8 +6,8 @@
   "outputDirectory": "dist",
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/gift/:id", "destination": "/gift" },
-    { "source": "/studio/:id", "destination": "/studio" }
+    { "source": "/gift/:id", "destination": "/gift/index.html" },
+    { "source": "/studio/:id", "destination": "/studio/index.html" }
   ],
   "headers": [
     {
