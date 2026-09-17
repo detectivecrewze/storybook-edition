@@ -211,25 +211,44 @@
     const host = $("#atlas-list"); host.replaceChildren();
     draft.atlas.locations.forEach((location, index) => {
       const fragment = $("#atlas-template").content.cloneNode(true); const card = $("article", fragment);
+      card.dataset.id = location.id;
       const label = $(".atlas-label", card); const locationInput = $(".atlas-location-input", card); const note = $(".atlas-note", card); const status = $(".atlas-status", card); const preview = $(".atlas-photo-preview", card); const removePhotoBtn = $(".remove-atlas-photo", card);
       const numEl = $(".atlas-index-num", card); if (numEl) numEl.textContent = String(index + 1);
       label.value = location.label; locationInput.value = Maps.validCoordinates(location.latitude, location.longitude) ? Maps.formatCoordinates(location.latitude, location.longitude) : location.mapsUrl; note.value = location.note;
       setImagePreview(preview, { mediaType: "image", mediaUrl: location.photoUrl });
       if (removePhotoBtn) removePhotoBtn.hidden = !location.photoUrl;
-      const updateStatus = state => { const result = atlasStatus(location, state); status.className = `atlas-status is-${result.kind}`; status.textContent = `${result.kind === "valid" ? "✓" : result.kind === "invalid" ? "!" : "i"} ${result.text}`; };
-      label.addEventListener("input", event => { location.label = event.target.value; updateStatus(); queueSave(); });
-      label.addEventListener("blur", () => { location.label = label.value.trim(); queueSave(); });
-      note.addEventListener("input", event => { location.note = event.target.value; queueSave(); });
-      note.addEventListener("blur", () => { location.note = note.value.trim(); queueSave(); });
+      const getActiveLocation = () => draft.atlas.locations.find(entry => entry.id === location.id) || draft.atlas.locations[index] || location;
+      const updateStatus = state => { const loc = getActiveLocation(); const result = atlasStatus(loc, state); status.className = `atlas-status is-${result.kind}`; status.textContent = `${result.kind === "valid" ? "✓" : result.kind === "invalid" ? "!" : "i"} ${result.text}`; };
+      label.addEventListener("input", event => { const loc = getActiveLocation(); location.label = event.target.value; if (loc) loc.label = event.target.value; updateStatus(); queueSave(); });
+      label.addEventListener("blur", () => { const loc = getActiveLocation(); location.label = label.value.trim(); if (loc) loc.label = label.value.trim(); queueSave(); });
+      note.addEventListener("input", event => { const loc = getActiveLocation(); location.note = event.target.value; if (loc) loc.note = event.target.value; queueSave(); });
+      note.addEventListener("blur", () => { const loc = getActiveLocation(); location.note = note.value.trim(); if (loc) loc.note = note.value.trim(); queueSave(); });
       let resolveTimer = 0;
       const resolveLocation = (formatField = false) => {
         resolveTimer = 0; const value = locationInput.value.trim();
-        if (!value) { location.latitude = null; location.longitude = null; location.mapsUrl = ""; updateStatus(); queueSave(); return; }
-        if (Maps.isShortMapsUrl(value)) { location.latitude = null; location.longitude = null; location.mapsUrl = value; updateStatus("short"); queueSave(); return; }
+        const loc = getActiveLocation();
+        if (!value) {
+          location.latitude = null; location.longitude = null; location.mapsUrl = "";
+          if (loc) { loc.latitude = null; loc.longitude = null; loc.mapsUrl = ""; }
+          updateStatus(); queueSave(); return;
+        }
+        if (Maps.isShortMapsUrl(value)) {
+          location.latitude = null; location.longitude = null; location.mapsUrl = value;
+          if (loc) { loc.latitude = null; loc.longitude = null; loc.mapsUrl = value; }
+          updateStatus("short"); queueSave(); return;
+        }
         const result = Maps.extractCoordinates(value);
-        if (!result) { location.latitude = null; location.longitude = null; location.mapsUrl = value; updateStatus("invalid"); queueSave(); return; }
+        if (!result) {
+          location.latitude = null; location.longitude = null; location.mapsUrl = value;
+          if (loc) { loc.latitude = null; loc.longitude = null; loc.mapsUrl = value; }
+          updateStatus("invalid"); queueSave(); return;
+        }
         location.latitude = result.latitude; location.longitude = result.longitude;
         location.mapsUrl = Maps.canonicalGoogleMapsUrl(result.latitude, result.longitude);
+        if (loc) {
+          loc.latitude = result.latitude; loc.longitude = result.longitude;
+          loc.mapsUrl = Maps.canonicalGoogleMapsUrl(result.latitude, result.longitude);
+        }
         if (formatField) locationInput.value = Maps.formatCoordinates(result.latitude, result.longitude);
         updateStatus(); queueSave();
       };
@@ -237,8 +256,13 @@
         const raw = locationInput.value.trim();
         const direct = Maps.extractCoordinates(raw);
         if (direct) {
+          const loc = getActiveLocation();
           location.latitude = direct.latitude; location.longitude = direct.longitude;
           location.mapsUrl = Maps.canonicalGoogleMapsUrl(direct.latitude, direct.longitude);
+          if (loc) {
+            loc.latitude = direct.latitude; loc.longitude = direct.longitude;
+            loc.mapsUrl = Maps.canonicalGoogleMapsUrl(direct.latitude, direct.longitude);
+          }
           updateStatus();
         }
         clearTimeout(resolveTimer); resolveTimer = setTimeout(() => resolveLocation(false), 350);
@@ -248,20 +272,36 @@
       $(".atlas-photo-file", card).addEventListener("change", event => {
         const file = event.target.files[0];
         event.target.value = "";
-        clearTimeout(resolveTimer); resolveLocation(false); syncAtlasCard(location, card);
-        uploadAtlasPhoto(file, location, card);
+        clearTimeout(resolveTimer); resolveLocation(false);
+        const loc = getActiveLocation();
+        syncAtlasCard(loc, card);
+        uploadAtlasPhoto(file, loc, card);
       });
       if (removePhotoBtn) {
         removePhotoBtn.addEventListener("click", () => {
+          const loc = getActiveLocation();
           location.photoUrl = "";
+          if (loc) loc.photoUrl = "";
           removePhotoBtn.hidden = true;
           setImagePreview(preview, { mediaType: "image", mediaUrl: "" });
           atlasUploadStatus(card, "");
           queueSave(); sendPreview();
         });
       }
-      $("[data-remove]", card).addEventListener("click", () => { syncAll(); draft.atlas.locations.splice(index, 1); renderAtlas(); queueSave(); });
-      $$("[data-move]", card).forEach(button => button.addEventListener("click", () => { syncAll(); swap(draft.atlas.locations, index, button.dataset.move === "up" ? -1 : 1); renderAtlas(); queueSave(); }));
+      $("[data-remove]", card).addEventListener("click", () => {
+        syncAll();
+        const currentIndex = draft.atlas.locations.findIndex(entry => entry.id === location.id);
+        const targetIndex = currentIndex >= 0 ? currentIndex : index;
+        draft.atlas.locations.splice(targetIndex, 1);
+        renderAtlas(); queueSave();
+      });
+      $$("[data-move]", card).forEach(button => button.addEventListener("click", () => {
+        syncAll();
+        const currentIndex = draft.atlas.locations.findIndex(entry => entry.id === location.id);
+        const targetIndex = currentIndex >= 0 ? currentIndex : index;
+        swap(draft.atlas.locations, targetIndex, button.dataset.move === "up" ? -1 : 1);
+        renderAtlas(); queueSave();
+      }));
       updateStatus(); I18n.apply(card); host.append(fragment);
     });
     dragSort(host, draft.atlas.locations, () => { syncAll(); renderAtlas(); });
@@ -314,7 +354,7 @@
       if (artist) track.artist = artist.value.trim();
     });
     $$(".atlas-editor", $("#atlas-list")).forEach((card, index) => {
-      const loc = draft.atlas.locations[index];
+      const loc = draft.atlas.locations.find(entry => entry.id === card.dataset.id) || draft.atlas.locations[index];
       if (loc) syncAtlasCard(loc, card);
     });
   }

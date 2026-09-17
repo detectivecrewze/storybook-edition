@@ -33,13 +33,23 @@
     if (!source || isShortMapsUrl(source)) return null;
     const decoded = (() => { try { return decodeURIComponent(source); } catch { return source; } })();
     const patterns = [
+      // Tier 1: Search & place paths (/maps/search/lat,lng or /maps/place/lat,lng)
+      /(?:\/maps\/(?:search|place)\/)(-?\d+(?:\.\d+)?)[,\s+]+(-?\d+(?:\.\d+)?)(?:[/?#&]|$)/i,
+      // Tier 2: Query parameters (q, query, destination, ll)
+      /[?&](?:q|query|destination|ll)=(?:loc:)?(-?\d+(?:\.\d+)?)[,\s+]+(-?\d+(?:\.\d+)?)(?:[&/#]|$)/i,
+      // Tier 2b: Center query parameter
+      /[?&]center=(-?\d+(?:\.\d+)?)[,\s+]+(-?\d+(?:\.\d+)?)(?:[&/#]|$)/i,
+      // Tier 3: Protobuf parameters (!3d<lat>!4d<lng>)
       /!3d(-?\d+(?:\.\d+)?)!4d(-?\d+(?:\.\d+)?)/i,
-      /@(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/i,
-      /[?&](?:q|ll|destination|center)=(-?\d+(?:\.\d+)?),\s*(-?\d+(?:\.\d+)?)/i
+      // Tier 4: Camera viewport fallback (@<lat>,<lng>)
+      /@(-?\d+(?:\.\d+)?)[,\s+]+(-?\d+(?:\.\d+)?)/i
     ];
     for (const pattern of patterns) {
       const match = decoded.match(pattern);
-      if (match) return coordinatePair(match[1], match[2]);
+      if (match) {
+        const pair = coordinatePair(match[1], match[2]);
+        if (pair) return pair;
+      }
     }
     return null;
   }
@@ -49,7 +59,7 @@
     if (!source || isShortMapsUrl(source)) return null;
     const fromMaps = extractGoogleMapsCoordinates(source);
     if (fromMaps) return { ...fromMaps, source: "maps" };
-    const direct = source.match(/^(-?\d+(?:\.\d+)?)\s*(?:,|;|\s)\s*(-?\d+(?:\.\d+)?)$/);
+    const direct = source.match(/^\s*\(?\[?\s*(-?\d+(?:\.\d+)?)\s*(?:,|;|\s)\s*(-?\d+(?:\.\d+)?)\s*\)?\]?\s*$/);
     if (!direct) return null;
     const pair = coordinatePair(direct[1], direct[2]);
     return pair ? { ...pair, source: "coordinates" } : null;

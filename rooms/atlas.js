@@ -1,19 +1,8 @@
 (function (root) {
   "use strict";
 
-  const EARTH_RADIUS_KM = 6371;
   const isFiniteCoordinate = (latitude, longitude) => Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude)) && Number(latitude) >= -90 && Number(latitude) <= 90 && Number(longitude) >= -180 && Number(longitude) <= 180;
   const mapsUrl = location => `https://www.google.com/maps/search/?api=1&query=${Number(location.latitude)},${Number(location.longitude)}`;
-  function haversine(first, second) {
-    const radians = value => Number(value) * Math.PI / 180;
-    const deltaLatitude = radians(second.latitude - first.latitude);
-    const deltaLongitude = radians(second.longitude - first.longitude);
-    const startLatitude = radians(first.latitude);
-    const endLatitude = radians(second.latitude);
-    const value = Math.sin(deltaLatitude / 2) ** 2 + Math.cos(startLatitude) * Math.cos(endLatitude) * Math.sin(deltaLongitude / 2) ** 2;
-    return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
-  }
-  function totalDistance(locations) { return locations.slice(1).reduce((sum, location, index) => sum + haversine(locations[index], location), 0); }
   function element(tag, className, text) { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; }
 
   function locationCard(location, index, language) {
@@ -44,12 +33,17 @@
 
     const shell = element("div", "atlas-room");
     const stats = element("div", "atlas-stats");
-    const placeStat = element("div", "atlas-stat"); placeStat.append(element("strong", "", String(locations.length)), element("span", "", language === "en" ? "places" : "tempat"));
-    const distanceStat = element("div", "atlas-stat"); distanceStat.append(element("strong", "", totalDistance(locations).toFixed(locations.length > 1 ? 1 : 0)), element("span", "", "km"));
-    stats.append(placeStat, distanceStat);
+    const placeStat = element("div", "atlas-stat");
+    placeStat.append(
+      element("strong", "", String(locations.length)),
+      element("span", "", language === "en" ? (locations.length === 1 ? "place" : "places") : "tempat")
+    );
+    stats.append(placeStat);
     const mapFrame = element("div", "atlas-map-frame");
-    const mapNode = element("div", "atlas-map"); mapNode.setAttribute("aria-label", language === "en" ? "Interactive map of meaningful places" : "Peta interaktif tempat-tempat berarti"); mapFrame.append(mapNode);
-    const notice = element("div", "atlas-map-notice"); notice.hidden = true; mapFrame.append(notice);
+    const mapNode = element("div", "atlas-map"); mapNode.setAttribute("aria-label", language === "en" ? "Interactive map of meaningful places" : "Peta interaktif tempat-tempat berarti");
+    const noise = element("div", "map-noise");
+    const notice = element("div", "atlas-map-notice"); notice.hidden = true;
+    mapFrame.append(mapNode, noise, notice);
     const controls = element("div", "atlas-controls");
     const previous = element("button", "atlas-control", "←"); previous.type = "button"; previous.setAttribute("aria-label", language === "en" ? "Previous place" : "Lokasi sebelumnya");
     const current = element("span", "atlas-current", `1 / ${locations.length}`);
@@ -58,7 +52,7 @@
     controls.append(previous, current, next, fit); shell.append(stats, mapFrame, controls); host.append(shell);
 
     map = root.L.map(mapNode, { zoomControl: true, attributionControl: true, keyboard: true, tap: true, scrollWheelZoom: true });
-    tileLayer = root.L.tileLayer("https://tile.openstreetmap.de/{z}/{x}/{y}.png", { maxZoom: 18, attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' });
+    tileLayer = root.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, subdomains: "abc", attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' });
     tileLayer.on("tileerror", () => {
       tileErrors += 1;
       if (tileErrors < 4 || !notice.hidden) return;
@@ -70,22 +64,55 @@
     });
     tileLayer.addTo(map);
     const bounds = root.L.latLngBounds(locations.map(location => [location.latitude, location.longitude]));
-    const route = root.L.polyline(locations.map(location => [location.latitude, location.longitude]), { color: "#c9182b", weight: 4, opacity: .9, dashArray: "7 10", lineCap: "round", className: "atlas-web-route" }).addTo(map);
-    if (!reducedMotion && route._path) { const length = route._path.getTotalLength?.() || 1000; route._path.style.strokeDasharray = `${length}`; route._path.style.strokeDashoffset = `${length}`; requestAnimationFrame(() => { route._path.style.transition = "stroke-dashoffset 1.2s ease"; route._path.style.strokeDashoffset = "0"; }); }
+    let route = null;
+    if (locations.length >= 2) {
+      route = root.L.polyline(locations.map(location => [location.latitude, location.longitude]), { color: "#c0392b", weight: 2.5, opacity: .85, dashArray: "8 5", lineCap: "round", className: "atlas-web-route" }).addTo(map);
+      if (!reducedMotion && route._path) { const length = route._path.getTotalLength?.() || 1000; route._path.style.strokeDasharray = `${length}`; route._path.style.strokeDashoffset = `${length}`; requestAnimationFrame(() => { route._path.style.transition = "stroke-dashoffset 1.2s ease"; route._path.style.strokeDashoffset = "0"; }); }
+    }
     const markers = locations.map((location, index) => {
-      const icon = root.L.divIcon({ className: "atlas-pin-shell", html: `<span class="atlas-pin"><b>${index + 1}</b></span>`, iconSize: [42, 50], iconAnchor: [21, 46], popupAnchor: [0, -42] });
+      const icon = root.L.divIcon({
+        className: "atlas-pin-shell",
+        html: `<div class="atlas-pin-wrap"><div class="atlas-pin-head" id="atlas-pin-head-${index}"><span class="atlas-pin-num">${index + 1}</span></div><div class="atlas-pin-shadow"></div></div>`,
+        iconSize: [28, 34],
+        iconAnchor: [14, 34],
+        popupAnchor: [0, -34]
+      });
       const marker = root.L.marker([location.latitude, location.longitude], { icon, keyboard: true, opacity: reducedMotion ? 1 : 0 }).addTo(map);
-      marker.bindPopup(locationCard(location, index, language), { className: "atlas-comic-popup", maxWidth: 280, minWidth: 210 });
-      marker.on("click", () => { activeIndex = index; current.textContent = `${index + 1} / ${locations.length}`; });
+      marker.bindPopup(locationCard(location, index, language), { className: "atlas-comic-popup", maxWidth: 320, minWidth: 260, autoPanPadding: [20, 20] });
+      marker.on("click", () => {
+        activeIndex = index;
+        current.textContent = `${index + 1} / ${locations.length}`;
+        updateActiveMarker(activeIndex);
+      });
       if (!reducedMotion) later(() => marker.setOpacity(1), index * 100); return marker;
     });
-    function fitAll() { locations.length === 1 ? map.setView([locations[0].latitude, locations[0].longitude], 13) : map.fitBounds(bounds, { padding: [38, 38], maxZoom: 14 }); }
-    function select(index) { activeIndex = (index + locations.length) % locations.length; const location = locations[activeIndex]; current.textContent = `${activeIndex + 1} / ${locations.length}`; map.flyTo([location.latitude, location.longitude], Math.max(map.getZoom(), 13), { animate: !reducedMotion, duration: .65 }); markers[activeIndex].openPopup(); }
+    function updateActiveMarker(index) {
+      markers.forEach((marker, i) => {
+        const head = marker.getElement?.()?.querySelector(".atlas-pin-head") || document.getElementById(`atlas-pin-head-${i}`);
+        if (head) head.classList.toggle("is-active", i === index);
+      });
+    }
+    function fitAll() {
+      if (locations.length === 1) {
+        map.flyTo([locations[0].latitude, locations[0].longitude], 13, { animate: !reducedMotion, duration: reducedMotion ? 0 : 0.65 });
+      } else {
+        map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 14, animate: !reducedMotion, duration: reducedMotion ? 0 : 0.85 });
+      }
+    }
+    function select(index) {
+      activeIndex = (index + locations.length) % locations.length;
+      const location = locations[activeIndex];
+      current.textContent = `${activeIndex + 1} / ${locations.length}`;
+      updateActiveMarker(activeIndex);
+      map.flyTo([location.latitude, location.longitude], Math.max(map.getZoom(), 13), { animate: !reducedMotion, duration: reducedMotion ? 0 : 0.65 });
+      markers[activeIndex].openPopup();
+    }
     on(previous, "click", () => select(activeIndex - 1)); on(next, "click", () => select(activeIndex + 1)); on(fit, "click", fitAll);
     on(shell, "keydown", event => { if (event.key === "ArrowLeft") { event.preventDefault(); select(activeIndex - 1); } else if (event.key === "ArrowRight") { event.preventDefault(); select(activeIndex + 1); } });
     requestAnimationFrame(() => {
       map.invalidateSize();
       fitAll();
+      updateActiveMarker(0);
       if (locations.length > 0 && markers[0]) {
         later(() => markers[0].openPopup(), reducedMotion ? 50 : 250);
       }
@@ -96,5 +123,5 @@
     };
   }
 
-  root.StorybookAtlasRoom = { mount, haversine, totalDistance };
+  root.StorybookAtlasRoom = { mount };
 })(typeof globalThis !== "undefined" ? globalThis : window);

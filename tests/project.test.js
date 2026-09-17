@@ -67,6 +67,10 @@ test("Google Maps parser accepts full coordinate formats and rejects short links
     "https://www.google.com/maps?center=-6.2,106.8"
   ];
   pairs.forEach(url => assert.deepEqual(Maps.extractGoogleMapsCoordinates(url), { latitude: -6.2, longitude: 106.8 }));
+  assert.deepEqual(
+    Maps.extractCoordinates("https://www.google.com/maps/search/-6.243697337236942,+106.79772145306548/@-6.22806,106.71875,14z"),
+    { latitude: -6.243697337236942, longitude: 106.79772145306548, source: "maps" }
+  );
   assert.equal(Maps.extractGoogleMapsCoordinates("https://maps.app.goo.gl/abc"), null);
   assert.equal(Maps.validCoordinates(91, 106.8), false);
 });
