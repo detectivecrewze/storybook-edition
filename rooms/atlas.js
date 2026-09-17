@@ -107,12 +107,16 @@
         className: "atlas-comic-popup",
         maxWidth: 290,
         minWidth: 255,
-        autoPan: true,
-        autoPanPaddingTopLeft: [20, 20],
-        autoPanPaddingBottomRight: [20, 20]
+        autoPan: false
       });
-      marker.on("click", () => {
+      marker.on("click", (e) => {
+        if (e?.originalEvent) {
+          root.L?.DomEvent?.stopPropagation?.(e);
+        }
         cancelAnimation();
+        if (activeIndex === index && markers[index]?.isPopupOpen?.()) {
+          return;
+        }
         select(index);
       });
       return marker;
@@ -150,19 +154,54 @@
       }
     }
 
-    function select(index) {
+    let selectTimeout = null;
+    let selectMoveHandler = null;
+
+    function select(index, animate = true) {
+      if (destroyed || !map || locations.length === 0) return;
       activeIndex = (index + locations.length) % locations.length;
       const location = locations[activeIndex];
       current.textContent = `${activeIndex + 1} / ${locations.length}`;
       updateActiveMarker(activeIndex);
-      const targetZoom = Math.max(map.getZoom(), 13);
+      const targetZoom = 13;
       const cameraCenter = getCameraCenterForPin(location, targetZoom);
-      if (!reducedMotion) {
-        map.flyTo(cameraCenter, targetZoom, { duration: 0.65 });
+
+      if (selectTimeout) {
+        clearTimeout(selectTimeout);
+        selectTimeout = null;
+      }
+      if (selectMoveHandler) {
+        map.off("moveend", selectMoveHandler);
+        selectMoveHandler = null;
+      }
+
+      if (!reducedMotion && animate) {
+        map.closePopup();
+        map.flyTo(cameraCenter, targetZoom, {
+          duration: 0.8,
+          easeLinearity: 0.25
+        });
+
+        const targetIndex = activeIndex;
+        selectMoveHandler = () => {
+          map.off("moveend", selectMoveHandler);
+          selectMoveHandler = null;
+          if (selectTimeout) {
+            clearTimeout(selectTimeout);
+            selectTimeout = null;
+          }
+          if (!destroyed && map && activeIndex === targetIndex) {
+            markers[targetIndex]?.openPopup();
+          }
+        };
+
+        map.once("moveend", selectMoveHandler);
+        selectTimeout = setTimeout(selectMoveHandler, 950);
+        timers.add(selectTimeout);
       } else {
         map.setView(cameraCenter, targetZoom);
+        markers[activeIndex]?.openPopup();
       }
-      markers[activeIndex].openPopup();
     }
 
     let cancelAnimation = () => {};
@@ -180,6 +219,11 @@
       cancelAnimation = () => {
         aborted = true;
         if (moveTimeout) { clearTimeout(moveTimeout); moveTimeout = null; }
+        if (selectTimeout) { clearTimeout(selectTimeout); selectTimeout = null; }
+        if (selectMoveHandler && map) {
+          map.off("moveend", selectMoveHandler);
+          selectMoveHandler = null;
+        }
         map?.off("moveend");
       };
 

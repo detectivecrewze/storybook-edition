@@ -44,7 +44,9 @@
   .atlas-stats { margin-bottom: 8px; }
   .atlas-stat { min-width: 88px; padding: 6px 12px; }
   .atlas-map-frame { border-width: 3px; border-radius: 14px; box-shadow: 4px 5px 0 color-mix(in srgb,var(--theme-ink) 80%,transparent); }
-  .atlas-map { height: min(48vh,420px); min-height: 300px; }
+  .atlas-map { height: clamp(340px,52vh,460px); }
+  .atlas-popup-card { width: 240px; padding: 10px 12px; }
+  .atlas-popup-photo { height: 125px; margin-bottom: 6px; }
   .atlas-controls { margin-top: 10px; }
   .atlas-fit { flex-basis: 100%; max-width: 220px; }
 }
