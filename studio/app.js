@@ -269,98 +269,181 @@
   async function imageWebp(file) { return withOriginalImageFallback(file, async () => { const bitmap = await createImageBitmap(file); try { const targetRatio = 4 / 3; let sx = 0, sy = 0, sw = bitmap.width, sh = bitmap.height; if (sw / sh > targetRatio) { sw = sh * targetRatio; sx = (bitmap.width - sw) / 2; } else { sh = sw / targetRatio; sy = (bitmap.height - sh) / 2; } const width = Math.min(1600, Math.round(sw)); const height = Math.round(width / targetRatio); const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height; const context = canvas.getContext("2d"); if (!context) throw new Error("Foto tidak dapat diproses oleh browser ini."); context.drawImage(bitmap, sx, sy, sw, sh, 0, 0, width, height); return await webpFile(canvas, file, .86); } finally { bitmap.close(); } }); }
   async function imageWebpPreserve(file) { return withOriginalImageFallback(file, async () => { const bitmap = await createImageBitmap(file); try { const scale = Math.min(1, 1200 / Math.max(bitmap.width, bitmap.height)); const width = Math.max(1, Math.round(bitmap.width * scale)); const height = Math.max(1, Math.round(bitmap.height * scale)); const canvas = document.createElement("canvas"); canvas.width = width; canvas.height = height; const context = canvas.getContext("2d"); if (!context) throw new Error("Foto tidak dapat diproses oleh browser ini."); context.drawImage(bitmap, 0, 0, width, height); return await webpFile(canvas, file, .78); } finally { bitmap.close(); } }); }
 
-  function openCropperModal(file, { aspectRatio = 4 / 3, title = "" } = {}) {
-    return new Promise(resolve => {
-      if (!window.Cropper) {
-        console.warn("[Storybook Studio] Cropper.js not available; using original image", { projectId, name: file?.name });
-        return resolve(file);
-      }
-      const dialog = $("#crop-dialog"); const workspace = $("#crop-workspace");
-      if (!dialog || !workspace) return resolve(file);
-      const titleNode = $("#crop-title");
-      if (titleNode) titleNode.textContent = title || I18n.t("studio.cropTitle") || "Sesuaikan Foto";
-      I18n.apply(dialog);
-      workspace.replaceChildren();
-      const imageNode = document.createElement("img");
-      imageNode.id = "crop-source-image"; imageNode.alt = "Crop source";
-      const objectUrl = URL.createObjectURL(file);
-      imageNode.src = objectUrl; workspace.append(imageNode);
-      const ratio = Number(aspectRatio) || (4 / 3);
-      const template = `
-        <cropper-canvas background>
-          <cropper-image rotatable scalable translatable></cropper-image>
-          <cropper-shade></cropper-shade>
-          <cropper-handle action="select" plain></cropper-handle>
-          <cropper-selection aspect-ratio="${ratio}" initial-coverage="0.88" movable resizable theme-color="#c9182b">
-            <cropper-grid role="grid" bordered covered></cropper-grid>
-            <cropper-crosshair centered></cropper-crosshair>
-            <cropper-handle action="move" theme-color="rgba(201, 24, 43, 0.4)"></cropper-handle>
-            <cropper-handle action="n-resize"></cropper-handle>
-            <cropper-handle action="e-resize"></cropper-handle>
-            <cropper-handle action="s-resize"></cropper-handle>
-            <cropper-handle action="w-resize"></cropper-handle>
-            <cropper-handle action="ne-resize"></cropper-handle>
-            <cropper-handle action="nw-resize"></cropper-handle>
-            <cropper-handle action="se-resize"></cropper-handle>
-            <cropper-handle action="sw-resize"></cropper-handle>
-          </cropper-selection>
-        </cropper-canvas>
-      `;
-      let cropper = null;
-      try {
-        cropper = new window.Cropper(imageNode, { container: workspace, template });
-      } catch (error) {
-        console.error("[Storybook Studio] Failed to initialize Cropper", error);
-        URL.revokeObjectURL(objectUrl);
-        return resolve(file);
-      }
-      let settled = false;
-      const cleanup = () => {
-        if (settled) return; settled = true;
-        try { cropper?.destroy?.(); } catch {}
-        workspace.replaceChildren(); URL.revokeObjectURL(objectUrl);
-        if (dialog.open) dialog.close();
-        window.removeEventListener("keydown", onKeyDown);
-      };
-      const onCancel = () => { cleanup(); resolve(null); };
-      const onRotate = () => {
-        try { const cropperImage = cropper.getCropperImage(); if (cropperImage) cropperImage.$rotate("90deg"); }
-        catch (error) { console.warn("[Storybook Studio] Cropper rotate error", error); }
-      };
-      const onReset = () => {
-        try {
-          const cropperImage = cropper.getCropperImage(); if (cropperImage) cropperImage.$resetTransform();
-          const selection = cropper.getCropperSelection(); if (selection) selection.$reset();
-        } catch (error) { console.warn("[Storybook Studio] Cropper reset error", error); }
-      };
-      const onApply = async () => {
-        const applyBtn = $("#crop-apply");
-        if (applyBtn) { applyBtn.disabled = true; applyBtn.textContent = draft?.settings?.language === "en" ? "Processing..." : "Memproses..."; }
-        try {
-          const selection = cropper.getCropperSelection();
-          if (!selection) throw new Error("Selection element not found");
-          const targetWidth = ratio === 1 ? 1200 : 1600;
-          const canvas = await selection.$toCanvas({ width: targetWidth });
-          if (!canvas) throw new Error("Canvas generation failed");
-          const blob = await new Promise((res, rej) => {
-            canvas.toBlob(b => b ? res(b) : rej(new Error("Gagal mengonversi foto")), "image/webp", .86);
-          });
-          const croppedFile = new File([blob], `${file.name.replace(/\.[^.]+$/, "") || "photo"}.webp`, { type: "image/webp" });
-          cleanup(); resolve(croppedFile);
-        } catch (error) {
-          console.error("[Storybook Studio] Cropper export error", error);
-          cleanup(); resolve(file);
-        } finally {
-          if (applyBtn) { applyBtn.disabled = false; applyBtn.textContent = I18n.t("studio.cropUse") || "Gunakan Foto"; }
+  let photoCropper = null;
+  let pendingPhotoCrop = null;
+  let cropZoomValue = 0;
+  let cropRotation = 0;
+
+  function closePhotoCropper() {
+    if (photoCropper) {
+      try { photoCropper.destroy(); } catch {}
+    }
+    photoCropper = null;
+    if (pendingPhotoCrop?.objectUrl) URL.revokeObjectURL(pendingPhotoCrop.objectUrl);
+    cropZoomValue = 0;
+    cropRotation = 0;
+    const source = $("#cropper-source");
+    if (source) source.removeAttribute("src");
+    const errorBox = $("#cropper-error");
+    if (errorBox) {
+      errorBox.hidden = true;
+      errorBox.textContent = "";
+    }
+    const zoomSlider = $("#cropper-zoom");
+    if (zoomSlider) zoomSlider.value = "0";
+    const dialog = $("#photo-crop-dialog");
+    if (dialog && dialog.open) dialog.close();
+  }
+
+  function cancelPhotoCrop() {
+    const resolve = pendingPhotoCrop?.resolve;
+    closePhotoCropper();
+    pendingPhotoCrop = null;
+    if (resolve) resolve(null);
+  }
+
+  async function applyDefaultCropZoom() {
+    if (!photoCropper) return;
+    await new Promise(resolve => requestAnimationFrame(resolve));
+    const image = photoCropper.getCropperImage();
+    const selection = photoCropper.getCropperSelection();
+    if (!image || !selection) return;
+    const imageRect = image.getBoundingClientRect();
+    const selectionRect = selection.getBoundingClientRect();
+    const coverScale = Math.max(
+      selectionRect.width / Math.max(1, imageRect.width),
+      selectionRect.height / Math.max(1, imageRect.height)
+    );
+    const zoomAmount = Math.min(1, Math.max(.25, coverScale - 1 + .04));
+    image.$zoom(zoomAmount);
+    cropZoomValue = Math.round(zoomAmount * 100);
+    const zoomSlider = $("#cropper-zoom");
+    if (zoomSlider) zoomSlider.value = String(cropZoomValue);
+  }
+
+  async function resetPhotoCropper() {
+    if (!photoCropper || !pendingPhotoCrop) return;
+    photoCropper.getCropperImage()?.$resetTransform();
+    const selection = photoCropper.getCropperSelection();
+    if (selection) {
+      selection.aspectRatio = pendingPhotoCrop.aspectRatio;
+      selection.initialAspectRatio = pendingPhotoCrop.aspectRatio;
+      selection.initialCoverage = 0.82;
+      selection.$reset();
+    }
+    cropZoomValue = 0;
+    cropRotation = 0;
+    const zoomSlider = $("#cropper-zoom");
+    if (zoomSlider) zoomSlider.value = "0";
+    await applyDefaultCropZoom();
+  }
+
+  async function confirmPhotoCrop() {
+    if (!photoCropper || !pendingPhotoCrop) return;
+    const confirmButton = $("#confirm-photo-crop");
+    const errorBox = $("#cropper-error");
+    if (confirmButton) {
+      confirmButton.disabled = true;
+      confirmButton.dataset.originalText = confirmButton.textContent;
+      confirmButton.textContent = I18n.t("studio.cropPreparing") || "Menyiapkan foto...";
+    }
+    if (errorBox) errorBox.hidden = true;
+    try {
+      const selection = photoCropper.getCropperSelection();
+      if (!selection) throw new Error("Area crop belum siap.");
+      const source = $("#cropper-source");
+      const cropperImage = photoCropper.getCropperImage();
+      const swapDimensions = Math.abs(cropRotation / 90) % 2 === 1;
+      const naturalWidth = swapDimensions ? source.naturalHeight : source.naturalWidth;
+      const naturalHeight = swapDimensions ? source.naturalWidth : source.naturalHeight;
+      const baseWidth = Math.max(1, swapDimensions ? cropperImage?.clientHeight || 1 : cropperImage?.clientWidth || 1);
+      const [matrixA = 1, matrixB = 0] = cropperImage?.$getTransform?.() || [];
+      const transformScale = Math.max(.0001, Math.hypot(matrixA, matrixB));
+      const selectedSourceWidth = selection.width * (naturalWidth / baseWidth) / transformScale;
+      const targetRatio = Number(pendingPhotoCrop.aspectRatio) || (4 / 3);
+      const largestCropWidth = targetRatio === 1
+        ? Math.max(1, Math.min(naturalWidth, naturalHeight, selectedSourceWidth))
+        : Math.max(1, Math.min(naturalWidth, naturalHeight * targetRatio, selectedSourceWidth));
+      const outputWidth = Math.max(1, Math.min(targetRatio === 1 ? 1200 : 1600, Math.round(largestCropWidth)));
+      const outputHeight = Math.max(1, Math.min(1200, Math.round(outputWidth / targetRatio)));
+      const canvas = await selection.$toCanvas({
+        width: outputWidth,
+        height: outputHeight,
+        beforeDraw(context, outputCanvas) {
+          context.fillStyle = "#fffdf8";
+          context.fillRect(0, 0, outputCanvas.width, outputCanvas.height);
         }
-      };
-      const onKeyDown = event => { if (event.key === "Escape") { event.preventDefault(); onCancel(); } };
-      $("#crop-cancel").onclick = onCancel; $("#crop-cancel-btn").onclick = onCancel;
-      $("#crop-rotate").onclick = onRotate; $("#crop-reset").onclick = onReset; $("#crop-apply").onclick = onApply;
-      dialog.onclick = event => { if (event.target === dialog) onCancel(); };
-      window.addEventListener("keydown", onKeyDown);
+      });
+      const blob = await new Promise((resolve, reject) => {
+        canvas.toBlob(b => b ? resolve(b) : reject(new Error("Gagal mengonversi foto")), "image/webp", .86);
+      });
+      const { file, resolve } = pendingPhotoCrop;
+      const croppedFile = new File([blob], `${file.name.replace(/\.[^.]+$/, "") || "photo"}-cropped.webp`, { type: "image/webp" });
+      closePhotoCropper();
+      if (resolve) resolve(croppedFile);
+    } catch (error) {
+      console.error("[Storybook Studio] Crop failed", error);
+      if (errorBox) {
+        errorBox.textContent = error.message || I18n.t("studio.cropError") || "Foto gagal dipotong.";
+        errorBox.hidden = false;
+      }
+    } finally {
+      if (confirmButton) {
+        confirmButton.disabled = false;
+        confirmButton.textContent = confirmButton.dataset.originalText || I18n.t("studio.cropUse") || "Gunakan foto";
+      }
+    }
+  }
+
+  async function openPhotoCropper(file, { aspectRatio = 4 / 3, title = "", description = "" } = {}) {
+    const CropperConstructor = window.Cropper?.default || window.Cropper;
+    if (typeof CropperConstructor !== "function") {
+      console.warn("[Storybook Studio] Cropper constructor not available, using raw file");
+      return file;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      alert(I18n.t("studio.maxImage"));
+      return null;
+    }
+    closePhotoCropper();
+    return new Promise(async (resolve) => {
+      const dialog = $("#photo-crop-dialog");
+      if (!dialog) return resolve(file);
+      const source = $("#cropper-source");
+      const titleEl = $("#photo-crop-title");
+      const descEl = $("#photo-crop-description");
+      if (titleEl) titleEl.textContent = title || I18n.t("studio.cropTitle") || "Pilih bagian terbaiknya";
+      if (descEl) descEl.textContent = description || (aspectRatio === 1 ? (I18n.t("studio.cropOpeningDesc") || "Area terang berasio 1:1 adalah bagian yang akan tampil di panel Opening.") : (I18n.t("studio.cropGalleryDesc") || "Area terang berasio 4:3 adalah bagian yang akan tampil di dalam cerita."));
+      I18n.apply(dialog);
+      const objectUrl = URL.createObjectURL(file);
+      pendingPhotoCrop = { file, objectUrl, aspectRatio, resolve };
+      source.src = objectUrl;
       dialog.showModal();
+      try {
+        await source.decode();
+        if (!pendingPhotoCrop || pendingPhotoCrop.objectUrl !== objectUrl) return;
+        photoCropper = new CropperConstructor(source, { container: $("#cropper-stage") });
+        await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+        const selection = photoCropper.getCropperSelection();
+        if (!selection) throw new Error("Crop selection element not ready");
+        selection.aspectRatio = aspectRatio;
+        selection.initialAspectRatio = aspectRatio;
+        selection.initialCoverage = 0.82;
+        selection.$reset();
+        await applyDefaultCropZoom();
+      } catch (error) {
+        console.error("[Storybook Studio] Cropper error during initialization", error);
+        const errorBox = $("#cropper-error");
+        if (errorBox) {
+          errorBox.textContent = error.message || I18n.t("studio.cropError") || "Gagal memuat foto ke cropper.";
+          errorBox.hidden = false;
+        }
+      }
     });
+  }
+
+  function openCropperModal(file, options) {
+    return openPhotoCropper(file, options);
   }
 
   async function uploadOpeningPanel(file, index) {
@@ -477,6 +560,35 @@
     $("#music-search").addEventListener("input", event => renderCatalog(event.target.value)); $("#music-upload").addEventListener("change", event => { const file = event.target.files[0]; event.target.value = ""; uploadAudio(file); });
     $("#previous-step").addEventListener("click", () => goToStep(currentStep - 1)); $("#next-step").addEventListener("click", () => { syncAll(); goToStep(currentStep + 1); }); $$("[data-step-target]").forEach(button => button.addEventListener("click", () => { syncAll(); goToStep(Number(button.dataset.stepTarget)); }));
     $("#gift-preview").addEventListener("load", () => setTimeout(sendPreview, 50)); $("#publish-button").addEventListener("click", publish); $("#copy-gift-url").addEventListener("click", () => giftUrl && navigator.clipboard.writeText(giftUrl)); $("#studio-retry").addEventListener("click", () => location.reload());
+    $("#close-photo-crop")?.addEventListener("click", cancelPhotoCrop);
+    $("#cancel-photo-crop")?.addEventListener("click", cancelPhotoCrop);
+    $("#confirm-photo-crop")?.addEventListener("click", confirmPhotoCrop);
+    const cropDialog = $("#photo-crop-dialog");
+    if (cropDialog) {
+      cropDialog.addEventListener("cancel", event => {
+        event.preventDefault();
+        cancelPhotoCrop();
+      });
+      cropDialog.addEventListener("click", event => {
+        if (event.target === cropDialog) cancelPhotoCrop();
+      });
+    }
+    $$("[data-crop-action]").forEach(button => button.addEventListener("click", () => {
+      if (!photoCropper) return;
+      if (button.dataset.cropAction === "reset") return resetPhotoCropper();
+      const degrees = button.dataset.cropAction === "rotate-left" ? -90 : 90;
+      photoCropper.getCropperImage()?.$rotate(`${degrees}deg`);
+      cropRotation = (cropRotation + degrees) % 360;
+    }));
+    const zoomSlider = $("#cropper-zoom");
+    if (zoomSlider) {
+      zoomSlider.addEventListener("input", event => {
+        if (!photoCropper) return;
+        const nextZoomValue = Number(event.target.value);
+        photoCropper.getCropperImage()?.$zoom((nextZoomValue - cropZoomValue) / 100);
+        cropZoomValue = nextZoomValue;
+      });
+    }
   }
   async function initialize() {
     if (!projectId) return setState("Link Studio tidak lengkap", "Project ID tidak ditemukan.", false);

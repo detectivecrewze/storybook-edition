@@ -30,8 +30,8 @@ test("Studio gives media and Atlas controls a visible, resilient editing path", 
   assert.match(app, /requestRevision !== draftRevision/);
   assert.match(app, /draft\.gallery\.items\.find\(entry => entry\.id === itemId\)/);
   assert.match(app, /draft\.atlas\.locations\.find\(entry => entry\.id === locationId\)/);
-  assert.match(html, /id="crop-dialog"/);
-  assert.match(app, /function openCropperModal/);
+  assert.match(html, /id="photo-crop-dialog"/);
+  assert.match(app, /function openPhotoCropper/);
   assert.match(app, /aspectRatio:\s*1/);
   assert.match(app, /aspectRatio:\s*4\s*\/\s*3/);
   assert.match(app, /function syncAtlasCard/);

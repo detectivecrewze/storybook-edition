@@ -6,7 +6,7 @@
   <title>Storybook Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Caveat:wght@500;600;700&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/studio/styles.css">
+  <link rel="stylesheet" href="/studio/styles.css?v=2">
 </head>
 <body>
   <div class="studio-state" id="studio-state"><span class="spinner"></span><strong>Menyiapkan Studio...</strong><p>Memuat draft dan live preview.</p><button id="studio-retry" hidden type="button">Coba Lagi</button></div>
@@ -46,30 +46,26 @@
     <footer class="step-footer"><button class="secondary-button" id="previous-step" type="button" data-i18n="common.previous">Sebelumnya</button><div><span id="step-progress">1 / 9</span><i><b id="progress-fill"></b></i></div><button class="primary-button" id="next-step" type="button" data-i18n="common.next">Lanjut</button></footer>
   </div>
 
-  <dialog id="crop-dialog" class="crop-dialog">
-    <div class="crop-modal-header">
-      <div>
-        <p class="crop-eyebrow">SESUAIKAN FOTO</p>
-        <h2 id="crop-title" data-i18n="studio.cropTitle">Sesuaikan Foto</h2>
+  <dialog class="photo-crop-dialog" id="photo-crop-dialog" aria-labelledby="photo-crop-title" aria-describedby="photo-crop-description">
+    <section class="photo-crop-card">
+      <header class="photo-crop-heading">
+        <div><p class="kicker" data-i18n="studio.cropKicker">ATUR FOTO</p><h2 id="photo-crop-title" data-i18n="studio.cropTitle">Pilih bagian terbaiknya</h2></div>
+        <button class="dialog-close" id="close-photo-crop" type="button" aria-label="Tutup cropper" data-i18n-aria-label="studio.cropClose">×</button>
+      </header>
+      <p id="photo-crop-description" data-i18n="studio.cropDescription">Area terang berasio 4:3 adalah bagian yang akan tampil di dalam cerita.</p>
+      <div class="cropper-stage" id="cropper-stage"><img id="cropper-source" alt="Foto yang sedang dipotong" data-i18n-alt="studio.cropAlt"></div>
+      <div class="cropper-toolbar" aria-label="Kontrol foto" data-i18n-aria-label="studio.cropControls">
+        <button type="button" data-crop-action="rotate-left" aria-label="Putar ke kiri" data-i18n-aria-label="studio.cropRotateLeft"><span class="rotate-icon rotate-icon--left" aria-hidden="true"></span><small data-i18n="studio.cropRotateLeft">Putar kiri</small></button>
+        <button type="button" data-crop-action="reset"><span class="reset-icon" aria-hidden="true"></span><small data-i18n="studio.cropReset">Reset</small></button>
+        <button type="button" data-crop-action="rotate-right" aria-label="Putar ke kanan" data-i18n-aria-label="studio.cropRotateRight"><span class="rotate-icon" aria-hidden="true"></span><small data-i18n="studio.cropRotateRight">Putar kanan</small></button>
       </div>
-      <button class="close crop-close" id="crop-cancel-btn" type="button" aria-label="Batal">×</button>
-    </div>
-    <div class="crop-modal-body">
-      <div class="crop-workspace" id="crop-workspace">
-        <img id="crop-source-image" alt="Crop preview">
-      </div>
-      <div class="crop-hint" id="crop-hint" data-i18n="studio.cropHint">Geser &amp; atur ukuran bingkai sesuai keinginanmu.</div>
-    </div>
-    <div class="crop-modal-footer">
-      <div class="crop-tools">
-        <button class="secondary-button" id="crop-rotate" type="button" data-i18n="studio.cropRotate">⟳ Putar 90°</button>
-        <button class="secondary-button" id="crop-reset" type="button" data-i18n="studio.cropReset">Reset</button>
-      </div>
-      <div class="crop-confirm">
-        <button class="secondary-button" id="crop-cancel" type="button" data-i18n="studio.cropCancel">Batal</button>
-        <button class="primary-button" id="crop-apply" type="button" data-i18n="studio.cropUse">Gunakan Foto</button>
-      </div>
-    </div>
+      <label class="cropper-zoom"><span>Zoom</span><input id="cropper-zoom" type="range" min="-40" max="100" step="1" value="0" aria-label="Zoom foto" data-i18n-aria-label="studio.cropZoom"></label>
+      <p class="cropper-error" id="cropper-error" role="alert" hidden></p>
+      <footer class="cropper-actions">
+        <button class="nav-button" id="cancel-photo-crop" type="button" data-i18n="studio.cropCancel">Batal</button>
+        <button class="nav-button nav-button--next" id="confirm-photo-crop" type="button" data-i18n="studio.cropUse">Gunakan foto</button>
+      </footer>
+    </section>
   </dialog>
 
   <template id="reason-template"><article class="repeat-card reason-editor" draggable="true"><span class="drag-handle" aria-hidden="true">⋮⋮</span><label class="field"><span><span data-i18n="studio.reason">Alasan</span> <b></b></span><textarea rows="3" maxlength="220"></textarea></label><div class="item-actions"><button data-move="up" type="button">↑</button><button data-move="down" type="button">↓</button><button data-remove type="button">×</button></div></article></template>
@@ -79,5 +75,5 @@
   <template id="track-template"><article class="repeat-card track-editor"><div class="track-cover"></div><label class="field"><span data-i18n="studio.titleField">Judul</span><input class="track-title" maxlength="100"></label><label class="field"><span data-i18n="studio.artist">Artis</span><input class="track-artist" maxlength="100"></label><button data-remove type="button">×</button></article></template>
   <template id="module-template"><article class="module-row" draggable="true"><span class="drag-handle">⋮⋮</span><label class="toggle"><input class="module-enabled" type="checkbox"><span data-i18n="studio.enable">Aktifkan bagian</span></label><div><label class="field"><span data-i18n="studio.titleField">Judul</span><input class="module-title" maxlength="80"></label><label class="field"><span>Subtitle</span><input class="module-subtitle" maxlength="160"></label></div><div class="item-actions"><button data-move="up" type="button">↑</button><button data-move="down" type="button">↓</button></div></article></template>
 
-  <script src="/assets/vendor/qrcodejs/qrcode.min.js"></script><script src="/assets/vendor/cropperjs/cropper.min.js"></script><script src="/shared/themes.js"></script><script src="/shared/project.js"></script><script src="/shared/i18n.js"></script><script src="/shared/maps.js"></script><script src="/runtime-config.js"></script><script src="/dev/mock-api.js"></script><script src="/shared/api.js"></script><script src="/studio/app.js"></script>
+  <script src="/assets/vendor/qrcodejs/qrcode.min.js?v=2"></script><script src="/assets/vendor/cropperjs/cropper.min.js?v=2.1.1"></script><script src="/shared/themes.js?v=2"></script><script src="/shared/project.js?v=2"></script><script src="/shared/i18n.js?v=2"></script><script src="/shared/maps.js?v=2"></script><script src="/runtime-config.js?v=2"></script><script src="/dev/mock-api.js?v=2"></script><script src="/shared/api.js?v=2"></script><script src="/studio/app.js?v=2"></script>
 </body></html>
