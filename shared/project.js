@@ -17,14 +17,14 @@
 
   const UI_DEFAULTS = Object.freeze({
     id: Object.freeze({
-      moduleTitles: Object.freeze({ reasons: "Kenapa Kamu Berarti", gallery: "Arsip Kenangan", atlas: "Atlas Kita", music: "Soundtrack Kita", letter: "Sebuah Surat" }),
+      moduleTitles: Object.freeze({ reasons: "Kenapa Kamu Berarti", gallery: "Arsip Kenangan", atlas: "The Map Of Perfect Tiny Thing", music: "Soundtrack Kita", letter: "Sebuah Surat" }),
       moduleSubtitles: Object.freeze({ reasons: "Hal-hal kecil yang membuatmu istimewa.", gallery: "Momen yang ingin selalu disimpan.", atlas: "Tempat-tempat yang menjadi bagian dari cerita kita.", music: "Lagu-lagu yang membawa kita kembali.", letter: "Kata-kata yang ingin kusampaikan." }),
       finaleTitle: "Satu hal terakhir untukmu",
       finaleMessage: "Terima kasih sudah menjadi bagian dari cerita yang begitu berarti.",
       finaleSignoff: "Dengan penuh kasih,"
     }),
     en: Object.freeze({
-      moduleTitles: Object.freeze({ reasons: "Why You Matter", gallery: "Memory Archive", atlas: "Atlas of Us", music: "Our Soundtrack", letter: "A Letter" }),
+      moduleTitles: Object.freeze({ reasons: "Why You Matter", gallery: "Memory Archive", atlas: "The Map Of Perfect Tiny Thing", music: "Our Soundtrack", letter: "A Letter" }),
       moduleSubtitles: Object.freeze({ reasons: "The little things that make you special.", gallery: "Moments worth keeping forever.", atlas: "Places that became part of our story.", music: "Songs that bring us back.", letter: "Words I have been meaning to say." }),
       finaleTitle: "One last thing for you",
       finaleMessage: "Thank you for being part of a story that means so much.",
@@ -76,7 +76,9 @@
       const item = found || {};
       const fallback = defaults[fallbackOrder];
       const order = Number.isFinite(Number(item.order)) ? Number(item.order) : (!found && type === "atlas" ? appendedOrder : fallbackOrder);
-      return { type, enabled: found ? item.enabled !== false : fallback.enabled, order, title: text(item.title, fallback.title, 80), subtitle: text(item.subtitle, fallback.subtitle, 160) };
+      const title = text(item.title, fallback.title, 80);
+      const legacyAtlasTitle = type === "atlas" && ["Atlas Kita", "Atlas of Us"].includes(title);
+      return { type, enabled: found ? item.enabled !== false : fallback.enabled, order, title: legacyAtlasTitle ? fallback.title : title, subtitle: text(item.subtitle, fallback.subtitle, 160) };
     }).sort((a, b) => a.order - b.order).map((item, order) => ({ ...item, order }));
   }
 

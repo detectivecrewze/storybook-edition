@@ -14,6 +14,7 @@ test("project schema exposes all general presets and neutral module types", () =
   assert.deepEqual(Object.keys(Project.OCCASION_PRESETS), ["romantic", "anniversary", "birthday", "appreciation", "friendship", "graduation", "just-because"]);
   assert.equal(Project.emptyProject("gift-demo").settings.language, "id");
   assert.equal(Project.emptyProject("gift-demo").modules.find(module => module.type === "atlas").enabled, false);
+  assert.equal(Project.emptyProject("gift-demo").modules.find(module => module.type === "atlas").title, "The Map Of Perfect Tiny Thing");
   assert.deepEqual(Project.emptyProject("gift-demo").opening.panelImages, ["", "", "", ""]);
 });
 
@@ -45,6 +46,7 @@ test("schema v1 projects gain an empty disabled Atlas without changing the origi
   assert.equal(normalized.modules.find(module => module.type === "atlas").enabled, false);
   assert.deepEqual(normalized.modules.filter(module => module.enabled).map(module => module.type), ["reasons", "gallery", "music", "letter"]);
   assert.equal(normalized.modules.at(-1).type, "atlas");
+  assert.equal(normalized.modules.at(-1).title, "The Map Of Perfect Tiny Thing");
 });
 
 test("Atlas validation requires a named in-range location only when enabled", () => {
