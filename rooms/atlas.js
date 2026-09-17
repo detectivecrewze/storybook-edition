@@ -65,14 +65,15 @@
       scrollWheelZoom: true
     });
 
-    tileLayer = root.L.tileLayer("https://tile.openstreetmap.de/{z}/{x}/{y}.png", {
-      maxZoom: 18,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    tileLayer = root.L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+      subdomains: "abcd",
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
     });
     tileLayer.on("tileerror", () => {
       tileErrors += 1;
       if (tileErrors === 2 && map && !destroyed) {
-        tileLayer.setUrl("https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png");
+        tileLayer.setUrl("https://tile.openstreetmap.de/{z}/{x}/{y}.png");
       }
       if (tileErrors < 5 || !notice.hidden) return;
       notice.hidden = false;
@@ -85,8 +86,14 @@
 
     let route = null;
     if (locations.length >= 2) {
-      route = root.L.polyline(locations.map(location => [location.latitude, location.longitude]), { color: "#c0392b", weight: 2.5, opacity: .85, dashArray: "8 5", lineCap: "round", className: "atlas-web-route" }).addTo(map);
-      if (!reducedMotion && route._path) { const length = route._path.getTotalLength?.() || 1000; route._path.style.strokeDasharray = `${length}`; route._path.style.strokeDashoffset = `${length}`; requestAnimationFrame(() => { route._path.style.transition = "stroke-dashoffset 1.2s ease"; route._path.style.strokeDashoffset = "0"; }); }
+      route = root.L.polyline(locations.map(location => [location.latitude, location.longitude]), {
+        color: "#c0392b",
+        weight: 3,
+        opacity: 0.9,
+        dashArray: "8 6",
+        lineCap: "round",
+        className: "atlas-web-route"
+      }).addTo(map);
     }
 
     const markers = locations.map((location, index) => {
@@ -106,6 +113,7 @@
         autoPanPadding: [20, 20]
       });
       marker.on("click", () => {
+        cancelAnimation();
         select(index);
       });
       return marker;
@@ -147,18 +155,103 @@
       markers[activeIndex].openPopup();
     }
 
-    on(previous, "click", () => select(activeIndex - 1));
-    on(next, "click", () => select(activeIndex + 1));
-    on(fit, "click", () => { fitAll(true); updateActiveMarker(-1); map.closePopup(); });
-    on(shell, "keydown", event => { if (event.key === "ArrowLeft") { event.preventDefault(); select(activeIndex - 1); } else if (event.key === "ArrowRight") { event.preventDefault(); select(activeIndex + 1); } });
+    let cancelAnimation = () => {};
+
+    function runJourneyAnimation() {
+      if (reducedMotion || locations.length === 0) {
+        fitAll(false);
+        updateActiveMarker(0);
+        return;
+      }
+
+      let aborted = false;
+      let moveTimeout = null;
+
+      cancelAnimation = () => {
+        aborted = true;
+        if (moveTimeout) { clearTimeout(moveTimeout); moveTimeout = null; }
+        map?.off("moveend");
+      };
+
+      const delay = ms => new Promise(res => {
+        const t = setTimeout(res, ms);
+        timers.add(t);
+      });
+
+      const flyToPin = (index, zoom = 13, duration = 1.4) => new Promise(resolve => {
+        if (aborted || destroyed || !map) return resolve();
+        activeIndex = index;
+        current.textContent = `${index + 1} / ${locations.length}`;
+        updateActiveMarker(index);
+        map.flyTo([locations[index].latitude, locations[index].longitude], zoom, {
+          duration,
+          easeLinearity: 0.25
+        });
+
+        const onMoveEnd = () => {
+          map.off("moveend", onMoveEnd);
+          if (!aborted && !destroyed && map) {
+            markers[index]?.openPopup();
+          }
+          resolve();
+        };
+        map.once("moveend", onMoveEnd);
+        moveTimeout = setTimeout(() => {
+          map.off("moveend", onMoveEnd);
+          if (!aborted && !destroyed && map) {
+            markers[index]?.openPopup();
+          }
+          resolve();
+        }, Math.round(duration * 1000) + 300);
+        timers.add(moveTimeout);
+      });
+
+      (async () => {
+        await delay(250);
+        if (aborted || destroyed) return;
+
+        for (let i = 0; i < locations.length; i++) {
+          if (aborted || destroyed) return;
+          await flyToPin(i, 13, 1.4);
+          if (aborted || destroyed) return;
+          if (i < locations.length - 1 || locations.length === 1) {
+            await delay(1600);
+          }
+        }
+
+        if (aborted || destroyed) return;
+
+        if (locations.length >= 2) {
+          await delay(1000);
+          if (aborted || destroyed || !map) return;
+          map.closePopup();
+          updateActiveMarker(-1);
+          map.flyToBounds(bounds, {
+            padding: [40, 40],
+            maxZoom: 14,
+            duration: 1.5,
+            easeLinearity: 0.25
+          });
+        }
+      })();
+    }
+
+    on(previous, "click", () => { cancelAnimation(); select(activeIndex - 1); });
+    on(next, "click", () => { cancelAnimation(); select(activeIndex + 1); });
+    on(fit, "click", () => { cancelAnimation(); fitAll(true); updateActiveMarker(-1); map.closePopup(); });
+    on(shell, "keydown", event => {
+      cancelAnimation();
+      if (event.key === "ArrowLeft") { event.preventDefault(); select(activeIndex - 1); }
+      else if (event.key === "ArrowRight") { event.preventDefault(); select(activeIndex + 1); }
+    });
 
     requestAnimationFrame(() => {
       map.invalidateSize();
-      fitAll(false);
-      updateActiveMarker(0);
+      runJourneyAnimation();
     });
 
     return () => {
+      cancelAnimation();
       destroyed = true; timers.forEach(clearTimeout); timers.clear(); listeners.splice(0).forEach(remove => remove());
       if (tileLayer) tileLayer.off(); if (map) { map.off(); map.remove(); map = null; } host.replaceChildren();
     };
