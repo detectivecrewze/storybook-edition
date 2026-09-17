@@ -133,7 +133,7 @@
       if (!map) return [location.latitude, location.longitude];
       const size = map.getSize();
       const targetPoint = map.project([location.latitude, location.longitude], zoom);
-      const offsetY = Math.min(140, Math.max(80, Math.round(size.y * 0.28)));
+      const offsetY = Math.min(190, Math.max(125, Math.round(size.y * 0.38)));
       const cameraPoint = targetPoint.subtract([0, offsetY]);
       return map.unproject(cameraPoint, zoom);
     }
