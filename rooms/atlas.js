@@ -51,11 +51,30 @@
     const fit = element("button", "atlas-fit", language === "en" ? "See all places" : "Lihat semua lokasi"); fit.type = "button";
     controls.append(previous, current, next, fit); shell.append(stats, mapFrame, controls); host.append(shell);
 
-    map = root.L.map(mapNode, { zoomControl: true, attributionControl: true, keyboard: true, tap: true, scrollWheelZoom: true });
-    tileLayer = root.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, subdomains: "abc", attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>' });
+    const bounds = root.L.latLngBounds(locations.map(location => [location.latitude, location.longitude]));
+    const center = bounds.getCenter();
+    const initialZoom = locations.length === 1 ? 13 : 11;
+
+    map = root.L.map(mapNode, {
+      center: center,
+      zoom: initialZoom,
+      zoomControl: true,
+      attributionControl: true,
+      keyboard: true,
+      tap: true,
+      scrollWheelZoom: true
+    });
+
+    tileLayer = root.L.tileLayer("https://tile.openstreetmap.de/{z}/{x}/{y}.png", {
+      maxZoom: 18,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+    });
     tileLayer.on("tileerror", () => {
       tileErrors += 1;
-      if (tileErrors < 4 || !notice.hidden) return;
+      if (tileErrors === 2 && map && !destroyed) {
+        tileLayer.setUrl("https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png");
+      }
+      if (tileErrors < 5 || !notice.hidden) return;
       notice.hidden = false;
       notice.replaceChildren(element("strong", "", language === "en" ? "Map tiles are unavailable" : "Peta sedang tidak tersedia"), element("span", "", language === "en" ? "The location pins and Google Maps links still work." : "Pin lokasi dan tautan Google Maps tetap bisa digunakan."));
       const fallback = element("div", "atlas-tile-fallback"); fallback.append(element("h3", "", language === "en" ? "Open a place" : "Buka lokasi"));
@@ -63,12 +82,13 @@
       mapFrame.append(fallback);
     });
     tileLayer.addTo(map);
-    const bounds = root.L.latLngBounds(locations.map(location => [location.latitude, location.longitude]));
+
     let route = null;
     if (locations.length >= 2) {
       route = root.L.polyline(locations.map(location => [location.latitude, location.longitude]), { color: "#c0392b", weight: 2.5, opacity: .85, dashArray: "8 5", lineCap: "round", className: "atlas-web-route" }).addTo(map);
       if (!reducedMotion && route._path) { const length = route._path.getTotalLength?.() || 1000; route._path.style.strokeDasharray = `${length}`; route._path.style.strokeDashoffset = `${length}`; requestAnimationFrame(() => { route._path.style.transition = "stroke-dashoffset 1.2s ease"; route._path.style.strokeDashoffset = "0"; }); }
     }
+
     const markers = locations.map((location, index) => {
       const icon = root.L.divIcon({
         className: "atlas-pin-shell",
@@ -77,46 +97,67 @@
         iconAnchor: [14, 34],
         popupAnchor: [0, -34]
       });
-      const marker = root.L.marker([location.latitude, location.longitude], { icon, keyboard: true, opacity: reducedMotion ? 1 : 0 }).addTo(map);
-      marker.bindPopup(locationCard(location, index, language), { className: "atlas-comic-popup", maxWidth: 320, minWidth: 260, autoPanPadding: [20, 20] });
-      marker.on("click", () => {
-        activeIndex = index;
-        current.textContent = `${index + 1} / ${locations.length}`;
-        updateActiveMarker(activeIndex);
+      const marker = root.L.marker([location.latitude, location.longitude], { icon, keyboard: true, opacity: 1 }).addTo(map);
+      marker.bindPopup(locationCard(location, index, language), {
+        className: "atlas-comic-popup",
+        maxWidth: 320,
+        minWidth: 260,
+        autoPan: false,
+        autoPanPadding: [20, 20]
       });
-      if (!reducedMotion) later(() => marker.setOpacity(1), index * 100); return marker;
+      marker.on("click", () => {
+        select(index);
+      });
+      return marker;
     });
+
     function updateActiveMarker(index) {
       markers.forEach((marker, i) => {
         const head = marker.getElement?.()?.querySelector(".atlas-pin-head") || document.getElementById(`atlas-pin-head-${i}`);
         if (head) head.classList.toggle("is-active", i === index);
       });
     }
-    function fitAll() {
+
+    function fitAll(animate = false) {
       if (locations.length === 1) {
-        map.flyTo([locations[0].latitude, locations[0].longitude], 13, { animate: !reducedMotion, duration: reducedMotion ? 0 : 0.65 });
+        if (animate && !reducedMotion) {
+          map.flyTo([locations[0].latitude, locations[0].longitude], 13, { duration: 0.65 });
+        } else {
+          map.setView([locations[0].latitude, locations[0].longitude], 13);
+        }
       } else {
-        map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 14, animate: !reducedMotion, duration: reducedMotion ? 0 : 0.85 });
+        if (animate && !reducedMotion) {
+          map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 14, duration: 0.85 });
+        } else {
+          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+        }
       }
     }
+
     function select(index) {
       activeIndex = (index + locations.length) % locations.length;
       const location = locations[activeIndex];
       current.textContent = `${activeIndex + 1} / ${locations.length}`;
       updateActiveMarker(activeIndex);
-      map.flyTo([location.latitude, location.longitude], Math.max(map.getZoom(), 13), { animate: !reducedMotion, duration: reducedMotion ? 0 : 0.65 });
+      if (!reducedMotion) {
+        map.flyTo([location.latitude, location.longitude], Math.max(map.getZoom(), 13), { duration: 0.65 });
+      } else {
+        map.setView([location.latitude, location.longitude], Math.max(map.getZoom(), 13));
+      }
       markers[activeIndex].openPopup();
     }
-    on(previous, "click", () => select(activeIndex - 1)); on(next, "click", () => select(activeIndex + 1)); on(fit, "click", fitAll);
+
+    on(previous, "click", () => select(activeIndex - 1));
+    on(next, "click", () => select(activeIndex + 1));
+    on(fit, "click", () => { fitAll(true); updateActiveMarker(-1); map.closePopup(); });
     on(shell, "keydown", event => { if (event.key === "ArrowLeft") { event.preventDefault(); select(activeIndex - 1); } else if (event.key === "ArrowRight") { event.preventDefault(); select(activeIndex + 1); } });
+
     requestAnimationFrame(() => {
       map.invalidateSize();
-      fitAll();
+      fitAll(false);
       updateActiveMarker(0);
-      if (locations.length > 0 && markers[0]) {
-        later(() => markers[0].openPopup(), reducedMotion ? 50 : 250);
-      }
     });
+
     return () => {
       destroyed = true; timers.forEach(clearTimeout); timers.clear(); listeners.splice(0).forEach(remove => remove());
       if (tileLayer) tileLayer.off(); if (map) { map.off(); map.remove(); map = null; } host.replaceChildren();
