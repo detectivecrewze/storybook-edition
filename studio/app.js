@@ -159,6 +159,7 @@
     draft.atlas.locations.forEach((location, index) => {
       const fragment = $("#atlas-template").content.cloneNode(true); const card = $("article", fragment);
       const label = $(".atlas-label", card); const locationInput = $(".atlas-location-input", card); const note = $(".atlas-note", card); const status = $(".atlas-status", card); const preview = $(".atlas-photo-preview", card); const removePhotoBtn = $(".remove-atlas-photo", card);
+      const numEl = $(".atlas-index-num", card); if (numEl) numEl.textContent = String(index + 1);
       label.value = location.label; locationInput.value = Maps.validCoordinates(location.latitude, location.longitude) ? Maps.formatCoordinates(location.latitude, location.longitude) : location.mapsUrl; note.value = location.note;
       setImagePreview(preview, { mediaType: "image", mediaUrl: location.photoUrl });
       if (removePhotoBtn) removePhotoBtn.hidden = !location.photoUrl;
