@@ -83,7 +83,13 @@
     function select(index) { activeIndex = (index + locations.length) % locations.length; const location = locations[activeIndex]; current.textContent = `${activeIndex + 1} / ${locations.length}`; map.flyTo([location.latitude, location.longitude], Math.max(map.getZoom(), 13), { animate: !reducedMotion, duration: .65 }); markers[activeIndex].openPopup(); }
     on(previous, "click", () => select(activeIndex - 1)); on(next, "click", () => select(activeIndex + 1)); on(fit, "click", fitAll);
     on(shell, "keydown", event => { if (event.key === "ArrowLeft") { event.preventDefault(); select(activeIndex - 1); } else if (event.key === "ArrowRight") { event.preventDefault(); select(activeIndex + 1); } });
-    requestAnimationFrame(() => { map.invalidateSize(); fitAll(); });
+    requestAnimationFrame(() => {
+      map.invalidateSize();
+      fitAll();
+      if (locations.length > 0 && markers[0]) {
+        later(() => markers[0].openPopup(), reducedMotion ? 50 : 250);
+      }
+    });
     return () => {
       destroyed = true; timers.forEach(clearTimeout); timers.clear(); listeners.splice(0).forEach(remove => remove());
       if (tileLayer) tileLayer.off(); if (map) { map.off(); map.remove(); map = null; } host.replaceChildren();

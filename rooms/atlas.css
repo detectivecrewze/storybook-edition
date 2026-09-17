@@ -24,7 +24,7 @@
 .atlas-comic-popup .leaflet-popup-content { margin: 0; width: auto !important; }
 .atlas-comic-popup .leaflet-popup-tip { background: var(--theme-ink); }
 .atlas-popup-card { padding: 12px; }
-.atlas-popup-photo { width: 100%; max-height: 150px; object-fit: cover; border: 2px solid var(--theme-ink); border-radius: 8px; }
+.atlas-popup-photo { width: 100%; aspect-ratio: 4/3; max-height: 160px; object-fit: cover; border: 2px solid var(--theme-ink); border-radius: 8px; display: block; }
 .atlas-popup-number { display: inline-block; margin-top: 7px; color: var(--theme-primary); font-family: var(--font-display); letter-spacing: .08em; }
 .atlas-popup-card h3 { margin: 2px 0 6px; font-family: var(--font-display); font-size: 1.4rem; line-height: 1; }
 .atlas-popup-card p { margin: 0 0 9px; max-height: 100px; overflow: auto; line-height: 1.45; }

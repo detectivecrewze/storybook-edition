@@ -15,6 +15,30 @@ test("Studio contains the nine planned steps and shared gift preview renderer", 
   assert.doesNotMatch(html + app, /wish inbox|reply card/i);
 });
 
+test("Studio gives media and Atlas controls a visible, resilient editing path", () => {
+  const html = read("studio/index.html"); const app = read("studio/app.js"); const mock = read("dev/mock-api.js");
+  assert.match(html, /id="atlas-enabled"/);
+  assert.match(html, /gallery-upload-status/);
+  assert.match(html, /atlas-upload-status/);
+  assert.equal((html.match(/data-reasons-preset=/g) || []).length, 3);
+  assert.equal((html.match(/data-letter-preset=/g) || []).length, 3);
+  assert.match(app, /function galleryUploadStatus/);
+  assert.match(app, /function atlasUploadStatus/);
+  assert.match(app, /function mediaKind/);
+  assert.match(app, /function withOriginalImageFallback/);
+  assert.match(app, /function draftSnapshot/);
+  assert.match(app, /requestRevision !== draftRevision/);
+  assert.match(app, /draft\.gallery\.items\.find\(entry => entry\.id === itemId\)/);
+  assert.match(app, /draft\.atlas\.locations\.find\(entry => entry\.id === locationId\)/);
+  assert.match(html, /id="crop-dialog"/);
+  assert.match(app, /function openCropperModal/);
+  assert.match(app, /aspectRatio:\s*1/);
+  assert.match(app, /aspectRatio:\s*4\s*\/\s*3/);
+  assert.match(app, /function syncAtlasCard/);
+  assert.match(mock, /URL\.createObjectURL\(file\)/);
+  assert.doesNotMatch(mock, /readAsDataURL/);
+});
+
 test("gift renderer is theme-neutral and customer media is constructed inside rooms", () => {
   const app = read("app.js");
   assert.match(app, /Themes\.applyTheme\(project\.themeId\)/);
