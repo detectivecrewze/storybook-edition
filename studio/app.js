@@ -120,6 +120,14 @@
       I18n.apply(card); host.append(fragment);
     });
   }
+  function updateGalleryTitleUI(title) {
+    const fallback = I18n.t("studio.gallery");
+    const displayTitle = (typeof title === "string" && title.trim()) ? title : fallback;
+    const heading = $("#gallery-step-heading");
+    if (heading) heading.textContent = displayTitle;
+    const navLabel = $("#gallery-step-nav-label");
+    if (navLabel) navLabel.textContent = displayTitle;
+  }
   function syncGalleryCard(item, card) {
     if (!item || !card) return;
     const title = $(".gallery-title", card);
@@ -128,6 +136,12 @@
     if (caption) item.caption = caption.value.trim();
   }
   function renderGallery() {
+    const galleryModule = draft?.modules?.find(module => module.type === "gallery");
+    const moduleTitleInput = $("#gallery-module-title");
+    const moduleSubtitleInput = $("#gallery-module-subtitle");
+    if (moduleTitleInput && galleryModule) moduleTitleInput.value = galleryModule.title || "";
+    if (moduleSubtitleInput && galleryModule) moduleSubtitleInput.value = galleryModule.subtitle || "";
+    updateGalleryTitleUI(galleryModule?.title);
     const host = $("#gallery-list"); host.replaceChildren(); draft.gallery.items.forEach((item, index) => {
       const fragment = $("#gallery-template").content.cloneNode(true);
       const card = $("article", fragment);
@@ -321,7 +335,55 @@
   }
   function renderCatalog(filter = "") { const host = $("#music-catalog"); host.replaceChildren(); const query = filter.trim().toLowerCase(); catalog.filter(track => !query || `${track.title} ${track.artist}`.toLowerCase().includes(query)).slice(0, 30).forEach(track => { const button = document.createElement("button"); button.type = "button"; button.className = "catalog-track"; button.innerHTML = `<img alt=""><span><strong></strong><small></small></span>`; $("img", button).src = track.coverUrl; $("strong", button).textContent = track.title; $("small", button).textContent = track.artist; button.addEventListener("click", () => { if (draft.music.tracks.length >= Project.MAX_MUSIC_TRACKS || draft.music.tracks.some(item => item.audioUrl === track.audioUrl)) return; draft.music.tracks.push({ id: track.id || Project.makeId("track"), sourceType: "catalog", catalogId: track.id || "", audioUrl: track.audioUrl, coverUrl: track.coverUrl || "", title: track.title, artist: track.artist || "" }); renderMusic(); queueSave(); }); host.append(button); }); }
   function renderModules() {
-    const host = $("#module-editor"); host.replaceChildren(); draft.modules.sort((a, b) => a.order - b.order).forEach((module, index) => { const fragment = $("#module-template").content.cloneNode(true); const row = $("article", fragment); row.dataset.type = module.type; const toggle = $(".module-enabled", row); toggle.checked = module.enabled; $(".module-title", row).value = module.title; $(".module-subtitle", row).value = module.subtitle; toggle.addEventListener("change", () => { module.enabled = toggle.checked; if (module.type === "atlas") { const atlasToggle = $("#atlas-enabled"); if (atlasToggle) atlasToggle.checked = module.enabled; } console.info("[Storybook Studio] Module changed", { projectId, module: module.type, enabled: module.enabled }); queueSave(); }); $(".module-title", row).addEventListener("input", event => { module.title = event.target.value; queueSave(); }); $(".module-subtitle", row).addEventListener("input", event => { module.subtitle = event.target.value; queueSave(); }); $$("[data-move]", row).forEach(button => button.addEventListener("click", () => { swap(draft.modules, index, button.dataset.move === "up" ? -1 : 1); draft.modules.forEach((item, order) => item.order = order); renderModules(); queueSave(); })); I18n.apply(row); host.append(fragment); }); dragSort(host, draft.modules, () => { draft.modules.forEach((item, order) => item.order = order); renderModules(); });
+    const host = $("#module-editor"); host.replaceChildren(); draft.modules.sort((a, b) => a.order - b.order).forEach((module, index) => {
+      const fragment = $("#module-template").content.cloneNode(true);
+      const row = $("article", fragment);
+      row.dataset.type = module.type;
+      const toggle = $(".module-enabled", row);
+      toggle.checked = module.enabled;
+      const titleInput = $(".module-title", row);
+      const subtitleInput = $(".module-subtitle", row);
+      titleInput.value = module.title;
+      subtitleInput.value = module.subtitle;
+      toggle.addEventListener("change", () => {
+        module.enabled = toggle.checked;
+        if (module.type === "atlas") {
+          const atlasToggle = $("#atlas-enabled");
+          if (atlasToggle) atlasToggle.checked = module.enabled;
+        }
+        console.info("[Storybook Studio] Module changed", { projectId, module: module.type, enabled: module.enabled });
+        queueSave();
+      });
+      titleInput.addEventListener("input", event => {
+        module.title = event.target.value;
+        if (module.type === "gallery") {
+          const stepTitle = $("#gallery-module-title");
+          if (stepTitle && stepTitle.value !== event.target.value) stepTitle.value = event.target.value;
+          updateGalleryTitleUI(event.target.value);
+        }
+        queueSave();
+      });
+      subtitleInput.addEventListener("input", event => {
+        module.subtitle = event.target.value;
+        if (module.type === "gallery") {
+          const stepSubtitle = $("#gallery-module-subtitle");
+          if (stepSubtitle && stepSubtitle.value !== event.target.value) stepSubtitle.value = event.target.value;
+        }
+        queueSave();
+      });
+      $$("[data-move]", row).forEach(button => button.addEventListener("click", () => {
+        swap(draft.modules, index, button.dataset.move === "up" ? -1 : 1);
+        draft.modules.forEach((item, order) => item.order = order);
+        renderModules();
+        queueSave();
+      }));
+      I18n.apply(row);
+      host.append(fragment);
+    });
+    dragSort(host, draft.modules, () => {
+      draft.modules.forEach((item, order) => item.order = order);
+      renderModules();
+    });
   }
   function renderFields() {
     I18n.setLocale(draft.settings.language); I18n.apply(); $("#studio-language").value = draft.settings.language; renderThemes(); renderOccasions();
@@ -335,6 +397,13 @@
     draft.opening.eyebrow = $("#opening-eyebrow").value; draft.opening.title = $("#opening-title").value; draft.opening.message = $("#opening-message").value;
     draft.letter.greeting = $("#letter-greeting").value; draft.letter.paragraphs = $("#letter-body").value.split(/\n\s*\n/).map(value => value.trim()).filter(Boolean); draft.letter.signoff = $("#letter-signoff").value;
     draft.finale.title = $("#finale-title").value; draft.finale.message = $("#finale-message").value; draft.finale.signoff = $("#finale-signoff").value;
+    const galleryModule = draft.modules?.find(module => module.type === "gallery");
+    if (galleryModule) {
+      const titleInput = $("#gallery-module-title");
+      if (titleInput && titleInput.value !== undefined) galleryModule.title = titleInput.value;
+      const subtitleInput = $("#gallery-module-subtitle");
+      if (subtitleInput && subtitleInput.value !== undefined) galleryModule.subtitle = subtitleInput.value;
+    }
     $$(".gallery-editor", $("#gallery-list")).forEach((card, index) => {
       const item = draft.gallery.items.find(entry => entry.id === card.dataset.id) || draft.gallery.items[index];
       if (item) syncGalleryCard(item, card);
@@ -672,6 +741,27 @@
     $$('[data-letter-preset]').forEach(button => button.addEventListener("click", () => applyLetterPreset(button.dataset.letterPreset)));
     $("#add-reason").addEventListener("click", () => { if (draft.reasons.items.length >= Project.MAX_REASONS) return; syncAll(); draft.reasons.items.push(""); renderReasons(); queueSave(); });
     $("#add-gallery").addEventListener("click", () => { if (draft.gallery.items.length >= Project.MAX_GALLERY_ITEMS) return; syncAll(); draft.gallery.items.push({ id: Project.makeId("media"), mediaType: "image", mediaUrl: "", title: "", caption: "" }); renderGallery(); queueSave(); });
+    const galleryTitleInput = $("#gallery-module-title");
+    if (galleryTitleInput) {
+      galleryTitleInput.addEventListener("input", event => {
+        const galleryModule = draft?.modules?.find(module => module.type === "gallery");
+        if (galleryModule) galleryModule.title = event.target.value;
+        updateGalleryTitleUI(event.target.value);
+        const moduleRowInput = $("#module-editor [data-type='gallery'] .module-title");
+        if (moduleRowInput && moduleRowInput.value !== event.target.value) moduleRowInput.value = event.target.value;
+      });
+      galleryTitleInput.addEventListener("blur", () => { syncAll(); queueSave(); });
+    }
+    const gallerySubtitleInput = $("#gallery-module-subtitle");
+    if (gallerySubtitleInput) {
+      gallerySubtitleInput.addEventListener("input", event => {
+        const galleryModule = draft?.modules?.find(module => module.type === "gallery");
+        if (galleryModule) galleryModule.subtitle = event.target.value;
+        const moduleRowInput = $("#module-editor [data-type='gallery'] .module-subtitle");
+        if (moduleRowInput && moduleRowInput.value !== event.target.value) moduleRowInput.value = event.target.value;
+      });
+      gallerySubtitleInput.addEventListener("blur", () => { syncAll(); queueSave(); });
+    }
     $("#atlas-enabled").addEventListener("change", event => { const module = draft.modules.find(item => item.type === "atlas"); if (!module) return; module.enabled = event.target.checked; console.info("[Storybook Studio] Module changed", { projectId, module: "atlas", enabled: module.enabled }); renderModules(); queueSave(); });
     $("#add-atlas").addEventListener("click", () => {
       syncAll();

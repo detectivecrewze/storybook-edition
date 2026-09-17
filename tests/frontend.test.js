@@ -40,6 +40,17 @@ test("Studio gives media and Atlas controls a visible, resilient editing path", 
   assert.doesNotMatch(mock, /readAsDataURL/);
 });
 
+test("Studio allows dynamic Memory Archive section title and subtitle editing", () => {
+  const html = read("studio/index.html"); const app = read("studio/app.js");
+  assert.match(html, /id="gallery-module-title"/);
+  assert.match(html, /id="gallery-module-subtitle"/);
+  assert.match(html, /id="gallery-step-heading"/);
+  assert.match(html, /id="gallery-step-nav-label"/);
+  assert.match(app, /function updateGalleryTitleUI/);
+  assert.match(app, /gallery-module-title/);
+  assert.match(app, /gallery-module-subtitle/);
+});
+
 test("gift renderer is theme-neutral and customer media is constructed inside rooms", () => {
   const app = read("app.js");
   assert.match(app, /Themes\.applyTheme\(project\.themeId\)/);
