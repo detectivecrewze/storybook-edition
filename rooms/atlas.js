@@ -105,11 +105,11 @@
       const marker = root.L.marker([location.latitude, location.longitude], { icon, keyboard: true, opacity: 1 }).addTo(map);
       marker.bindPopup(locationCard(location, index, language), {
         className: "atlas-comic-popup",
-        maxWidth: 300,
-        minWidth: 240,
+        maxWidth: 290,
+        minWidth: 255,
         autoPan: true,
-        autoPanPaddingTopLeft: [15, 20],
-        autoPanPaddingBottomRight: [15, 15]
+        autoPanPaddingTopLeft: [20, 20],
+        autoPanPaddingBottomRight: [20, 20]
       });
       marker.on("click", () => {
         cancelAnimation();
@@ -129,7 +129,7 @@
       if (!map) return [location.latitude, location.longitude];
       const size = map.getSize();
       const targetPoint = map.project([location.latitude, location.longitude], zoom);
-      const offsetY = Math.min(130, Math.max(75, Math.round(size.y * 0.26)));
+      const offsetY = Math.min(140, Math.max(80, Math.round(size.y * 0.28)));
       const cameraPoint = targetPoint.subtract([0, offsetY]);
       return map.unproject(cameraPoint, zoom);
     }
