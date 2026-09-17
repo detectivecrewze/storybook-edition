@@ -23,6 +23,7 @@ const directories = [
   "landing",
   "studio",
   "admin",
+  "rooms",
   "assets/data",
   "assets/themes",
   "assets/vendor"

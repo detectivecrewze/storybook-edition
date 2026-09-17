@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160" role="img" aria-label="Atlas map">
+  <path d="M18 35 58 21l44 15 40-14v103l-40 14-44-15-40 14Z" fill="#fffaf0" stroke="#17191f" stroke-width="8" stroke-linejoin="round"/>
+  <path d="M58 21v103m44-88v103" fill="none" stroke="#17191f" stroke-width="6"/>
+  <path d="M35 105c21-22 23-51 52-38 26 12 31-8 43-21" fill="none" stroke="#c9182b" stroke-width="7" stroke-dasharray="6 8" stroke-linecap="round"/>
+  <path d="M104 51c0 17-22 36-22 36S60 68 60 51a22 22 0 1 1 44 0Z" fill="#f3c84b" stroke="#17191f" stroke-width="7"/>
+  <circle cx="82" cy="51" r="7" fill="#1557a5"/>
+</svg>

@@ -32,6 +32,7 @@
         skyline: "/assets/themes/spiderman/city-silhouette.webp",
         reasons: "/assets/themes/spiderman/icon-reasons.webp",
         gallery: "/assets/themes/spiderman/icon-gallery.webp",
+        atlas: "/assets/themes/spiderman/icon-atlas.svg",
         music: "/assets/themes/spiderman/icon-music.webp",
         letter: "/assets/themes/spiderman/icon-letter.webp",
         decals: Object.freeze([
@@ -46,7 +47,7 @@
   });
 
   const DEFAULT_THEME_ID = "spiderman";
-  const REQUIRED_ASSETS = Object.freeze(["openingEmblem", "greeting", "finale", "skyline", "reasons", "gallery", "music", "letter"]);
+  const REQUIRED_ASSETS = Object.freeze(["openingEmblem", "greeting", "finale", "skyline", "reasons", "gallery", "atlas", "music", "letter"]);
   const validateThemeManifest = manifest => {
     const errors = [];
     if (!manifest || typeof manifest !== "object") return { valid: false, errors: ["Theme manifest is required."] };

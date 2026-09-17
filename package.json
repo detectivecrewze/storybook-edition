@@ -7,7 +7,7 @@
     "build": "node build.mjs",
     "start": "node server.js",
     "test": "node --test",
-    "check": "node --check build.mjs && node --check app.js && node --check studio/app.js && node --check admin/app.js && node --check shared/themes.js && node --check shared/i18n.js && node --check shared/project.js && node --check shared/api.js && node --check dev/mock-api.js && node --check server.js && node --check worker/src/index.js && node --check worker/src/project.js && npm run build && node --test"
+    "check": "node --check build.mjs && node --check app.js && node --check rooms/atlas.js && node --check studio/app.js && node --check admin/app.js && node --check shared/themes.js && node --check shared/i18n.js && node --check shared/maps.js && node --check shared/project.js && node --check shared/api.js && node --check dev/mock-api.js && node --check server.js && node --check worker/src/index.js && node --check worker/src/project.js && npm run build && node --test"
   },
   "engines": {
     "node": ">=18"

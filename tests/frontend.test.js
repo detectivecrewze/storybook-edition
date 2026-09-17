@@ -6,10 +6,10 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "..");
 const read = file => fs.readFileSync(path.join(root, file), "utf8");
 
-test("Studio contains the eight planned steps and shared gift preview renderer", () => {
+test("Studio contains the nine planned steps and shared gift preview renderer", () => {
   const html = read("studio/index.html"); const app = read("studio/app.js");
-  assert.equal((html.match(/class="wizard-step/g) || []).length, 8);
-  assert.match(app, /\/gift\/\$\{encodeURIComponent\(projectId\)\}\?preview=1/);
+  assert.equal((html.match(/class="wizard-step/g) || []).length, 9);
+  assert.match(app, /\/gift\/(?:index\.html\?project=\$\{encodeURIComponent\(projectId\)\}&preview=1|\$\{encodeURIComponent\(projectId\)\}\?preview=1)/);
   assert.match(app, /type: "storybook-preview"/);
   assert.match(html, /id="qr-code"/);
   assert.doesNotMatch(html + app, /wish inbox|reply card/i);
@@ -20,7 +20,18 @@ test("gift renderer is theme-neutral and customer media is constructed inside ro
   assert.match(app, /Themes\.applyTheme\(project\.themeId\)/);
   assert.doesNotMatch(app, /themeId\s*===|case\s+["']spiderman|if\s*\([^)]*spiderman/i);
   assert.match(app, /function renderGallery/); assert.match(app, /function renderMusic/); assert.match(app, /function renderLetter/);
+  assert.match(app, /function renderAtlas/);
   assert.match(app, /get\("preview"\) === "1"/);
+});
+
+test("Atlas dependencies are local and remain lazy until the room is opened", () => {
+  const html = read("gift/index.html"); const app = read("app.js"); const build = read("build.mjs");
+  assert.doesNotMatch(html, /leaflet/i);
+  assert.match(app, /\/assets\/vendor\/leaflet\/leaflet\.js/);
+  assert.match(app, /\/rooms\/atlas\.js/);
+  assert.match(build, /"rooms"/);
+  assert.equal(fs.existsSync(path.join(root, "assets/vendor/leaflet/leaflet.js")), true);
+  assert.equal(fs.existsSync(path.join(root, "rooms/atlas.js")), true);
 });
 
 test("manifest assets exist and remain inside the theme performance budget", () => {

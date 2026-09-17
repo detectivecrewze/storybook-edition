@@ -20,6 +20,8 @@ test("internal generator is authenticated and idempotent", async () => {
   const first = await call(environment, "/api/internal/projects", { method: "POST", token: environment.INTERNAL_GENERATOR_SECRET, body: { source: "pakasir", idempotencyKey: "order-1" } });
   const second = await call(environment, "/api/internal/projects", { method: "POST", token: environment.INTERNAL_GENERATOR_SECRET, body: { source: "pakasir", idempotencyKey: "order-1" } });
   assert.equal(first.response.status, 201); assert.equal(second.response.status, 200); assert.equal(first.payload.projectId, second.payload.projectId); assert.equal(first.payload.studioUrl, second.payload.studioUrl); assert.match(first.payload.studioUrl, /\/studio\/gift-[a-f0-9]{16}#token=/);
+  const studio = await call(environment, `/api/studio/${first.payload.projectId}`, { token: tokenFrom(first.payload.studioUrl) });
+  assert.equal(studio.payload.project.schemaVersion, 2); assert.equal(studio.payload.project.modules.find(module => module.type === "atlas").enabled, false); assert.deepEqual(studio.payload.project.opening.panelImages, ["", "", "", ""]);
 });
 
 test("draft, publish, public gift, and private autosave stay separated", async () => {
@@ -47,5 +49,5 @@ test("upload, archive, restore, admin search, and permanent delete work", async 
 });
 
 test("health exposes the Storybook contract and CORS rejects unknown origins", async () => {
-  const environment = env(); const health = await call(environment, "/api/health"); assert.equal(health.payload.service, "storybook-gift-api"); assert.deepEqual(health.payload.languages, ["id", "en"]); assert.deepEqual(health.payload.themeIds, ["spiderman"]); assert.equal((await call(environment, "/api/health", { origin: "https://evil.test" })).response.status, 403);
+  const environment = env(); const health = await call(environment, "/api/health"); assert.equal(health.payload.service, "storybook-gift-api"); assert.equal(health.payload.schemaVersion, 2); assert.deepEqual(health.payload.languages, ["id", "en"]); assert.deepEqual(health.payload.themeIds, ["spiderman"]); assert.equal((await call(environment, "/api/health", { origin: "https://evil.test" })).response.status, 403);
 });

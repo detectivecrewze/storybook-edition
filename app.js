@@ -16,6 +16,9 @@
   let roomCleanup = () => {};
   let activeTrackIndex = 0;
   const transitionTimers = new Set();
+  const loadedResources = new Map();
+  const panelImageState = new Map();
+  let panelPrefetchHandle = 0;
   let lastTrigger = null;
   const opened = new Set();
 
@@ -43,16 +46,49 @@
     const overlay = $("#comic-transition");
     overlay.classList.remove("is-revealing", "is-opening"); overlay.hidden = true;
   }
+  function prefetchOpeningPanels() {
+    const sources = project?.opening?.panelImages?.filter(Boolean) || [];
+    const load = () => sources.forEach(source => {
+      if (panelImageState.has(source)) return;
+      panelImageState.set(source, "loading");
+      const image = new Image();
+      image.onload = () => panelImageState.set(source, "ready");
+      image.onerror = () => panelImageState.set(source, "failed");
+      image.src = source;
+    });
+    panelPrefetchHandle = "requestIdleCallback" in window ? requestIdleCallback(load, { timeout: 1800 }) : setTimeout(load, 650);
+  }
+  function applyOpeningPanelImages() {
+    $$(".comic-transition-panel").forEach((panel, index) => {
+      const source = project?.opening?.panelImages?.[index] || "";
+      panel.classList.toggle("has-photo", Boolean(source) && panelImageState.get(source) !== "failed");
+      if (source && panelImageState.get(source) !== "failed") panel.style.setProperty("--panel-photo", `url('${source.replaceAll("'", "%27")}')`);
+      else panel.style.removeProperty("--panel-photo");
+    });
+  }
   function runOpeningTransition() {
     clearOpeningTransition();
     if (matchMedia("(prefers-reduced-motion: reduce)").matches) { showScreen("greeting"); return; }
     const overlay = $("#comic-transition");
+    applyOpeningPanelImages();
     $("#comic-transition-copy").textContent = project?.settings?.language === "en" ? "A LITTLE STORY FOR YOU" : "CERITA KECIL UNTUKMU";
     overlay.hidden = false;
-    trackTimeout(() => overlay.classList.add("is-revealing"), 260);
-    trackTimeout(() => showScreen("greeting", { focus: false }), 1850);
-    trackTimeout(() => overlay.classList.add("is-opening"), 2050);
-    trackTimeout(() => { overlay.hidden = true; overlay.classList.remove("is-revealing", "is-opening"); showScreen("greeting"); }, 3300);
+    trackTimeout(() => overlay.classList.add("is-revealing"), 350);
+    trackTimeout(() => showScreen("greeting", { focus: false }), 2800);
+    trackTimeout(() => overlay.classList.add("is-opening"), 2820);
+    trackTimeout(() => { overlay.hidden = true; overlay.classList.remove("is-revealing", "is-opening"); showScreen("greeting"); }, 4200);
+  }
+  function loadResource(url, type) {
+    const key = `${type}:${url}`;
+    if (loadedResources.has(key)) return loadedResources.get(key);
+    const promise = new Promise((resolve, reject) => {
+      const node = document.createElement(type === "style" ? "link" : "script");
+      if (type === "style") { node.rel = "stylesheet"; node.href = url; }
+      else { node.src = url; node.defer = true; }
+      node.onload = () => resolve(node); node.onerror = () => { loadedResources.delete(key); node.remove(); reject(new Error(`Gagal memuat ${url}`)); };
+      document.head.append(node);
+    });
+    loadedResources.set(key, promise); return promise;
   }
   function availableTracks() { return project?.music?.tracks?.filter(track => track.audioUrl) || []; }
   function loadStoryTrack(index, autoplay = false) {
@@ -115,7 +151,7 @@
     $("#room-kicker").textContent = `${I18n.t("gift.open")} ${String(module.order + 1).padStart(2, "0")}`;
     $("#room-title").textContent = module.title; $("#room-subtitle").textContent = module.subtitle;
     roomContent.replaceChildren();
-    const renderers = { reasons: renderReasons, gallery: renderGallery, music: renderMusic, letter: renderLetter };
+    const renderers = { reasons: renderReasons, gallery: renderGallery, atlas: renderAtlas, music: renderMusic, letter: renderLetter };
     roomCleanup = renderers[module.type]?.() || (() => {});
     showScreen("room", { focus: false });
     requestAnimationFrame(() => $("#room-back").focus({ preventScroll: true }));
@@ -158,6 +194,25 @@
     shell.addEventListener("touchend", event => { const distanceX = event.changedTouches[0].clientX - touchStartX; const distanceY = event.changedTouches[0].clientY - touchStartY; if (Math.abs(distanceX) > 45 && Math.abs(distanceX) > Math.abs(distanceY) * 1.2) move(distanceX > 0 ? -1 : 1); }, { passive: true });
     roomContent.append(shell); draw(); return stopCurrent;
   }
+  function renderAtlas() {
+    let disposed = false; let cleanup = () => {};
+    const loading = document.createElement("div"); loading.className = "atlas-loading"; loading.setAttribute("role", "status"); loading.textContent = project.settings.language === "en" ? "Drawing your map…" : "Menggambar peta kalian…"; roomContent.append(loading);
+    Promise.all([
+      loadResource("/assets/vendor/leaflet/leaflet.css", "style"),
+      loadResource("/rooms/atlas.css", "style"),
+      window.L ? Promise.resolve() : loadResource("/assets/vendor/leaflet/leaflet.js", "script"),
+      window.StorybookAtlasRoom ? Promise.resolve() : loadResource("/rooms/atlas.js", "script")
+    ]).then(() => {
+      if (disposed) return;
+      roomContent.replaceChildren();
+      cleanup = window.StorybookAtlasRoom.mount(roomContent, project.atlas, { language: project.settings.language, reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches });
+    }).catch(() => {
+      if (disposed) return;
+      roomContent.replaceChildren(); const message = document.createElement("p"); message.className = "room-empty"; message.textContent = project.settings.language === "en" ? "The interactive map could not load. Open a location below." : "Peta interaktif tidak dapat dimuat. Buka lokasi dari daftar berikut."; roomContent.append(message);
+      (project.atlas?.locations || []).forEach(location => { if (!Number.isFinite(location.latitude) || !Number.isFinite(location.longitude)) return; const link = document.createElement("a"); link.className = "comic-button"; link.target = "_blank"; link.rel = "noopener noreferrer"; link.href = `https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`; link.textContent = location.label; roomContent.append(link); });
+    });
+    return () => { disposed = true; cleanup?.(); };
+  }
   function renderMusic() {
     const tracks = availableTracks();
     if (!tracks.length) { roomContent.textContent = I18n.t("gift.empty"); return () => {}; }
@@ -192,7 +247,7 @@
     roomContent.append(shell); return () => { clearInterval(timer); clearTimeout(revealTimer); };
   }
 
-  function renderAll() { clearOpeningTransition(); roomCleanup(); roomCleanup = () => {}; storyAudio.pause(); storyAudio.removeAttribute("src"); storyAudio.load(); activeTrackIndex = 0; opened.clear(); $("#open-wrap").classList.remove("is-opening"); $("#greeting-art").removeAttribute("src"); $("#greeting-art").hidden = true; $("#finale-art").removeAttribute("src"); $("#finale-art").hidden = true; $("#finale-skyline").style.backgroundImage = ""; $("#module-grid").replaceChildren(); applyTheme(); renderStaticCopy(); }
+  function renderAll() { clearOpeningTransition(); if (panelPrefetchHandle) { "cancelIdleCallback" in window ? cancelIdleCallback(panelPrefetchHandle) : clearTimeout(panelPrefetchHandle); panelPrefetchHandle = 0; } roomCleanup(); roomCleanup = () => {}; storyAudio.pause(); storyAudio.removeAttribute("src"); storyAudio.load(); activeTrackIndex = 0; opened.clear(); $("#open-wrap").classList.remove("is-opening"); $("#greeting-art").removeAttribute("src"); $("#greeting-art").hidden = true; $("#finale-art").removeAttribute("src"); $("#finale-art").hidden = true; $("#finale-skyline").style.backgroundImage = ""; $("#module-grid").replaceChildren(); applyTheme(); renderStaticCopy(); prefetchOpeningPanels(); }
   async function loadGift() {
     const projectId = Project.projectIdFromPath(location.pathname, location.search) || "sample-demo";
     try {
