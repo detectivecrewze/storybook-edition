@@ -70,7 +70,7 @@
     });
     return saveQueue;
   }
-  function sendPreview() { const frame = $("#gift-preview"); if (frame?.contentWindow && draft) frame.contentWindow.postMessage({ type: "storybook-preview", project: draft }, location.origin); }
+  function sendPreview() { syncAll(); const frame = $("#gift-preview"); if (frame?.contentWindow && draft) frame.contentWindow.postMessage({ type: "storybook-preview", project: draft }, location.origin); }
   function updateMediaDeliveryState(host, source, failed) {
     host.classList.toggle("is-error", failed);
     if (failed) mediaDeliveryErrors.add(source); else mediaDeliveryErrors.delete(source);
@@ -108,7 +108,7 @@
   }
   function renderOccasions() { const select = $("#occasion-preset"); select.replaceChildren(...Object.values(Project.OCCASION_PRESETS).map(preset => { const option = document.createElement("option"); option.value = preset.id; option.textContent = preset.label[draft.settings.language]; return option; })); select.value = draft.occasionPreset; }
   function renderReasons() {
-    const host = $("#reasons-list"); host.replaceChildren(); draft.reasons.items.forEach((value, index) => { const fragment = $("#reason-template").content.cloneNode(true); const card = $("article", fragment); $(".field b", card).textContent = index + 1; const input = $("textarea", card); input.value = value; input.addEventListener("input", () => { draft.reasons.items[index] = input.value; queueSave(); }); $("[data-remove]", card).addEventListener("click", () => { if (draft.reasons.items.length <= Project.MIN_REASONS) return; draft.reasons.items.splice(index, 1); renderReasons(); queueSave(); }); $$("[data-move]", card).forEach(button => button.addEventListener("click", () => { swap(draft.reasons.items, index, button.dataset.move === "up" ? -1 : 1); renderReasons(); queueSave(); })); I18n.apply(card); host.append(fragment); }); dragSort(host, draft.reasons.items, renderReasons);
+    const host = $("#reasons-list"); host.replaceChildren(); draft.reasons.items.forEach((value, index) => { const fragment = $("#reason-template").content.cloneNode(true); const card = $("article", fragment); $(".field b", card).textContent = index + 1; const input = $("textarea", card); input.value = value; input.addEventListener("input", () => { draft.reasons.items[index] = input.value; queueSave(); }); $("[data-remove]", card).addEventListener("click", () => { if (draft.reasons.items.length <= Project.MIN_REASONS) return; syncAll(); draft.reasons.items.splice(index, 1); renderReasons(); queueSave(); }); $$("[data-move]", card).forEach(button => button.addEventListener("click", () => { syncAll(); swap(draft.reasons.items, index, button.dataset.move === "up" ? -1 : 1); renderReasons(); queueSave(); })); I18n.apply(card); host.append(fragment); }); dragSort(host, draft.reasons.items, () => { syncAll(); renderReasons(); });
   }
   function renderOpeningPanels() {
     const host = $("#opening-panel-grid"); host.replaceChildren();
@@ -120,8 +120,61 @@
       I18n.apply(card); host.append(fragment);
     });
   }
+  function syncGalleryCard(item, card) {
+    if (!item || !card) return;
+    const title = $(".gallery-title", card);
+    if (title) item.title = title.value.trim();
+    const caption = $(".gallery-caption", card);
+    if (caption) item.caption = caption.value.trim();
+  }
   function renderGallery() {
-    const host = $("#gallery-list"); host.replaceChildren(); draft.gallery.items.forEach((item, index) => { const fragment = $("#gallery-template").content.cloneNode(true); const card = $("article", fragment); setImagePreview($(".media-preview", card), item); $(".gallery-title", card).value = item.title; $(".gallery-caption", card).value = item.caption; $(".gallery-title", card).addEventListener("input", event => { item.title = event.target.value; queueSave(); }); $(".gallery-caption", card).addEventListener("input", event => { item.caption = event.target.value; queueSave(); }); $(".gallery-file", card).addEventListener("change", event => { const file = event.target.files[0]; event.target.value = ""; uploadGallery(file, item, card); }); $("[data-remove]", card).addEventListener("click", () => { draft.gallery.items.splice(index, 1); if (!draft.gallery.items.length) draft.gallery.items.push({ id: Project.makeId("media"), mediaType: "image", mediaUrl: "", title: "", caption: "" }); renderGallery(); queueSave(); }); $$("[data-move]", card).forEach(button => button.addEventListener("click", () => { swap(draft.gallery.items, index, button.dataset.move === "up" ? -1 : 1); renderGallery(); queueSave(); })); I18n.apply(card); host.append(fragment); }); dragSort(host, draft.gallery.items, renderGallery);
+    const host = $("#gallery-list"); host.replaceChildren(); draft.gallery.items.forEach((item, index) => {
+      const fragment = $("#gallery-template").content.cloneNode(true);
+      const card = $("article", fragment);
+      card.dataset.id = item.id;
+      setImagePreview($(".media-preview", card), item);
+      const titleInput = $(".gallery-title", card);
+      const captionInput = $(".gallery-caption", card);
+      titleInput.value = item.title;
+      captionInput.value = item.caption;
+      const getActiveItem = () => draft.gallery.items.find(entry => entry.id === item.id) || draft.gallery.items[index] || item;
+      titleInput.addEventListener("input", event => {
+        const current = getActiveItem();
+        item.title = event.target.value;
+        if (current) current.title = event.target.value;
+        queueSave();
+      });
+      titleInput.addEventListener("blur", () => { syncAll(); queueSave(); });
+      captionInput.addEventListener("input", event => {
+        const current = getActiveItem();
+        item.caption = event.target.value;
+        if (current) current.caption = event.target.value;
+        queueSave();
+      });
+      captionInput.addEventListener("blur", () => { syncAll(); queueSave(); });
+      $(".gallery-file", card).addEventListener("change", event => {
+        const file = event.target.files[0];
+        event.target.value = "";
+        syncGalleryCard(item, card);
+        uploadGallery(file, item, card);
+      });
+      $("[data-remove]", card).addEventListener("click", () => {
+        syncAll();
+        draft.gallery.items.splice(index, 1);
+        if (!draft.gallery.items.length) draft.gallery.items.push({ id: Project.makeId("media"), mediaType: "image", mediaUrl: "", title: "", caption: "" });
+        renderGallery();
+        queueSave();
+      });
+      $$("[data-move]", card).forEach(button => button.addEventListener("click", () => {
+        syncAll();
+        swap(draft.gallery.items, index, button.dataset.move === "up" ? -1 : 1);
+        renderGallery();
+        queueSave();
+      }));
+      I18n.apply(card);
+      host.append(fragment);
+    });
+    dragSort(host, draft.gallery.items, () => { syncAll(); renderGallery(); });
   }
   function atlasStatus(location, state = "auto") {
     if (state === "short") return { kind: "invalid", text: I18n.t("studio.locationShortLink") };
@@ -214,7 +267,17 @@
     dragSort(host, draft.atlas.locations, () => { syncAll(); renderAtlas(); });
   }
   function renderMusic() {
-    const host = $("#music-list"); host.replaceChildren(); draft.music.tracks.forEach((track, index) => { const fragment = $("#track-template").content.cloneNode(true); const card = $("article", fragment); $(".track-cover", card).style.backgroundImage = track.coverUrl ? `url('${track.coverUrl}')` : ""; $(".track-title", card).value = track.title; $(".track-artist", card).value = track.artist; $(".track-title", card).addEventListener("input", event => { track.title = event.target.value; queueSave(); }); $(".track-artist", card).addEventListener("input", event => { track.artist = event.target.value; queueSave(); }); $("[data-remove]", card).addEventListener("click", () => { draft.music.tracks.splice(index, 1); renderMusic(); queueSave(); }); I18n.apply(card); host.append(fragment); });
+    const host = $("#music-list"); host.replaceChildren(); draft.music.tracks.forEach((track, index) => {
+      const fragment = $("#track-template").content.cloneNode(true); const card = $("article", fragment);
+      $(".track-cover", card).style.backgroundImage = track.coverUrl ? `url('${track.coverUrl}')` : "";
+      const titleInput = $(".track-title", card); const artistInput = $(".track-artist", card);
+      titleInput.value = track.title; artistInput.value = track.artist;
+      const getActiveTrack = () => draft.music.tracks.find(entry => entry.id === track.id) || draft.music.tracks[index] || track;
+      titleInput.addEventListener("input", event => { const current = getActiveTrack(); track.title = event.target.value; if (current) current.title = event.target.value; queueSave(); });
+      artistInput.addEventListener("input", event => { const current = getActiveTrack(); track.artist = event.target.value; if (current) current.artist = event.target.value; queueSave(); });
+      $("[data-remove]", card).addEventListener("click", () => { syncAll(); draft.music.tracks.splice(index, 1); renderMusic(); queueSave(); });
+      I18n.apply(card); host.append(fragment);
+    });
   }
   function renderCatalog(filter = "") { const host = $("#music-catalog"); host.replaceChildren(); const query = filter.trim().toLowerCase(); catalog.filter(track => !query || `${track.title} ${track.artist}`.toLowerCase().includes(query)).slice(0, 30).forEach(track => { const button = document.createElement("button"); button.type = "button"; button.className = "catalog-track"; button.innerHTML = `<img alt=""><span><strong></strong><small></small></span>`; $("img", button).src = track.coverUrl; $("strong", button).textContent = track.title; $("small", button).textContent = track.artist; button.addEventListener("click", () => { if (draft.music.tracks.length >= Project.MAX_MUSIC_TRACKS || draft.music.tracks.some(item => item.audioUrl === track.audioUrl)) return; draft.music.tracks.push({ id: track.id || Project.makeId("track"), sourceType: "catalog", catalogId: track.id || "", audioUrl: track.audioUrl, coverUrl: track.coverUrl || "", title: track.title, artist: track.artist || "" }); renderMusic(); queueSave(); }); host.append(button); }); }
   function renderModules() {
@@ -232,6 +295,24 @@
     draft.opening.eyebrow = $("#opening-eyebrow").value; draft.opening.title = $("#opening-title").value; draft.opening.message = $("#opening-message").value;
     draft.letter.greeting = $("#letter-greeting").value; draft.letter.paragraphs = $("#letter-body").value.split(/\n\s*\n/).map(value => value.trim()).filter(Boolean); draft.letter.signoff = $("#letter-signoff").value;
     draft.finale.title = $("#finale-title").value; draft.finale.message = $("#finale-message").value; draft.finale.signoff = $("#finale-signoff").value;
+    $$(".gallery-editor", $("#gallery-list")).forEach((card, index) => {
+      const item = draft.gallery.items.find(entry => entry.id === card.dataset.id) || draft.gallery.items[index];
+      if (item) syncGalleryCard(item, card);
+    });
+    $$(".reason-editor", $("#reasons-list")).forEach((card, index) => {
+      const textarea = $("textarea", card);
+      if (textarea && draft.reasons.items[index] !== undefined) {
+        draft.reasons.items[index] = textarea.value.trim();
+      }
+    });
+    $$(".track-editor", $("#music-list")).forEach((card, index) => {
+      const track = draft.music.tracks[index];
+      if (!track) return;
+      const title = $(".track-title", card);
+      if (title) track.title = title.value.trim();
+      const artist = $(".track-artist", card);
+      if (artist) track.artist = artist.value.trim();
+    });
     $$(".atlas-editor", $("#atlas-list")).forEach((card, index) => {
       const loc = draft.atlas.locations[index];
       if (loc) syncAtlasCard(loc, card);
@@ -465,10 +546,13 @@
   function atlasUploadStatus(card, state, message = "") { const status = $(".atlas-upload-status", card); const input = $(".atlas-photo-file", card); if (status) { status.className = `atlas-upload-status${state ? ` is-${state}` : ""}`; status.textContent = message; } if (input) input.disabled = state === "uploading"; }
   function mediaKind(file) { const type = String(file?.type || "").toLowerCase(); const extension = String(file?.name || "").split(".").pop()?.toLowerCase(); if (type.startsWith("video/") || ["mp4", "webm", "mov"].includes(extension)) return "video"; if (["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(type) || ["jpg", "jpeg", "png", "webp"].includes(extension)) return "photo"; return ""; }
   async function uploadGallery(file, item, card) {
-    if (!file) return; const kind = mediaKind(file);
+    if (!file) return;
+    syncGalleryCard(item, card);
+    const kind = mediaKind(file);
     if (!kind) { galleryUploadStatus(card, "error", "Gunakan foto JPG/PNG/WEBP atau video MP4/WEBM/MOV."); return; }
     const isVideo = kind === "video"; const max = isVideo ? 20 * 1024 * 1024 : 8 * 1024 * 1024;
     if (file.size > max) { galleryUploadStatus(card, "error", I18n.t(isVideo ? "studio.maxVideo" : "studio.maxImage")); return; }
+    syncGalleryCard(item, card);
     const itemId = item.id;
     let uploadFile;
     if (isVideo) {
@@ -478,6 +562,7 @@
       if (!cropped) return;
       uploadFile = cropped;
     }
+    syncGalleryCard(item, card);
     galleryUploadStatus(card, "uploading", I18n.t("studio.preparingMedia"));
     try {
       console.info("[Storybook Studio] Preparing gallery media", { projectId, itemId, mediaType: kind, size: uploadFile.size, type: uploadFile.type });
@@ -486,6 +571,7 @@
       if (!result?.url) throw new Error("Server tidak mengembalikan URL media.");
       const currentItem = draft.gallery.items.find(entry => entry.id === itemId);
       if (!currentItem) return;
+      syncGalleryCard(currentItem, card);
       mediaDeliveryErrors.delete(result.url); currentItem.mediaType = isVideo ? "video" : "image"; currentItem.mediaUrl = result.url;
       setImagePreview($(".media-preview", card), currentItem);
       galleryUploadStatus(card, "ready", I18n.t("studio.mediaUploaded") || "Media berhasil diunggah");
@@ -516,12 +602,14 @@
     atlasUploadStatus(card, "uploading", I18n.t("studio.preparingMedia"));
     try {
       console.info("[Storybook Studio] Preparing map photo", { projectId, size: cropped.size, type: cropped.type });
+      atlasUploadStatus(card, "uploading", I18n.t("studio.savingMedia"));
       const result = await api.upload(cropped, "photo");
       if (!result?.url) throw new Error("Server tidak mengembalikan URL media.");
       const currentLocation = draft.atlas.locations.find(entry => entry.id === locationId);
       if (!currentLocation) return;
-      mediaDeliveryErrors.delete(result.url); currentLocation.photoUrl = result.url;
-      setImagePreview($(".atlas-photo-preview", card), { mediaType: "image", mediaUrl: currentLocation.photoUrl });
+      mediaDeliveryErrors.delete(result.url);
+      currentLocation.photoUrl = result.url;
+      setImagePreview($(".atlas-photo-preview", card), { mediaType: "image", mediaUrl: result.url });
       const removeBtn = $(".remove-atlas-photo", card);
       if (removeBtn) removeBtn.hidden = false;
       atlasUploadStatus(card, "ready", I18n.t("studio.photoUploaded") || "Foto berhasil diunggah");
@@ -536,13 +624,14 @@
   async function publish() { syncAll(); const validation = Project.validateProject(draft, { forPublish: true }); if (!validation.valid) return showErrors(validation.errors); clearErrors(); const button = $("#publish-button"); button.disabled = true; button.textContent = I18n.t("studio.publishing"); try { await saveQueue.catch(() => {}); const result = await api.saveStudio(validation.project, "published"); draft = Project.normalizeProject(result.project || validation.project, projectId, draft); giftUrl = result.giftUrl || giftUrl; published = true; saveIndicator("saved"); updateGiftResult(); sendPreview(); } catch (error) { alert(error.message); } finally { button.disabled = false; button.textContent = I18n.t("studio.publishButton"); } }
 
   function bind() {
+    $("#studio-retry").addEventListener("click", () => location.reload());
     $("#studio-form").addEventListener("input", event => { if (event.target.closest("#opening-panel-grid,#reasons-list,#gallery-list,#atlas-list,#music-list,#module-editor")) return; syncAll(); queueSave(); });
     $("#studio-language").addEventListener("change", event => { syncAll(); Project.changeLanguage(draft, event.target.value); renderFields(); queueSave(); });
     $("#occasion-preset").addEventListener("change", event => { if (!confirm(I18n.t("studio.presetWarning"))) { event.target.value = draft.occasionPreset; return; } syncAll(); draft = Project.applyOccasionPreset(draft, event.target.value); renderFields(); queueSave(); });
     $$('[data-reasons-preset]').forEach(button => button.addEventListener("click", () => applyReasonsPreset(button.dataset.reasonsPreset)));
     $$('[data-letter-preset]').forEach(button => button.addEventListener("click", () => applyLetterPreset(button.dataset.letterPreset)));
-    $("#add-reason").addEventListener("click", () => { if (draft.reasons.items.length >= Project.MAX_REASONS) return; draft.reasons.items.push(""); renderReasons(); queueSave(); });
-    $("#add-gallery").addEventListener("click", () => { if (draft.gallery.items.length >= Project.MAX_GALLERY_ITEMS) return; draft.gallery.items.push({ id: Project.makeId("media"), mediaType: "image", mediaUrl: "", title: "", caption: "" }); renderGallery(); queueSave(); });
+    $("#add-reason").addEventListener("click", () => { if (draft.reasons.items.length >= Project.MAX_REASONS) return; syncAll(); draft.reasons.items.push(""); renderReasons(); queueSave(); });
+    $("#add-gallery").addEventListener("click", () => { if (draft.gallery.items.length >= Project.MAX_GALLERY_ITEMS) return; syncAll(); draft.gallery.items.push({ id: Project.makeId("media"), mediaType: "image", mediaUrl: "", title: "", caption: "" }); renderGallery(); queueSave(); });
     $("#atlas-enabled").addEventListener("change", event => { const module = draft.modules.find(item => item.type === "atlas"); if (!module) return; module.enabled = event.target.checked; console.info("[Storybook Studio] Module changed", { projectId, module: "atlas", enabled: module.enabled }); renderModules(); queueSave(); });
     $("#add-atlas").addEventListener("click", () => {
       syncAll();

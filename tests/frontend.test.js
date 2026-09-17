@@ -35,6 +35,7 @@ test("Studio gives media and Atlas controls a visible, resilient editing path", 
   assert.match(app, /aspectRatio:\s*1/);
   assert.match(app, /aspectRatio:\s*4\s*\/\s*3/);
   assert.match(app, /function syncAtlasCard/);
+  assert.match(app, /function syncGalleryCard/);
   assert.match(mock, /URL\.createObjectURL\(file\)/);
   assert.doesNotMatch(mock, /readAsDataURL/);
 });

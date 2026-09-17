@@ -182,7 +182,7 @@
         media.addEventListener("play", () => { resumeMusic = !storyAudio.paused; if (resumeMusic) storyAudio.pause(); });
         media.addEventListener("pause", () => { if (resumeMusic) { storyAudio.play().catch(() => {}); resumeMusic = false; } });
       } else { media = document.createElement("img"); media.loading = "eager"; media.alt = item.title || "Memory"; media.src = item.mediaUrl; }
-      mediaHost.append(media); $("h3", shell).textContent = item.title || `Memory ${index + 1}`; $("p", shell).textContent = item.caption; $(".gallery-count", shell).textContent = `${index + 1} / ${items.length}`;
+      mediaHost.append(media); $("h3", shell).textContent = item.title || `Memory ${index + 1}`; const captionNode = $("p", shell); captionNode.textContent = item.caption || ""; captionNode.style.display = item.caption ? "" : "none"; $(".gallery-count", shell).textContent = `${index + 1} / ${items.length}`;
       $$(".gallery-dots button", shell).forEach((dot, dotIndex) => dot.classList.toggle("is-active", dotIndex === index));
       $(".polaroid-current", shell).animate?.([{ opacity: .35, transform: "translateX(12px) rotate(.8deg)" }, { opacity: 1, transform: "rotate(-.65deg)" }], { duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 1 : 260, easing: "ease-out" });
       $(".gallery-prev", shell).disabled = items.length < 2; $(".gallery-next", shell).disabled = items.length < 2;
