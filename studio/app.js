@@ -223,6 +223,13 @@
     const theme = Themes.applyTheme(draft.themeId);
     const palette = theme.palette;
     const root = document.documentElement;
+    root.style.backgroundColor = "";
+    root.style.backgroundImage = "";
+    root.style.colorScheme = "light";
+    if (document.body) {
+      document.body.style.backgroundColor = "";
+      document.body.style.backgroundImage = "";
+    }
     const aliases = { red: palette.primary, "red-dark": palette.primaryDark, blue: palette.secondary, yellow: palette.accent, paper: palette.paper, ink: palette.ink, muted: palette.muted, "studio-topbar": theme.studio?.topbar || palette.surface, "studio-sidebar": theme.studio?.sidebar || palette.surface };
     Object.entries(aliases).forEach(([name, value]) => root.style.setProperty(`--${name}`, value));
     root.style.setProperty("--line", `color-mix(in srgb, ${palette.muted} 28%, ${palette.paper})`);

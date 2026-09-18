@@ -118,28 +118,12 @@
   const getTheme = value => THEMES[normalizeThemeId(value)];
   const applyTheme = (themeId, target = document.documentElement) => {
     const theme = getTheme(themeId);
+    if (!target) return theme;
     target.dataset.theme = theme.id;
     Object.entries(theme.palette).forEach(([key, value]) => target.style.setProperty(`--theme-${key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`)}`, value));
     target.style.setProperty("--font-display", theme.fonts.display);
     target.style.setProperty("--font-body", theme.fonts.body);
     target.style.setProperty("--font-hand", theme.fonts.handwritten);
-    const surfaceTexture = `url('${theme.textures.surface}')`;
-    const paperTexture = `url('${theme.textures.paper}')`;
-    target.style.setProperty("--surface-texture", surfaceTexture);
-    target.style.setProperty("--paper-texture", paperTexture);
-    target.style.backgroundColor = theme.palette.surface;
-    target.style.colorScheme = "dark";
-    if (typeof document !== "undefined") {
-      if (document.body) {
-        document.body.style.backgroundColor = theme.palette.surface;
-        document.body.style.setProperty("--surface-texture", surfaceTexture);
-        document.body.style.setProperty("--paper-texture", paperTexture);
-      }
-      const metaThemeColor = document.querySelector("meta[name='theme-color']");
-      if (metaThemeColor) {
-        metaThemeColor.content = theme.palette.surface;
-      }
-    }
     return theme;
   };
 

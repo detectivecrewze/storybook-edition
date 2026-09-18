@@ -201,4 +201,15 @@ test("Studio defaults to English language and locale", () => {
   assert.match(workerProject, /const locale = "en"/);
 });
 
+test("Studio maintains light neutral workspace background and Themes.applyTheme is isolated from document body background", () => {
+  const css = read("studio/styles.css");
+  const themes = read("shared/themes.js");
+  const studio = read("studio/app.js");
+  assert.match(css, /background-color:#eee8e2!important/);
+  assert.match(studio, /root\.style\.backgroundColor = ""/);
+  assert.doesNotMatch(themes, /target\.style\.backgroundColor = theme\.palette\.surface/);
+  assert.doesNotMatch(themes, /document\.body\.style\.backgroundColor/);
+});
+
+
 
