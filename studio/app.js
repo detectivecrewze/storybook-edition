@@ -41,6 +41,7 @@
   let pendingPreset = null;
   let presetRestoreFocus = null;
   let atlasHelpRestoreFocus = null;
+  let studioGuideRestoreFocus = null;
   let qrRenderVersion = 0;
   let qrRenderPromise = Promise.resolve(null);
   const qrImageCache = new Map();
@@ -337,6 +338,24 @@
     const dialog = $("#atlas-help-dialog"); if (!dialog?.open) return;
     dialog.close();
     const returnFocus = atlasHelpRestoreFocus; atlasHelpRestoreFocus = null;
+    if (restoreFocus) requestAnimationFrame(() => returnFocus?.focus?.({ preventScroll: true }));
+  }
+  function openStudioGuide(trigger) {
+    const dialog = $("#studio-guide-dialog"); if (!dialog) return;
+    studioGuideRestoreFocus = trigger || document.activeElement;
+    dialog.showModal();
+    $("#start-studio-guide")?.focus({ preventScroll: true });
+  }
+  function closeStudioGuide({ restoreFocus = true, markSeen = true } = {}) {
+    const dialog = $("#studio-guide-dialog"); if (!dialog?.open) return;
+    if (markSeen) {
+      try {
+        localStorage.setItem(`storybook:guide:${projectId}`, "1");
+        localStorage.setItem("storybook:guide:seen", "1");
+      } catch {}
+    }
+    dialog.close();
+    const returnFocus = studioGuideRestoreFocus; studioGuideRestoreFocus = null;
     if (restoreFocus) requestAnimationFrame(() => returnFocus?.focus?.({ preventScroll: true }));
   }
   function syncAtlasCard(location, card) {
@@ -1219,6 +1238,14 @@
       atlasHelpDialog.addEventListener("cancel", event => { event.preventDefault(); closeAtlasHelp(); });
       atlasHelpDialog.addEventListener("click", event => { if (event.target === atlasHelpDialog) closeAtlasHelp(); });
     }
+    $("#open-studio-guide")?.addEventListener("click", event => openStudioGuide(event.currentTarget));
+    $("#close-studio-guide")?.addEventListener("click", () => closeStudioGuide());
+    $("#start-studio-guide")?.addEventListener("click", () => closeStudioGuide());
+    const guideDialog = $("#studio-guide-dialog");
+    if (guideDialog) {
+      guideDialog.addEventListener("cancel", event => { event.preventDefault(); closeStudioGuide(); });
+      guideDialog.addEventListener("click", event => { if (event.target === guideDialog) closeStudioGuide(); });
+    }
     $("#studio-retry").addEventListener("click", () => location.reload());
     $("#close-photo-crop")?.addEventListener("click", cancelPhotoCrop);
     $("#cancel-photo-crop")?.addEventListener("click", cancelPhotoCrop);
@@ -1253,7 +1280,7 @@
   async function initialize() {
     if (!projectId) return setState("Link Studio tidak lengkap", "Project ID tidak ditemukan.", false);
     if (!token) return setState("Magic link tidak valid", "Buka kembali link Studio asli yang memiliki token.", false);
-    try { const payload = await api.getStudio(); draft = Project.normalizeProject(payload.project, projectId); const isStaticLocal = ["localhost", "127.0.0.1"].includes(location.hostname) && location.port !== "3100"; giftUrl = isStaticLocal ? `${location.origin}/gift/index.html?project=${encodeURIComponent(projectId)}` : (payload.giftUrl || `${location.origin}/gift/${projectId}`); published = draft.status === "published"; catalog = await fetch("/assets/data/music.json").then(response => response.ok ? response.json() : []).catch(() => []); ensurePreviewTriggers(); bind(); const fullPreview = $("#gift-preview"); if (fullPreview) { fullPreview.addEventListener("load", () => { fullPreviewLoaded = true; sendPreview({ immediate: true }); }); fullPreview.src = previewGiftSrc(); } renderFields(); $("#studio-state").hidden = true; $("#studio-app").hidden = false; saveIndicator("saved"); } catch (error) { setState("Studio belum bisa dibuka", error.message, true); }
+    try { const payload = await api.getStudio(); draft = Project.normalizeProject(payload.project, projectId); const isStaticLocal = ["localhost", "127.0.0.1"].includes(location.hostname) && location.port !== "3100"; giftUrl = isStaticLocal ? `${location.origin}/gift/index.html?project=${encodeURIComponent(projectId)}` : (payload.giftUrl || `${location.origin}/gift/${projectId}`); published = draft.status === "published"; catalog = await fetch("/assets/data/music.json").then(response => response.ok ? response.json() : []).catch(() => []); ensurePreviewTriggers(); bind(); const fullPreview = $("#gift-preview"); if (fullPreview) { fullPreview.addEventListener("load", () => { fullPreviewLoaded = true; sendPreview({ immediate: true }); }); fullPreview.src = previewGiftSrc(); } renderFields(); $("#studio-state").hidden = true; $("#studio-app").hidden = false; saveIndicator("saved"); try { if (!localStorage.getItem(`storybook:guide:${projectId}`) && !localStorage.getItem("storybook:guide:seen")) { requestAnimationFrame(() => openStudioGuide()); } } catch {} } catch (error) { setState("Studio belum bisa dibuka", error.message, true); }
   }
   initialize();
 })();

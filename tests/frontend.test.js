@@ -178,3 +178,17 @@ test("Soundtrack artwork uses the same safe crop and stable-ID upload path", () 
   assert.match(css, /\.soundtrack-step \.track-editor\{display:block/);
   assert.match(css, /grid-template-areas:"cover fields" "cover actions"/);
 });
+
+test("Studio guide dialog is present, wired correctly, and has no emojis", () => {
+  const html = read("studio/index.html"); const studio = read("studio/app.js"); const css = read("studio/styles.css");
+  assert.match(html, /id="studio-guide-dialog"/);
+  assert.match(html, /id="open-studio-guide"/);
+  assert.match(html, /id="start-studio-guide"/);
+  assert.match(studio, /function openStudioGuide/);
+  assert.match(studio, /function closeStudioGuide/);
+  assert.match(studio, /storybook:guide:/);
+  assert.match(css, /\.studio-guide-dialog/);
+  assert.match(css, /\.studio-guide-grid/);
+  assert.doesNotMatch(html, /[\u{1F300}-\u{1F9FF}]/u);
+});
+

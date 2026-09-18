@@ -9,7 +9,7 @@
     spiderman: Object.freeze({
       id: "spiderman",
       label: "Spider-Man",
-      description: Object.freeze({ id: "Pahlawan komik merah-biru dengan tekstur web dan panel scrapbook.", en: "A red-and-blue comic hero with web textures and scrapbook panels." }),
+      description: Object.freeze({ id: "Aksi komik klasik merah-biru.", en: "Classic red-and-blue comic style." }),
       thumbnail: "/assets/themes/spiderman/thumbnail.webp",
       stylesheet: "/assets/themes/spiderman/theme.css",
       palette: Object.freeze({
@@ -53,7 +53,7 @@
     batman: Object.freeze({
       id: "batman",
       label: "Batman",
-      description: Object.freeze({ id: "Noir Gotham dengan kota malam, lampu sorot emas, dan nuansa komik detektif.", en: "Gotham noir with a night skyline, golden searchlights, and a detective-comic mood." }),
+      description: Object.freeze({ id: "Gotham noir & siluet malam.", en: "Gotham noir & night skyline." }),
       thumbnail: "/assets/themes/batman/thumbnail.webp",
       stylesheet: "/assets/themes/batman/theme.css",
       palette: Object.freeze({

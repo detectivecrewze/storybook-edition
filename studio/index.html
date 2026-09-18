@@ -13,7 +13,7 @@
   <div class="studio-app" id="studio-app" hidden>
     <header class="topbar">
       <div class="brand"><span>FOR YOU, ALWAYS.</span><strong data-i18n="studio.title">Storybook Studio</strong></div>
-      <div class="topbar-actions"><span id="save-state" class="save-state" data-i18n="studio.autosaved">Tersimpan otomatis</span><label><span data-i18n="studio.language">Bahasa</span><select id="studio-language"><option value="id">Indonesia</option><option value="en">English</option></select></label></div>
+      <div class="topbar-actions"><button type="button" class="topbar-guide-button" id="open-studio-guide" aria-label="Panduan Studio" data-i18n-aria-label="studio.guideButton"><span class="guide-badge" aria-hidden="true">INFO</span><b data-i18n="studio.guideButton">Panduan</b></button><span id="save-state" class="save-state" data-i18n="studio.autosaved">Tersimpan otomatis</span><label><span data-i18n="studio.language">Bahasa</span><select id="studio-language"><option value="id">Indonesia</option><option value="en">English</option></select></label></div>
     </header>
     <div class="studio-layout">
       <aside class="step-sidebar"><p class="sidebar-label">STORY BUILDER</p><ol id="step-list">
@@ -46,6 +46,51 @@
     <footer class="step-footer"><button class="secondary-button" id="previous-step" type="button" data-i18n="common.previous">Sebelumnya</button><div><span id="step-progress">1 / 9</span><i><b id="progress-fill"></b></i></div><button class="primary-button" id="next-step" type="button" data-i18n="common.next">Lanjut</button></footer>
   </div>
 
+  <dialog class="studio-guide-dialog" id="studio-guide-dialog" aria-labelledby="studio-guide-title" aria-describedby="studio-guide-subtitle">
+    <section class="studio-guide-card">
+      <header class="studio-guide-header">
+        <div class="studio-guide-heading">
+          <p class="guide-kicker" data-i18n="studio.guideKicker">PANDUAN STUDIO · STORYBOOK</p>
+          <h2 id="studio-guide-title" data-i18n="studio.guideTitle">Panduan Menyusun Storybook</h2>
+          <p id="studio-guide-subtitle" data-i18n="studio.guideSubtitle">Beberapa hal penting sebelum mulai menyusun ceritamu:</p>
+        </div>
+        <button class="dialog-close guide-close" id="close-studio-guide" type="button" aria-label="Tutup panduan" data-i18n-aria-label="common.close">×</button>
+      </header>
+      <div class="studio-guide-grid">
+        <article class="studio-guide-item">
+          <span class="guide-item-badge" aria-hidden="true" data-i18n="studio.guideItem1Badge">01</span>
+          <div class="guide-item-content">
+            <h3 data-i18n="studio.guideItem1Title">5 Ruangan Cerita</h3>
+            <p data-i18n="studio.guideItem1Copy">Kado ini memuat 5 bab interaktif: Alasan, Galeri Foto/Video, Atlas Lokasi, Soundtrack Lagu, dan Surat.</p>
+          </div>
+        </article>
+        <article class="studio-guide-item">
+          <span class="guide-item-badge" aria-hidden="true" data-i18n="studio.guideItem2Badge">02</span>
+          <div class="guide-item-content">
+            <h3 data-i18n="studio.guideItem2Title">Bebas Diatur &amp; Dimatikan</h3>
+            <p data-i18n="studio.guideItem2Copy">Tidak wajib memakai semua ruangan. Kamu bisa menyembunyikan atau mengubah urutan cerita di Step 08.</p>
+          </div>
+        </article>
+        <article class="studio-guide-item">
+          <span class="guide-item-badge" aria-hidden="true" data-i18n="studio.guideItem3Badge">03</span>
+          <div class="guide-item-content">
+            <h3 data-i18n="studio.guideItem3Title">Bisa Diedit Kapan Saja</h3>
+            <p data-i18n="studio.guideItem3Copy">Bahkan setelah kado di-publish atau barcode dicetak, kamu tetap bisa memperbarui isinya kapan saja tanpa mengubah link kado.</p>
+          </div>
+        </article>
+        <article class="studio-guide-item">
+          <span class="guide-item-badge" aria-hidden="true" data-i18n="studio.guideItem4Badge">04</span>
+          <div class="guide-item-content">
+            <h3 data-i18n="studio.guideItem4Title">Live Preview Instan</h3>
+            <p data-i18n="studio.guideItem4Copy">Periksa tampilan kado asli secara real-time kapan saja menggunakan tombol Preview Kado di sudut kanan atas.</p>
+          </div>
+        </article>
+      </div>
+      <footer class="studio-guide-footer">
+        <button class="primary-button guide-start-btn" id="start-studio-guide" type="button" data-i18n="studio.guideAction">Mulai Menyusun Cerita</button>
+      </footer>
+    </section>
+  </dialog>
 
   <dialog class="studio-preview-modal" id="studio-preview-modal" aria-labelledby="studio-preview-title" aria-describedby="studio-preview-status">
     <section class="studio-preview-card">
