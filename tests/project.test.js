@@ -12,7 +12,7 @@ test("project schema exposes all general presets and neutral module types", () =
   assert.equal(Project.SCHEMA_VERSION, 2);
   assert.deepEqual(Project.MODULE_TYPES, ["reasons", "gallery", "atlas", "music", "letter"]);
   assert.deepEqual(Object.keys(Project.OCCASION_PRESETS), ["romantic", "anniversary", "birthday", "appreciation", "friendship", "graduation", "just-because"]);
-  assert.equal(Project.emptyProject("gift-demo").settings.language, "id");
+  assert.equal(Project.emptyProject("gift-demo").settings.language, "en");
   assert.equal(Project.emptyProject("gift-demo").modules.find(module => module.type === "atlas").enabled, false);
   assert.equal(Project.emptyProject("gift-demo").modules.find(module => module.type === "atlas").title, "Atlas of us");
   assert.deepEqual(Project.emptyProject("gift-demo").opening.panelImages, ["", "", "", ""]);
@@ -93,7 +93,7 @@ test("publish validation requires content only for active modules and at least t
 });
 
 test("language changes translate built-in defaults without changing personal copy", () => {
-  const draft = Project.emptyProject("gift-language");
+  const draft = Project.emptyProject("gift-language", "id");
   draft.identity.recipient = "Nadia";
   draft.reasons.items[0] = "Tulisan personal milik customer";
   Project.changeLanguage(draft, "en");
@@ -101,6 +101,11 @@ test("language changes translate built-in defaults without changing personal cop
   assert.equal(draft.modules[0].title, "Why You Matter");
   assert.equal(draft.reasons.items[0], "Tulisan personal milik customer");
   assert.equal(draft.opening.eyebrow, Project.OCCASION_PRESETS.romantic.copy.en.eyebrow);
+  Project.changeLanguage(draft, "id");
+  assert.equal(draft.settings.language, "id");
+  assert.equal(draft.modules[0].title, "Kenapa Kamu Berarti");
+  assert.equal(draft.reasons.items[0], "Tulisan personal milik customer");
+  assert.equal(draft.opening.eyebrow, Project.OCCASION_PRESETS.romantic.copy.id.eyebrow);
 });
 
 test("both locale dictionaries have identical keys", () => {

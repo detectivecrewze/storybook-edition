@@ -24,10 +24,10 @@
       "admin.title": "Storybook Control Room", "admin.generate": "Generate Studio Link", "admin.search": "Search recipient, sender, project, preset, or theme...", "admin.total": "Total", "admin.draft": "Draft", "admin.published": "Published", "admin.archived": "Archived"
     }
   };
-  let locale = "id";
-  function normalize(value) { return value === "en" ? "en" : "id"; }
+  let locale = "en";
+  function normalize(value) { return value === "id" ? "id" : "en"; }
   function setLocale(value) { locale = normalize(value); document.documentElement.lang = locale; return locale; }
-  function t(key, vars = {}, selected = locale) { let value = messages[normalize(selected)]?.[key] || messages.id[key] || key; Object.entries(vars).forEach(([name, replacement]) => { value = value.replaceAll(`{${name}}`, String(replacement)); }); return value; }
+  function t(key, vars = {}, selected = locale) { let value = messages[normalize(selected)]?.[key] || messages.en[key] || messages.id[key] || key; Object.entries(vars).forEach(([name, replacement]) => { value = value.replaceAll(`{${name}}`, String(replacement)); }); return value; }
   function apply(scope = document) {
     scope.querySelectorAll("[data-i18n]").forEach(node => { node.textContent = t(node.dataset.i18n); });
     scope.querySelectorAll("[data-i18n-placeholder]").forEach(node => { node.placeholder = t(node.dataset.i18nPlaceholder); });

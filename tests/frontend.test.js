@@ -192,3 +192,13 @@ test("Studio guide dialog is present, wired correctly, and has no emojis", () =>
   assert.doesNotMatch(html, /[\u{1F300}-\u{1F9FF}]/u);
 });
 
+test("Studio defaults to English language and locale", () => {
+  const html = read("studio/index.html"); const i18n = read("shared/i18n.js"); const project = read("shared/project.js"); const workerProject = read("worker/src/project.js");
+  assert.match(html, /<html lang="en">/);
+  assert.match(html, /<option value="en">English<\/option>/);
+  assert.match(i18n, /let locale = "en";/);
+  assert.match(project, /function emptyProject\(projectId = "new-storybook", language = "en"\)/);
+  assert.match(workerProject, /const locale = "en"/);
+});
+
+

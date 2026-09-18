@@ -47,7 +47,7 @@
   });
 
   function text(value, fallback = "", maximum = 10000) { return typeof value === "string" ? value.trim().slice(0, maximum) : fallback; }
-  function normalizeLanguage(value) { return value === "en" ? "en" : "id"; }
+  function normalizeLanguage(value) { return value === "id" ? "id" : "en"; }
   function normalizeOccasion(value) { return Object.hasOwn(OCCASION_PRESETS, value) ? value : "romantic"; }
   function makeId(prefix = "item") { const random = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(16).slice(2)}`; return `${prefix}-${random}`; }
   function themeId(value) { return ThemeApi?.normalizeThemeId ? ThemeApi.normalizeThemeId(value) : text(value, "spiderman", 40).toLowerCase(); }
@@ -55,7 +55,7 @@
   function presetCopy(preset, language) { return OCCASION_PRESETS[normalizeOccasion(preset)].copy[normalizeLanguage(language)]; }
   function defaultReasons(language) { return language === "en" ? ["You make ordinary days feel special.", "You listen with your whole heart.", "Your smile makes everything lighter.", "You always know how to make me laugh."] : ["Kamu membuat hari biasa terasa istimewa.", "Kamu selalu mendengarkan dengan sepenuh hati.", "Senyummu membuat segalanya terasa lebih ringan.", "Kamu selalu tahu cara membuatku tertawa."]; }
 
-  function emptyProject(projectId = "new-storybook", language = "id") {
+  function emptyProject(projectId = "new-storybook", language = "en") {
     const locale = normalizeLanguage(language);
     const opening = presetCopy("romantic", locale);
     return {
