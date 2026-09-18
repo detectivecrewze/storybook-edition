@@ -14,7 +14,7 @@
 - Memahami codebase secara mendalam sebelum menyentuh kode.
 - Bekerja secara cermat: **Zero Trial-and-Error**. Telusuri akar masalah (*root cause*) sebelum mengubah file.
 - **JANGAN** menghapus modul, tema, atau kode yang tidak diminta.
-- **SELALU** jalankan `npm run check` untuk memvalidasi syntax, build, dan 30 test suites sebelum commit.
+- **SELALU** jalankan `npm run check` untuk memvalidasi syntax, build, dan 32 test suites sebelum commit.
 - **SELALU** lakukan `git add . ; git commit -m "..." ; git push origin main` setelah setiap perubahan selesai.
 - Format commit: `feat(scope): pesan` / `fix(scope): pesan` / `update(scope): pesan`.
 - Gaya komunikasi: Bahasa Indonesia santai, ringkas, langsung ke inti permasalahan.
@@ -283,3 +283,58 @@ Pembaruan yang telah terintegrasi dan di-commit pada branch `main`:
 - `tests/worker.test.mjs`
 - `worker/src/project.js`
 - `assets/themes/batman/` (folder aset tema baru)
+
+---
+
+## 8. STUDIO ONBOARDING MODAL, ENGLISH DEFAULT, & MOBILE VIEWPORT PERFECTION (Commit 3e689a5, 61a7f5c, 8c27ed9)
+
+Fitur dan perbaikan komprehensif yang dikerjakan pada branch `feat/studio-onboarding-modal` dan telah digabungkan ke `main`:
+
+### A. Studio Onboarding Guide Modal (Zero Emoji)
+- **Kebutuhan**: Memberikan panduan cepat bagi pembuat kado saat pertama kali masuk ke Studio Editor tanpa mengganggu estetika.
+- **Komponen**: Dialog modal `#studio-guide-modal` di `studio/index.html` dan `studio/styles.css`.
+- **Poin Panduan**:
+  1. Room Count & Customization: Storybook terdiri dari 5 ruang cerita modular (Reasons, Memory Archive, Atlas of us, Soundtrack, dan Letter).
+  2. Flexible Activation: Setiap ruang cerita dapat dinonaktifkan jika tidak diperlukan (minimal 2 ruang aktif untuk menerbitkan kado).
+  3. Continuous Editing: Kado yang sudah dipublikasikan tetap bisa disunting dan diperbarui kapan saja tanpa mengubah tautan kado.
+- **Interaksi & UX**:
+  - Otomatis muncul saat pengguna pertama kali membuka Studio (dikontrol via `localStorage` key `storybook_studio_guided`).
+  - Dilengkapi tombol "Petunjuk Studio" / "Studio Guide" di topbar Studio untuk membuka kembali modal kapan pun diperlukan.
+  - Desain mengikuti palet tema aktif (`applyStudioTheme()`), backdrop blur tipis, border retro khas komik, dan sepenuhnya bersih dari emoji sesuai standar brand.
+
+### B. Deskripsi Tema Ringkas & Ramah Mobile
+- **Problem**: Deskripsi tema di Step 01 Studio sebelumnya terlalu panjang dan membuat tampilan kartu berantakan pada layar smartphone.
+- **Solusi**:
+  - Di `shared/themes.js` dan `shared/i18n.js`, deskripsi tema dipersingkat menjadi kalimat pendek, padat, dan elegan.
+  - Spider-Man: "Red webs, retro halftone textures, and heroic warmth." / "Jaring merah klasik, tekstur halftone komik retro, dan nuansa hangat."
+  - Batman: "Gotham noir darkness, spotlight gold accents, and vintage comic lines." / "Nuansa gelap Gotham noir, aksen emas lampu sorot, dan garis komik vintage."
+
+### C. Default Bahasa Studio: English
+- **Kebutuhan**: Standarisasi agar saat Studio Editor pertama kali dimuat oleh pengguna baru (tanpa preferensi tersimpan di storage), bahasa default yang aktif adalah English (`en`), bukan Bahasa Indonesia.
+- **Solusi**:
+  - `shared/i18n.js`: Mengatur `I18n.resolveInitialLocale()` default ke `'en'`.
+  - `studio/index.html`: Update default selector `<select id="lang-select">` memilih opsi `en`.
+  - `admin/app.js`: Konsisten default ke `'en'`.
+  - Ditambahkan unit test otomatis: `Studio defaults to English language and locale`.
+
+### D. Eliminasi White Letterboxing pada Mobile (Status Bar & Safe Area)
+- **Problem**: Pada perangkat mobile (iOS Safari / Chrome), bagian atas (status bar) dan bagian bawah (navigation bar / overscroll) menampilkan garis putih canvas default browser alih-alih warna merah tema Spider-Man (`#a80f21`) atau hitam Batman (`#0b111b`).
+- **Akar Masalah**:
+  1. Element `html` dan `body` tidak memiliki background color & texture solid yang mengisi 100dvh viewport.
+  2. Tag `<meta name="theme-color">` mengambil warna aksen sekunder (`primaryDark`) alih-alih surface background tema.
+- **Solusi yang Diterapkan**:
+  - `styles.css`: `html` dan `body` diatur `min-height: 100dvh; background-color: var(--theme-surface, #a80f21);` lengkap dengan surface texture linear gradient.
+  - `app.js` & `shared/themes.js`: Menerapkan `document.documentElement.style.backgroundColor = theme.palette.surface`, `document.documentElement.style.colorScheme = "dark"`, dan memperbarui `<meta name="theme-color">` ke `theme.palette.surface` secara dinamis.
+  - `gift/index.html`: Ditambahkan `<meta name="apple-mobile-web-app-capable" content="yes">` dan `<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">`.
+  - `assets/themes/spiderman/theme.css` & `assets/themes/batman/theme.css`: Ditambahkan selector eksplisit `html[data-theme="..."], body[data-theme="..."]`.
+
+### E. Eliminasi Kotak / Outline Biru pada Headline Greeting Screen
+- **Problem**: Pada tampilan mobile, saat layar greeting pertama kali muncul terdapat kotak/garis outline biru di sekitar teks judul utama ("FOR THE ONE WHO MAKES EVERYTHING FEEL BRIGHTER").
+- **Akar Masalah**: Fungsi `showScreen()` di `app.js` memanggil `target.focus()` pada elemen heading pertama untuk screen reader accessibility. WebKit/iOS secara otomatis menggambar outline focus ring biru bawaan browser pada elemen yang menerima fokus JS.
+- **Solusi yang Diterapkan**:
+  - Menambahkan reset `outline: none !important; box-shadow: none !important; -webkit-tap-highlight-color: transparent;` pada heading `h1, h2, h3` dan spesifik `.greeting-card h1` di `styles.css`.
+  - Di `app.js` (`showScreen()`): Menambahkan `target.style.outline = "none"` sebelum memanggil `target.focus()`.
+
+### F. Status Pengujian & Integrasi
+- Seluruh 32 unit & integration test suites lulus 100% (`32/32 passed`).
+- Perubahan dari branch `feat/studio-onboarding-modal` di-merge secara bersih ke branch `main`.
