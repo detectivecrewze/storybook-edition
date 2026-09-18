@@ -11,3 +11,4 @@
 [data-theme="spiderman"] .greeting-card,[data-theme="spiderman"] .finale-card{border-color:#141925}
 [data-theme="spiderman"] .menu-shell::after,[data-theme="spiderman"] .room-shell::after{content:"";position:absolute;right:-44px;bottom:-52px;width:180px;height:180px;background:url('/assets/themes/spiderman/decal-web.webp') center/contain no-repeat;opacity:.13;pointer-events:none}
 [data-theme="spiderman"] .room-shell::after{left:-58px;right:auto;top:-54px;bottom:auto}
+html[data-theme="spiderman"], body[data-theme="spiderman"]{background-color:#a80f21}
