@@ -317,16 +317,12 @@ Fitur dan perbaikan komprehensif yang dikerjakan pada branch `feat/studio-onboar
   - `admin/app.js`: Konsisten default ke `'en'`.
   - Ditambahkan unit test otomatis: `Studio defaults to English language and locale`.
 
-### D. Eliminasi White Letterboxing pada Mobile (Status Bar & Safe Area)
-- **Problem**: Pada perangkat mobile (iOS Safari / Chrome), bagian atas (status bar) dan bagian bawah (navigation bar / overscroll) menampilkan garis putih canvas default browser alih-alih warna merah tema Spider-Man (`#a80f21`) atau hitam Batman (`#0b111b`).
-- **Akar Masalah**:
-  1. Element `html` dan `body` tidak memiliki background color & texture solid yang mengisi 100dvh viewport.
-  2. Tag `<meta name="theme-color">` mengambil warna aksen sekunder (`primaryDark`) alih-alih surface background tema.
-- **Solusi yang Diterapkan**:
-  - `styles.css`: `html` dan `body` diatur `min-height: 100dvh; background-color: var(--theme-surface, #a80f21);` lengkap dengan surface texture linear gradient.
-  - `app.js` & `shared/themes.js`: Menerapkan `document.documentElement.style.backgroundColor = theme.palette.surface`, `document.documentElement.style.colorScheme = "dark"`, dan memperbarui `<meta name="theme-color">` ke `theme.palette.surface` secara dinamis.
-  - `gift/index.html`: Ditambahkan `<meta name="apple-mobile-web-app-capable" content="yes">` dan `<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">`.
-  - `assets/themes/spiderman/theme.css` & `assets/themes/batman/theme.css`: Ditambahkan selector eksplisit `html[data-theme="..."], body[data-theme="..."]`.
+### D. Standarisasi Tampilan Mobile Gift Pages (Clean Default)
+- **Keputusan Desain**: Pewarnaan paksa pada status bar dan tepi canvas mobile dikembalikan ke pengaturan default bersih bawaan platform. Setiap `.screen` di Gift Viewer menangani background tekstur dan permukaan tema secara mandiri tanpa memaksakan tinting warna pada status bar browser iOS/Android.
+- **Implementasi**:
+  - `styles.css`: `html, body` dikembalikan ke layout default bersih (`width: 100%; min-height: 100%; margin: 0; background: #1b1113; color-scheme: light;`).
+  - `gift/index.html`: `<meta name="theme-color">` dikembalikan ke warna default `#7b0d1b`, tanpa tag status bar translucent buatan.
+  - `app.js`: Pengaturan background dinamis `document.documentElement` dan `document.body` dihapus sehingga tidak memengaruhi browser chrome mobile.
 
 ### E. Eliminasi Kotak / Outline Biru pada Headline Greeting Screen
 - **Problem**: Pada tampilan mobile, saat layar greeting pertama kali muncul terdapat kotak/garis outline biru di sekitar teks judul utama ("FOR THE ONE WHO MAKES EVERYTHING FEEL BRIGHTER").

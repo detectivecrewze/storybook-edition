@@ -13,4 +13,3 @@
 [data-theme="batman"] .menu-shell::after,[data-theme="batman"] .room-shell::after{content:"";position:absolute;right:-56px;bottom:-42px;width:230px;height:118px;background:url('/assets/themes/batman/city-silhouette.webp') center bottom/contain no-repeat;opacity:.12;pointer-events:none}
 [data-theme="batman"] .room-shell::after{left:-44px;right:auto;top:12px;bottom:auto;transform:scaleX(-1)}
 [data-theme="batman"] .module-card,[data-theme="batman"] .gallery-frame,[data-theme="batman"] .music-player{border-color:#11151c}
-html[data-theme="batman"], body[data-theme="batman"]{background-color:#0b111b;color-scheme:dark}

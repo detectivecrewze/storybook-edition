@@ -114,17 +114,9 @@
   function applyTheme() {
     theme = Themes.applyTheme(project.themeId);
     $("#theme-stylesheet").href = theme.stylesheet;
-    const surfaceTexture = `url('${theme.textures.surface}')`;
-    const paperTexture = `url('${theme.textures.paper}')`;
-    document.documentElement.style.setProperty("--surface-texture", surfaceTexture);
-    document.documentElement.style.setProperty("--paper-texture", paperTexture);
-    document.documentElement.style.backgroundColor = theme.palette.surface;
-    document.documentElement.style.colorScheme = "dark";
-    document.body.style.setProperty("--surface-texture", surfaceTexture);
-    document.body.style.setProperty("--paper-texture", paperTexture);
-    document.body.style.backgroundColor = theme.palette.surface;
-    const metaThemeColor = $("meta[name='theme-color']");
-    if (metaThemeColor) metaThemeColor.content = theme.palette.surface;
+    document.body.style.setProperty("--surface-texture", `url('${theme.textures.surface}')`);
+    document.body.style.setProperty("--paper-texture", `url('${theme.textures.paper}')`);
+    $("meta[name='theme-color']").content = theme.palette.primaryDark;
     const giftWrap = $("#open-wrap");
     giftWrap.classList.toggle("has-gift-art", Boolean(theme.assets.giftBox));
     setImage($("#gift-box-art"), theme.assets.giftBox, "", () => giftWrap.classList.remove("has-gift-art"));
