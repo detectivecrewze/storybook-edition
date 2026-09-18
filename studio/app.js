@@ -85,7 +85,18 @@
       // A response may arrive after a newer keystroke or upload. Never replace the
       // current draft with that stale server copy; the newer snapshot is queued.
       if (requestRevision !== draftRevision) { console.info("[Storybook Studio] Ignored stale draft save", { projectId, requestRevision, draftRevision }); return; }
-      draft = Project.normalizeProject(result.project || snapshot, projectId, snapshot); saveIndicator("saved");
+      const savedProject = Project.normalizeProject(result.project || snapshot, projectId, snapshot);
+      if (savedProject.themeId !== snapshot.themeId && Themes.THEMES[snapshot.themeId]) {
+        console.error("[Storybook Studio] Worker rejected the selected theme. Deploy the current Worker before publishing this theme.", { projectId, requestedThemeId: snapshot.themeId, returnedThemeId: savedProject.themeId });
+        // Keep the live local draft intact. An older deployed Worker can return a
+        // normalized Spider-Man copy, and accepting that response would also
+        // roll back fields the customer just edited on another Studio step.
+        draft = { ...draft, themeId: snapshot.themeId };
+        renderThemes(); renderModules(); saveIndicator("dirty");
+        sendPreview({ immediate: true });
+        return;
+      }
+      draft = savedProject; saveIndicator("saved");
     }).catch(error => {
       if (requestRevision === draftRevision) saveIndicator("dirty");
       console.error("[Storybook Studio] Draft save failed", { projectId, status: error?.status, message: error?.message }, error);
@@ -207,9 +218,21 @@
     });
   }
 
+  function applyStudioTheme() {
+    const theme = Themes.applyTheme(draft.themeId);
+    const palette = theme.palette;
+    const root = document.documentElement;
+    const aliases = { red: palette.primary, "red-dark": palette.primaryDark, blue: palette.secondary, yellow: palette.accent, paper: palette.paper, ink: palette.ink, muted: palette.muted, "studio-topbar": theme.studio?.topbar || palette.surface, "studio-sidebar": theme.studio?.sidebar || palette.surface };
+    Object.entries(aliases).forEach(([name, value]) => root.style.setProperty(`--${name}`, value));
+    root.style.setProperty("--line", `color-mix(in srgb, ${palette.muted} 28%, ${palette.paper})`);
+    const atlasIcon = $("#atlas-theme-icon");
+    if (atlasIcon) atlasIcon.src = theme.assets.atlas;
+    return theme;
+  }
   function renderThemes() {
+    applyStudioTheme();
     const host = $("#theme-grid"); host.replaceChildren();
-    Object.values(Themes.THEMES).forEach(theme => { const button = document.createElement("button"); button.type = "button"; button.className = `theme-card${draft.themeId === theme.id ? " is-selected" : ""}`; button.innerHTML = `<img alt=""><span><strong></strong><small></small></span>`; $("img", button).src = theme.thumbnail; $("strong", button).textContent = theme.label; $("small", button).textContent = typeof theme.description === "string" ? theme.description : theme.description[draft.settings.language] || theme.description.id; button.addEventListener("click", () => { draft.themeId = theme.id; renderThemes(); queueSave(); }); host.append(button); });
+    Object.values(Themes.THEMES).forEach(theme => { const button = document.createElement("button"); button.type = "button"; button.className = `theme-card${draft.themeId === theme.id ? " is-selected" : ""}`; button.setAttribute("aria-pressed", draft.themeId === theme.id ? "true" : "false"); button.innerHTML = `<img alt=""><span><strong></strong><small></small></span>`; $("img", button).src = theme.thumbnail; $("strong", button).textContent = theme.label; $("small", button).textContent = typeof theme.description === "string" ? theme.description : theme.description[draft.settings.language] || theme.description.id; button.addEventListener("click", () => { if (draft.themeId === theme.id) return; draft.themeId = theme.id; renderThemes(); renderModules(); updateGiftResult(); queueSave({ immediatePreview: true }); }); host.append(button); });
   }
   function renderOccasions() { const select = $("#occasion-preset"); select.replaceChildren(...Object.values(Project.OCCASION_PRESETS).map(preset => { const option = document.createElement("option"); option.value = preset.id; option.textContent = preset.label[draft.settings.language]; return option; })); select.value = draft.occasionPreset; }
   function renderReasons() {

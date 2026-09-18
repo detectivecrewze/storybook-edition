@@ -49,5 +49,5 @@ test("upload, archive, restore, admin search, and permanent delete work", async 
 });
 
 test("health exposes the Storybook contract and CORS rejects unknown origins", async () => {
-  const environment = env(); const health = await call(environment, "/api/health"); assert.equal(health.payload.service, "storybook-gift-api"); assert.equal(health.payload.schemaVersion, 2); assert.deepEqual(health.payload.languages, ["id", "en"]); assert.deepEqual(health.payload.themeIds, ["spiderman"]); assert.equal((await call(environment, "/api/health", { origin: "https://evil.test" })).response.status, 403);
+  const environment = env(); const health = await call(environment, "/api/health"); assert.equal(health.payload.service, "storybook-gift-api"); assert.equal(health.payload.schemaVersion, 2); assert.deepEqual(health.payload.languages, ["id", "en"]); assert.deepEqual(health.payload.themeIds, ["spiderman", "batman"]); assert.equal((await call(environment, "/api/health", { origin: "https://evil.test" })).response.status, 403);
 });

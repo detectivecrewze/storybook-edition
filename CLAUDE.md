@@ -14,7 +14,7 @@
 - Memahami codebase secara mendalam sebelum menyentuh kode.
 - Bekerja secara cermat: **Zero Trial-and-Error**. Telusuri akar masalah (*root cause*) sebelum mengubah file.
 - **JANGAN** menghapus modul, tema, atau kode yang tidak diminta.
-- **SELALU** jalankan `npm run check` untuk memvalidasi syntax, build, dan 21 test suites sebelum commit.
+- **SELALU** jalankan `npm run check` untuk memvalidasi syntax, build, dan 30 test suites sebelum commit.
 - **SELALU** lakukan `git add . ; git commit -m "..." ; git push origin main` setelah setiap perubahan selesai.
 - Format commit: `feat(scope): pesan` / `fix(scope): pesan` / `update(scope): pesan`.
 - Gaya komunikasi: Bahasa Indonesia santai, ringkas, langsung ke inti permasalahan.
@@ -38,7 +38,7 @@ Produk **Storybook Edition** adalah gift digital interaktif bertema cerita komik
 # Development lokal (port 3100)
 npm start
 
-# Validasi menyeluruh (syntax check + build dist/ + 21 unit/integration tests)
+# Validasi menyeluruh (syntax check + build dist/ + 30 unit/integration tests)
 npm run check
 ```
 
@@ -166,7 +166,7 @@ Berikut adalah daftar pekerjaan, perbaikan bug, dan pembaruan fitur yang telah d
        - Mengubah judul di Step 08 juga otomatis memperbarui input Step 04 dan label navigasi.
      - `syncAll()`: Memastikan `galleryModule.title` dan `galleryModule.subtitle` disinkronkan ke objek `draft.modules` sebelum autosave dan publish.
   4. **`tests/frontend.test.js`**:
-     - Ditambahkan automated regression test suite baru. Total pengujian kini **21/21 passed**.
+     - Ditambahkan automated regression test suite baru. Total pengujian pada handoff terbaru kini **25/25 passed**.
 
 ---
 
@@ -190,3 +190,96 @@ Jika kamu adalah AI Agent yang melanjutkan pekerjaan di repositori ini, **PATUHI
 ---
 
 *Dokumen ini dibuat September 2026 sebagai Single Source of Truth (SSOT) teknis repositori storybook-edition.*
+
+---
+
+## 6. FITUR STUDIO PREVIEW, PRESET CONFIRMATION, CHAPTER PLANNER & SOUNDTRACK ARTWORK (Commit `a52f6b6`)
+
+Pembaruan yang telah terintegrasi dan di-commit pada branch `main`:
+
+1. **Room Preview Modal (Step 02–08)**
+   - Tombol `Lihat preview` dinamis pada header tiap Step 02–08.
+   - Iframe hanya dibuat saat tombol ditekan (*lazy-mount*) dan dihapus saat modal ditutup (*unmount*), sehingga audio, Leaflet, timer, dan media preview berhenti sepenuhnya tanpa kebocoran memori.
+   - Preview otomatis memilih frame mobile untuk viewport mobile dan landscape lebar untuk desktop.
+   - Target preview sesuai room aktif: gate, reasons, gallery, atlas, music, letter, menu cerita, serta finale. Step 09 tetap memiliki preview penuh permanen.
+   - File utama: `studio/app.js`, `studio/index.html`, `studio/styles.css`, `app.js`.
+
+2. **Konfirmasi Sebelum Preset Menimpa Tulisan**
+   - Preset Reasons, Letter, dan Occasion memakai dialog konfirmasi sebelum mengganti copy yang sudah ditulis pengguna.
+   - Fokus dikembalikan ke tombol pemicu ketika dialog ditutup.
+
+3. **Step 08 — Arrange & Finale**
+   - Chapter planner dan finale diberi visual komik/retro.
+   - Kartu modul memiliki mini “Chapter preview” ringan berbasis CSS dan aset manifest; preview ikut berubah ketika judul/subtitle diedit tanpa membuat iframe baru.
+   - Handler module menggunakan lookup berdasarkan `type` saat mengubah title, subtitle, dan status enabled, mencegah stale object closure.
+   - Tombol panah urutan memakai selector `$$('[data-move]', row)` (memperbaiki bug `moveButtons.forEach is not a function`).
+
+4. **Step 06 — Our Soundtrack (Custom Artwork & Layout Flex)**
+   - Ditambahkan heading dan panel soundtrack bergaya komik.
+   - Pengguna dapat mengunggah, memotong (crop 1:1, max 8 MB), mengganti, atau menghapus cover tiap lagu. Disimpan pada `music.tracks[].coverUrl`.
+   - `.track-editor` memakai flex layout tunggal yang ringkas: cover di kiri, metadata di kolom terstruktur, aksi artwork berada di dalam kartu, dan tombol hapus di kanan atas.
+
+---
+
+## 7. PEMBARUAN TERKINI — TEMA BATMAN (GOTHAM NOIR), DYNAMIC STUDIO THEMING & FINALE COMPANION
+
+> **Status saat ini:** File-file berikut sedang berada di working tree dan telah divalidasi dengan **30/30 passed** pada `npm run check`.
+
+### A. Tema Baru: Batman (Gotham Noir)
+- **Aset Lengkap (`assets/themes/batman/`)**:
+  - `city-silhouette.webp`: Skyline gedung Gotham untuk background finale.
+  - `finale-friends.webp`: Ilustrasi utama Greeting & Finale.
+  - `gift-box-v2.webp`: Kotak kado pembuka bernuansa noir.
+  - `gotham-night-paper.webp` & `paper-grain.webp`: Tekstur latar belakang dan kertas komik.
+  - `noir-emblem.webp`: Emblem segel malam Gotham.
+  - `icon-reasons.webp`, `icon-gallery.webp`, `icon-atlas.webp`, `icon-music.webp`, `icon-letter.webp`: Set ikon room bertema Batman.
+  - `menu-hero-left.webp` & `menu-bat-right.webp`: Karakter Batman & Bat-Signal pengapit judul menu cerita.
+  - `thumbnail.webp`: Kartu preview tema di Step 01 Studio.
+  - `theme.css`: Variabel CSS dan styling spesifik tema Batman.
+- **Registrasi Manifest (`shared/themes.js`)**:
+  - Didaftarkan dengan palet warna emas & biru gelap Gotham:
+    - `primary`: `#d6a62e` (emas lampu sorot Batman)
+    - `primaryDark`: `#7a5a12`
+    - `secondary`: `#273b55`
+    - `surface`: `#0b111b`
+    - `paper`: `#f4eedf` & `ink`: `#11151c`
+    - `studio`: Topbar `#09111c` & Sidebar `#0b1522`.
+- **Dukungan Cloudflare Worker (`worker/src/project.js`)**:
+  - `SUPPORTED_THEME_IDS` diperbarui menjadi `new Set(["spiderman", "batman"])`.
+  - Health check endpoint mengembalikan `["spiderman", "batman"]`.
+
+### B. Dynamic Studio Theming (`applyStudioTheme`)
+- Di `studio/app.js`: Fungsi baru `applyStudioTheme()` memetakan palet tema aktif ke variabel CSS di `:root`:
+  `--red`, `--red-dark`, `--blue`, `--yellow`, `--paper`, `--ink`, `--muted`, `--studio-topbar`, `--studio-sidebar`, `--line`.
+- **Efek Visual**: Saat pengguna memilih tema Batman di Step 01, seluruh sidebar navigasi, topbar, kartu QR, dan tombol aksi di Studio Editor seketika berganti warna menyesuaikan nuansa Batman.
+- Ikon Atlas di Studio (`#atlas-theme-icon`) otomatis berganti mengikuti tema yang dipilih.
+- Tombol kartu tema di Step 01 kini memiliki atribut aksesibilitas `aria-pressed="true/false"`.
+
+### C. Proteksi Normalisasi Tema di Client Studio
+- Di `saveDraft()` (`studio/app.js`): Jika Worker lama merespons dengan me-reset `themeId` kembali ke `spiderman`, client Studio menahan `draft = { ...draft, themeId: snapshot.themeId }` agar pilihan tema baru dan ketikan pengguna di step lain tidak tertimpa/hilang sepihak.
+
+### D. Penyempurnaan Layar Gate & Finale di Gift Viewer
+- **Layar Pembuka (Gate Screen)**: Tombol cue `.gift-open-cue` telah dihilangkan dari `gift/index.html` dan `styles.css`. Kotak kado `#open-wrap` kembali menjadi satu-satunya *clean click target* yang fokus dan bersih.
+- **Layar Finale**: Ditambahkan stage baru `.finale-art-stage` dengan elemen companion baru: `<img id="finale-companion" class="finale-companion" alt="" hidden>`. `app.js` kini mendukung `theme.assets.finaleCompanion` untuk merender ilustrasi pendamping di kartu penutup finale.
+- **Layout Judul Menu Adaptif**: Class `.has-menu-characters` diaktifkan secara dinamis oleh `app.js`. Jika tema tidak memiliki karakter komik pengapit judul, layout baris judul otomatis memusat (*center*) secara proporsional dengan `minmax(0, 1fr)`.
+
+### E. Validasi & Pengujian (30/30 Tests Pass)
+- `npm run check` lulus seluruh **30 automated tests**, termasuk:
+  - `Batman is selectable while Spider-Man remains the legacy default`
+  - `Studio keeps a selected supported theme when an older Worker normalizes it away`
+  - Validasi budget aset WebP untuk tema Batman (< 600 KB total, < 250 KB per file).
+  - `gift opening keeps the full gift box as its only clean click target`.
+
+### F. File Terkait di Working Tree
+- `app.js`
+- `gift/index.html`
+- `shared/themes.js`
+- `studio/app.js`
+- `studio/index.html`
+- `studio/styles.css`
+- `styles.css`
+- `tests/frontend.test.js`
+- `tests/project.test.js`
+- `tests/worker.test.mjs`
+- `worker/src/project.js`
+- `assets/themes/batman/` (folder aset tema baru)

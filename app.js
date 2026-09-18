@@ -110,9 +110,12 @@
     const giftWrap = $("#open-wrap");
     giftWrap.classList.toggle("has-gift-art", Boolean(theme.assets.giftBox));
     setImage($("#gift-box-art"), theme.assets.giftBox, "", () => giftWrap.classList.remove("has-gift-art"));
+    const finaleCompanion = $("#finale-companion");
+    finaleCompanion.removeAttribute("src");
+    finaleCompanion.hidden = true;
   }
   function prepareGreeting() { setImage($("#greeting-art"), theme.assets.greeting, `${theme.label} greeting illustration`); }
-  function prepareFinale() { setImage($("#finale-art"), theme.assets.finale, `${theme.label} finale illustration`); $("#finale-skyline").style.backgroundImage = `url('${theme.assets.skyline}')`; }
+  function prepareFinale() { setImage($("#finale-art"), theme.assets.finale, `${theme.label} finale illustration`); setImage($("#finale-companion"), theme.assets.finaleCompanion, `${theme.label} finale companion`); $("#finale-skyline").style.backgroundImage = `url('${theme.assets.skyline}')`; }
   function renderStaticCopy() {
     I18n.setLocale(project.settings.language); I18n.apply();
     $("#opening-eyebrow").textContent = project.opening.eyebrow;
@@ -130,6 +133,8 @@
   function enabledModules() { return project.modules.filter(module => module.enabled).sort((a, b) => a.order - b.order); }
   function renderMenuCharacters() {
     const config = theme?.assets?.menuCharacters;
+    const row = $(".menu-title-row");
+    if (row) row.classList.toggle("has-menu-characters", Boolean(config?.left || config?.right));
     [["left", $("#menu-character-left")], ["right", $("#menu-character-right")]].forEach(([side, slot]) => {
       slot.replaceChildren();
       slot.hidden = !config?.[side];

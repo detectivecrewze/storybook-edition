@@ -108,8 +108,16 @@ test("both locale dictionaries have identical keys", () => {
 });
 
 test("production and fixture themes satisfy the same renderer contract", () => {
-  assert.equal(Themes.validateThemeManifest(Themes.THEMES.spiderman).valid, true);
+  assert.deepEqual(Object.keys(Themes.THEMES), ["spiderman", "batman"]);
+  Object.values(Themes.THEMES).forEach(theme => assert.equal(Themes.validateThemeManifest(theme).valid, true, theme.id));
   assert.equal(Themes.validateThemeManifest(secondTheme).valid, true);
   const broken = structuredClone(secondTheme); delete broken.assets.gallery;
   assert.equal(Themes.validateThemeManifest(broken).valid, false);
+});
+
+test("Batman is selectable while Spider-Man remains the legacy default", () => {
+  const batman = Project.emptyProject("gift-batman");
+  batman.themeId = "batman";
+  assert.equal(Project.normalizeProject(batman, batman.projectId).themeId, "batman");
+  assert.equal(Project.emptyProject("gift-default").themeId, "spiderman");
 });

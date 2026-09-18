@@ -11,8 +11,6 @@
   <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bangers&family=Caveat:wght@500;600;700&family=DM+Sans:wght@400;500;600;700;800&display=swap">
   <link href="https://fonts.googleapis.com/css2?family=Bangers&family=Caveat:wght@500;600;700&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
   <noscript><link href="https://fonts.googleapis.com/css2?family=Bangers&family=Caveat:wght@500;600;700&family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
-  <link rel="preload" as="image" href="/assets/themes/spiderman/red-web-paper.webp" fetchpriority="high">
-  <link rel="preload" as="image" href="/assets/themes/spiderman/gift-box-v2.webp">
   <link rel="preload" as="style" href="/styles.css">
   <link rel="stylesheet" href="/styles.css">
   <link id="theme-stylesheet" rel="stylesheet" href="/assets/themes/spiderman/theme.css">
@@ -44,7 +42,6 @@
         <img id="gift-box-art" class="gift-box-art" alt="" hidden>
         <span class="wrap-paper"></span><span class="ribbon ribbon--vertical"></span><span class="ribbon ribbon--horizontal"></span>
         <span class="emblem-backdrop" aria-hidden="true"></span>
-        <span class="gift-open-cue" aria-hidden="true"><span>✦</span></span>
       </button>
     </section>
 
@@ -86,7 +83,7 @@
     <section class="screen finale-screen" id="finale" aria-labelledby="finale-title">
       <div class="skyline" id="finale-skyline"></div>
       <article class="finale-card paper">
-        <img id="finale-art" class="finale-art" alt="" hidden>
+        <div class="finale-art-stage"><img id="finale-art" class="finale-art" alt="" hidden><img id="finale-companion" class="finale-companion" alt="" hidden></div>
         <p class="eyebrow">THE END · FOR NOW</p>
         <h2 id="finale-title"></h2>
         <p id="finale-message"></p>

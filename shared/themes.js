@@ -22,6 +22,7 @@
         ink: "#17191f",
         muted: "#6d6670"
       }),
+      studio: Object.freeze({ topbar: "#23171b", sidebar: "#2d1b21" }),
       fonts: Object.freeze({ display: "Bangers, Impact, sans-serif", body: "DM Sans, Arial, sans-serif", handwritten: "Caveat, cursive" }),
       textures: Object.freeze({ surface: "/assets/themes/spiderman/red-web-paper.webp", paper: "/assets/themes/spiderman/paper-grain.webp" }),
       assets: Object.freeze({
@@ -48,6 +49,50 @@
         ])
       }),
       motion: Object.freeze({ room: "paper-slide", card: "card-flip", letter: "envelope-open", duration: 420 })
+    }),
+    batman: Object.freeze({
+      id: "batman",
+      label: "Batman",
+      description: Object.freeze({ id: "Noir Gotham dengan kota malam, lampu sorot emas, dan nuansa komik detektif.", en: "Gotham noir with a night skyline, golden searchlights, and a detective-comic mood." }),
+      thumbnail: "/assets/themes/batman/thumbnail.webp",
+      stylesheet: "/assets/themes/batman/theme.css",
+      palette: Object.freeze({
+        primary: "#d6a62e",
+        primaryDark: "#7a5a12",
+        secondary: "#273b55",
+        accent: "#f0c54a",
+        paper: "#f4eedf",
+        surface: "#0b111b",
+        ink: "#11151c",
+        muted: "#686b72"
+      }),
+      studio: Object.freeze({ topbar: "#09111c", sidebar: "#0b1522" }),
+      fonts: Object.freeze({ display: "Bangers, Impact, sans-serif", body: "DM Sans, Arial, sans-serif", handwritten: "Caveat, cursive" }),
+      textures: Object.freeze({ surface: "/assets/themes/batman/gotham-night-paper.webp", paper: "/assets/themes/batman/paper-grain.webp" }),
+      assets: Object.freeze({
+        giftBox: "/assets/themes/batman/gift-box-v2.webp",
+        openingEmblem: "/assets/themes/batman/noir-emblem.webp",
+        greeting: "/assets/themes/batman/finale-friends.webp",
+        finale: "/assets/themes/batman/finale-friends.webp",
+        skyline: "/assets/themes/batman/city-silhouette.webp",
+        reasons: "/assets/themes/batman/icon-reasons.webp",
+        gallery: "/assets/themes/batman/icon-gallery.webp",
+        atlas: "/assets/themes/batman/icon-atlas.webp",
+        music: "/assets/themes/batman/icon-music.webp",
+        letter: "/assets/themes/batman/icon-letter.webp",
+        menuCharacters: Object.freeze({
+          left: "/assets/themes/batman/menu-hero-left.webp",
+          right: "/assets/themes/batman/menu-bat-right.webp",
+          mirrorRight: false
+        }),
+        decals: Object.freeze([
+          "/assets/themes/batman/noir-emblem.webp",
+          "/assets/themes/batman/icon-gallery.webp",
+          "/assets/themes/batman/icon-atlas.webp",
+          "/assets/themes/batman/city-silhouette.webp"
+        ])
+      }),
+      motion: Object.freeze({ room: "paper-slide", card: "card-flip", letter: "envelope-open", duration: 480 })
     })
   });
 

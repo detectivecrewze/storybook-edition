@@ -48,10 +48,10 @@ test("Atlas help is contextual, localized, and replaces the oversized overview t
   assert.match(css, /\.atlas-help-trigger/); assert.match(css, /\.atlas-help-dialog/);
 });
 
-test("gift opening uses a compact visual cue without the old text pill", () => {
+test("gift opening keeps the full gift box as its only clean click target", () => {
   const html = read("gift/index.html"); const css = read("styles.css");
-  assert.match(html, /class="gift-open-cue"/); assert.doesNotMatch(html, /class="tap-copy"/);
-  assert.match(css, /@keyframes openCuePulse/);
+  assert.match(html, /id="open-wrap"/); assert.doesNotMatch(html, /class="gift-open-cue"/);
+  assert.doesNotMatch(html, /class="tap-copy"/); assert.doesNotMatch(css, /openCuePulse|gift-open-cue/);
 });
 
 test("Studio allows dynamic Memory Archive section title and subtitle editing", () => {
@@ -77,6 +77,7 @@ test("gift renderer is theme-neutral and customer media is constructed inside ro
 test("menu character decorations are theme-driven and remain lazy until the menu renders", () => {
   const html = read("gift/index.html"); const app = read("app.js"); const themes = read("shared/themes.js");
   assert.match(html, /id="menu-character-left"/); assert.match(html, /id="menu-character-right"/);
+  assert.match(html, /id="finale-companion"/); assert.match(app, /theme\.assets\.finaleCompanion/);
   assert.doesNotMatch(html, /spiderman-tom-holland\.gif/);
   assert.match(app, /function renderMenuCharacters/); assert.match(app, /theme\?\.assets\?\.menuCharacters/);
   assert.doesNotMatch(app, /themeId\s*===|case\s+["']spiderman|if\s*\([^)]*spiderman/i);
@@ -94,11 +95,13 @@ test("Atlas dependencies are local and remain lazy until the room is opened", ()
 });
 
 test("manifest assets exist and remain inside the theme performance budget", () => {
-  const Themes = require("../shared/themes.js"); const theme = Themes.THEMES.spiderman;
-  const urls = [...new Set([theme.thumbnail, theme.textures.surface, theme.textures.paper, ...Object.values(theme.assets).flatMap(value => Array.isArray(value) ? value : [value])].filter(value => typeof value === "string"))];
-  let total = 0;
-  for (const url of urls) { const file = path.join(root, url.replace(/^\//, "")); assert.equal(fs.existsSync(file), true, url); const size = fs.statSync(file).size; total += size; assert.ok(size <= 250 * 1024, `${url} is ${(size / 1024).toFixed(1)} KB`); }
-  assert.ok(total <= 600 * 1024, `initial theme manifest totals ${(total / 1024).toFixed(1)} KB`);
+  const Themes = require("../shared/themes.js");
+  Object.values(Themes.THEMES).forEach(theme => {
+    const urls = [...new Set([theme.thumbnail, theme.textures.surface, theme.textures.paper, ...Object.values(theme.assets).flatMap(value => Array.isArray(value) ? value : [value])].filter(value => typeof value === "string"))];
+    let total = 0;
+    for (const url of urls) { const file = path.join(root, url.replace(/^\//, "")); assert.equal(fs.existsSync(file), true, url); const size = fs.statSync(file).size; total += size; assert.ok(size <= 250 * 1024, `${url} is ${(size / 1024).toFixed(1)} KB`); }
+    assert.ok(total <= 600 * 1024, `${theme.id} theme manifest totals ${(total / 1024).toFixed(1)} KB`);
+  });
 });
 
 test("production allowlist excludes source masters and secrets", () => {
@@ -141,6 +144,14 @@ test("Studio confirms before a preset overwrites existing personal writing", () 
   assert.match(studio, /function confirmPreset/);
   assert.match(studio, /presetConfirmReasons/);
   assert.doesNotMatch(studio, /confirm\(I18n\.t\("studio\.presetWarning"\)\)/);
+});
+
+test("Studio keeps a selected supported theme when an older Worker normalizes it away", () => {
+  const studio = read("studio/app.js");
+  assert.match(studio, /savedProject\.themeId !== snapshot\.themeId/);
+  assert.match(studio, /draft = \{ \.\.\.draft, themeId: snapshot\.themeId \}/);
+  assert.match(studio, /sendPreview\(\{ immediate: true \}\)/);
+  assert.match(studio, /Worker rejected the selected theme/);
 });
 
 test("Arrange cards keep their fields and lightweight visual previews together", () => {

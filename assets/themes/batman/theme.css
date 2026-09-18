@@ -1,0 +1,15 @@
+[data-theme="batman"] .module-card:nth-child(4n+1){background-color:#f5eddc}
+[data-theme="batman"] .module-card:nth-child(4n+2){background-color:#e8edf2}
+[data-theme="batman"] .module-card:nth-child(4n+3){background-color:#eee8d9}
+[data-theme="batman"] .module-card:nth-child(4n+4){background-color:#f6edcd}
+[data-theme="batman"] .module-card::after{content:"";position:absolute;right:-28px;bottom:-38px;width:104px;height:104px;border:2px solid rgba(214,166,46,.2);border-radius:50%;box-shadow:0 0 0 12px rgba(39,59,85,.07),0 0 0 25px rgba(214,166,46,.04);pointer-events:none}
+[data-theme="batman"] .paper{position:relative}
+[data-theme="batman"] .paper::selection{background:#f0c54a;color:#11151c}
+[data-theme="batman"] .room-heading h2,[data-theme="batman"] .menu-heading h2{text-transform:uppercase;letter-spacing:.055em}
+[data-theme="batman"] .reason-card{border-color:#273b55;box-shadow:5px 6px 0 rgba(11,17,27,.84)}
+[data-theme="batman"] .reason-card:nth-child(3n+2){border-radius:5px 34px 5px 34px/5px 16px 5px 16px}
+[data-theme="batman"] .reason-card:nth-child(3n){background-color:#e8edf2}
+[data-theme="batman"] .greeting-card,[data-theme="batman"] .finale-card{border-color:#11151c}
+[data-theme="batman"] .menu-shell::after,[data-theme="batman"] .room-shell::after{content:"";position:absolute;right:-56px;bottom:-42px;width:230px;height:118px;background:url('/assets/themes/batman/city-silhouette.webp') center bottom/contain no-repeat;opacity:.12;pointer-events:none}
+[data-theme="batman"] .room-shell::after{left:-44px;right:auto;top:12px;bottom:auto;transform:scaleX(-1)}
+[data-theme="batman"] .module-card,[data-theme="batman"] .gallery-frame,[data-theme="batman"] .music-player{border-color:#11151c}

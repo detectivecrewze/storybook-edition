@@ -1,7 +1,7 @@
 export const SCHEMA_VERSION = 2;
 export const PRODUCT_ID = "storybook";
 export const PROJECT_ID_PATTERN = /^[a-z0-9][a-z0-9-]{2,63}$/;
-export const SUPPORTED_THEME_IDS = new Set(["spiderman"]);
+export const SUPPORTED_THEME_IDS = new Set(["spiderman", "batman"]);
 export const MODULE_TYPES = ["reasons", "gallery", "atlas", "music", "letter"];
 export const OCCASION_IDS = new Set(["romantic", "anniversary", "birthday", "appreciation", "friendship", "graduation", "just-because"]);
 export const MAX_REASONS = 10;
