@@ -32,9 +32,14 @@
         skyline: "/assets/themes/spiderman/city-silhouette.webp",
         reasons: "/assets/themes/spiderman/icon-reasons.webp",
         gallery: "/assets/themes/spiderman/icon-gallery.webp",
-        atlas: "/assets/themes/spiderman/icon-atlas.svg",
+        atlas: "/assets/themes/spiderman/icon-atlas-v2.webp",
         music: "/assets/themes/spiderman/icon-music.webp",
         letter: "/assets/themes/spiderman/icon-letter.webp",
+        menuCharacters: Object.freeze({
+          left: "https://media.tenor.com/FbIEm5UJ28sAAAAi/spiderman-tom-holland.gif",
+          right: "https://media.tenor.com/FbIEm5UJ28sAAAAi/spiderman-tom-holland.gif",
+          mirrorRight: true
+        }),
         decals: Object.freeze([
           "/assets/themes/spiderman/decal-web.webp",
           "/assets/themes/spiderman/decal-mask.webp",
@@ -57,6 +62,9 @@
     for (const key of ["display", "body", "handwritten"]) if (!String(manifest.fonts?.[key] || "").trim()) errors.push(`Missing fonts.${key}.`);
     for (const key of ["surface", "paper"]) if (!String(manifest.textures?.[key] || "").trim()) errors.push(`Missing textures.${key}.`);
     for (const key of REQUIRED_ASSETS) if (!String(manifest.assets?.[key] || "").trim()) errors.push(`Missing assets.${key}.`);
+    if (manifest.assets?.menuCharacters) {
+      for (const side of ["left", "right"]) if (!String(manifest.assets.menuCharacters[side] || "").trim()) errors.push(`Missing assets.menuCharacters.${side}.`);
+    }
     if (!Array.isArray(manifest.assets?.decals)) errors.push("Missing assets.decals.");
     if (!Number.isFinite(Number(manifest.motion?.duration))) errors.push("Missing motion.duration.");
     return { valid: errors.length === 0, errors };

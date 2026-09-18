@@ -44,7 +44,7 @@
         <img id="gift-box-art" class="gift-box-art" alt="" hidden>
         <span class="wrap-paper"></span><span class="ribbon ribbon--vertical"></span><span class="ribbon ribbon--horizontal"></span>
         <span class="emblem-backdrop" aria-hidden="true"></span>
-        <span class="tap-copy" data-i18n="gift.tap">Ketuk untuk membuka</span>
+        <span class="gift-open-cue" aria-hidden="true"><span>✦</span></span>
       </button>
     </section>
 
@@ -63,7 +63,11 @@
       <div class="menu-shell">
         <header class="menu-heading">
           <p class="eyebrow" data-i18n="gift.menuEyebrow">BAGIAN CERITA</p>
-          <h2 id="menu-title" data-i18n="gift.menuTitle">Pilih halaman yang ingin kamu buka</h2>
+          <div class="menu-title-row">
+            <span class="menu-character menu-character--left" id="menu-character-left" aria-hidden="true"></span>
+            <h2 id="menu-title" data-i18n="gift.menuTitle">Pilih halaman yang ingin kamu buka</h2>
+            <span class="menu-character menu-character--right" id="menu-character-right" aria-hidden="true"></span>
+          </div>
           <p class="menu-recipient"><span id="menu-recipient"></span> <span aria-hidden="true">×</span> <span id="menu-sender"></span></p>
         </header>
         <div class="module-grid" id="module-grid"></div>

@@ -305,11 +305,13 @@
       runJourneyAnimation();
     });
 
-    return () => {
+    const dispose = () => {
       cancelAnimation();
       destroyed = true; timers.forEach(clearTimeout); timers.clear(); listeners.splice(0).forEach(remove => remove());
       if (tileLayer) tileLayer.off(); if (map) { map.off(); map.remove(); map = null; } host.replaceChildren();
     };
+    dispose.resize = () => { if (!destroyed && map) map.invalidateSize({ pan: false, animate: false }); };
+    return dispose;
   }
 
   root.StorybookAtlasRoom = { mount };

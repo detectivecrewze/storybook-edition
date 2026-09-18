@@ -14,6 +14,7 @@
   let theme;
   let currentRoom = "";
   let roomCleanup = () => {};
+  let roomResize = () => {};
   let activeTrackIndex = 0;
   const transitionTimers = new Set();
   const loadedResources = new Map();
@@ -127,7 +128,24 @@
     document.title = `${project.identity.recipient || "Storybook"} · Storybook Edition`;
   }
   function enabledModules() { return project.modules.filter(module => module.enabled).sort((a, b) => a.order - b.order); }
+  function renderMenuCharacters() {
+    const config = theme?.assets?.menuCharacters;
+    [["left", $("#menu-character-left")], ["right", $("#menu-character-right")]].forEach(([side, slot]) => {
+      slot.replaceChildren();
+      slot.hidden = !config?.[side];
+      if (!config?.[side]) return;
+      const image = document.createElement("img");
+      image.alt = "";
+      image.decoding = "async";
+      image.draggable = false;
+      image.className = side === "right" && config.mirrorRight ? "is-mirrored" : "";
+      image.addEventListener("error", () => { slot.replaceChildren(); slot.hidden = true; }, { once: true });
+      image.src = config[side];
+      slot.append(image);
+    });
+  }
   function renderMenu() {
+    renderMenuCharacters();
     const grid = $("#module-grid"); grid.replaceChildren();
     enabledModules().forEach((module, index) => {
       const fragment = $("#module-card-template").content.cloneNode(true);
@@ -145,18 +163,18 @@
     const ready = enabledModules().every(module => opened.has(module.type));
     $("#finale-launch").disabled = !ready;
   }
-  function openRoom(module, trigger) {
-    roomCleanup(); roomCleanup = () => {};
-    lastTrigger = trigger; currentRoom = module.type; opened.add(module.type);
+  function openRoom(module, trigger, { preview = false } = {}) {
+    roomCleanup(); roomCleanup = () => {}; roomResize = () => {};
+    lastTrigger = trigger || lastTrigger; currentRoom = module.type; if (!preview) opened.add(module.type);
     $("#room-kicker").textContent = `${I18n.t("gift.open")} ${String(module.order + 1).padStart(2, "0")}`;
     $("#room-title").textContent = module.title; $("#room-subtitle").textContent = module.subtitle;
     roomContent.replaceChildren();
     const renderers = { reasons: renderReasons, gallery: renderGallery, atlas: renderAtlas, music: renderMusic, letter: renderLetter };
-    roomCleanup = renderers[module.type]?.() || (() => {});
+    roomCleanup = renderers[module.type]?.() || (() => {}); roomResize = roomCleanup.resize || (() => {});
     showScreen("room", { focus: false });
-    requestAnimationFrame(() => $("#room-back").focus({ preventScroll: true }));
+    if (!preview) requestAnimationFrame(() => $("#room-back").focus({ preventScroll: true }));
   }
-  function returnToMenu() { roomCleanup(); roomCleanup = () => {}; renderMenu(); showScreen("menu", { focus: false }); requestAnimationFrame(() => lastTrigger?.focus({ preventScroll: true })); }
+  function returnToMenu() { roomCleanup(); roomCleanup = () => {}; roomResize = () => {}; renderMenu(); showScreen("menu", { focus: false }); requestAnimationFrame(() => lastTrigger?.focus({ preventScroll: true })); }
 
   function renderReasons() {
     const list = document.createElement("div"); list.className = "reasons-grid";
@@ -211,7 +229,9 @@
       roomContent.replaceChildren(); const message = document.createElement("p"); message.className = "room-empty"; message.textContent = project.settings.language === "en" ? "The interactive map could not load. Open a location below." : "Peta interaktif tidak dapat dimuat. Buka lokasi dari daftar berikut."; roomContent.append(message);
       (project.atlas?.locations || []).forEach(location => { if (!Number.isFinite(location.latitude) || !Number.isFinite(location.longitude)) return; const link = document.createElement("a"); link.className = "comic-button"; link.target = "_blank"; link.rel = "noopener noreferrer"; link.href = `https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`; link.textContent = location.label; roomContent.append(link); });
     });
-    return () => { disposed = true; cleanup?.(); };
+    const dispose = () => { disposed = true; cleanup?.(); };
+    dispose.resize = () => cleanup?.resize?.();
+    return dispose;
   }
   function renderMusic() {
     const tracks = availableTracks();
@@ -247,11 +267,14 @@
     roomContent.append(shell); return () => { clearInterval(timer); clearTimeout(revealTimer); };
   }
 
-  function renderAll() { clearOpeningTransition(); if (panelPrefetchHandle) { "cancelIdleCallback" in window ? cancelIdleCallback(panelPrefetchHandle) : clearTimeout(panelPrefetchHandle); panelPrefetchHandle = 0; } roomCleanup(); roomCleanup = () => {}; storyAudio.pause(); storyAudio.removeAttribute("src"); storyAudio.load(); activeTrackIndex = 0; opened.clear(); $("#open-wrap").classList.remove("is-opening"); $("#greeting-art").removeAttribute("src"); $("#greeting-art").hidden = true; $("#finale-art").removeAttribute("src"); $("#finale-art").hidden = true; $("#finale-skyline").style.backgroundImage = ""; $("#module-grid").replaceChildren(); applyTheme(); renderStaticCopy(); prefetchOpeningPanels(); }
+  function renderAll() { clearOpeningTransition(); if (panelPrefetchHandle) { "cancelIdleCallback" in window ? cancelIdleCallback(panelPrefetchHandle) : clearTimeout(panelPrefetchHandle); panelPrefetchHandle = 0; } roomCleanup(); roomCleanup = () => {}; roomResize = () => {}; storyAudio.pause(); storyAudio.removeAttribute("src"); storyAudio.load(); activeTrackIndex = 0; opened.clear(); $("#open-wrap").classList.remove("is-opening"); $("#greeting-art").removeAttribute("src"); $("#greeting-art").hidden = true; $("#finale-art").removeAttribute("src"); $("#finale-art").hidden = true; $("#finale-skyline").style.backgroundImage = ""; $("#module-grid").replaceChildren(); $("#menu-character-left").replaceChildren(); $("#menu-character-right").replaceChildren(); applyTheme(); renderStaticCopy(); prefetchOpeningPanels(); }
   async function loadGift() {
     const projectId = Project.projectIdFromPath(location.pathname, location.search) || "sample-demo";
     try {
-      const payload = await new window.StorybookApi(projectId).getPublicGift(); project = Project.normalizeProject(payload.project || payload, projectId); renderAll(); stateBox.hidden = true; app.hidden = false; showScreen("gate", { focus: false });
+      const payload = await new window.StorybookApi(projectId).getPublicGift(); project = Project.normalizeProject(payload.project || payload, projectId); renderAll(); stateBox.hidden = true; app.hidden = false;
+      const params = new URLSearchParams(location.search);
+      if (params.get("example") === "1") previewTarget({ target: params.get("target") || "gate", roomType: params.get("roomType") || "" });
+      else showScreen("gate", { focus: false });
     } catch (error) { showState("Gift belum bisa dibuka", error.status === 404 ? "Link tidak ditemukan atau gift belum dipublish." : error.message, true); }
   }
   $("[data-retry]").addEventListener("click", () => location.reload());
@@ -261,7 +284,18 @@
   $("#finale-launch").addEventListener("click", () => { prepareFinale(); showScreen("finale"); });
   $("#replay-story").addEventListener("click", () => { clearOpeningTransition(); opened.clear(); $("#open-wrap").classList.remove("is-opening"); renderMenu(); showScreen("gate"); });
   document.addEventListener("keydown", event => { if (event.key !== "Escape") return; if ($("#room").classList.contains("is-active")) returnToMenu(); else if ($("#finale").classList.contains("is-active")) showScreen("menu"); });
-  window.addEventListener("message", event => { if (event.origin !== location.origin || event.data?.type !== "storybook-preview" || !event.data.project) return; project = Project.normalizeProject(event.data.project, event.data.project.projectId || "sample-demo"); renderAll(); stateBox.hidden = true; app.hidden = false; showScreen("gate", { focus: false }); });
+  function previewTarget(context) {
+    const target = ["gate", "room", "menu", "finale"].includes(context?.target) ? context.target : "gate";
+    if (target === "room") {
+      const module = project.modules.find(entry => entry.type === context.roomType);
+      if (module) return openRoom(module, null, { preview: true });
+    }
+    if (target === "menu") { renderMenu(); return showScreen("menu", { focus: false }); }
+    if (target === "finale") { prepareFinale(); return showScreen("finale", { focus: false }); }
+    showScreen("gate", { focus: false });
+  }
+  window.addEventListener("message", event => { if (event.origin !== location.origin || event.data?.type !== "storybook-preview" || !event.data.project) return; project = Project.normalizeProject(event.data.project, event.data.project.projectId || "sample-demo"); renderAll(); stateBox.hidden = true; app.hidden = false; previewTarget(event.data.context); });
+  window.addEventListener("resize", () => roomResize?.());
   window.addEventListener("pagehide", () => { clearOpeningTransition(); roomCleanup(); storyAudio.pause(); storyAudio.removeAttribute("src"); });
   if (new URLSearchParams(location.search).get("preview") === "1") showState("Menyiapkan preview...", "Studio sedang mengirim perubahan terbaru.");
   else loadGift();

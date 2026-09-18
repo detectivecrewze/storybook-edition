@@ -38,7 +38,7 @@ Produk **Storybook Edition** adalah gift digital interaktif bertema cerita komik
 # Development lokal (port 3100)
 npm start
 
-# Validasi menyeluruh (syntax check + build dist/ + 21 unit/integration tests)
+# Validasi menyeluruh (syntax check + build dist/ + 25 unit/integration tests)
 npm run check
 ```
 
@@ -166,7 +166,7 @@ Berikut adalah daftar pekerjaan, perbaikan bug, dan pembaruan fitur yang telah d
        - Mengubah judul di Step 08 juga otomatis memperbarui input Step 04 dan label navigasi.
      - `syncAll()`: Memastikan `galleryModule.title` dan `galleryModule.subtitle` disinkronkan ke objek `draft.modules` sebelum autosave dan publish.
   4. **`tests/frontend.test.js`**:
-     - Ditambahkan automated regression test suite baru. Total pengujian kini **21/21 passed**.
+     - Ditambahkan automated regression test suite baru. Total pengujian pada handoff terbaru kini **25/25 passed**.
 
 ---
 
@@ -190,3 +190,70 @@ Jika kamu adalah AI Agent yang melanjutkan pekerjaan di repositori ini, **PATUHI
 ---
 
 *Dokumen ini dibuat September 2026 sebagai Single Source of Truth (SSOT) teknis repositori storybook-edition.*
+
+---
+
+## 6. HANDOFF TERBARU — STUDIO PREVIEW, PRESET, CHAPTER PLANNER & SOUNDTRACK
+
+> **Status handoff:** perubahan di bawah masih berada di working tree dan **belum di-commit, push, atau deploy**, sesuai instruksi Aldo pada sesi ini. Jalankan `git status --short` sebelum melanjutkan agar perubahan lokal lain tidak tertimpa.
+
+### A. Perubahan Studio yang sudah diterapkan
+
+1. **Room Preview Modal (Step 02–08)**
+   - Tombol `Lihat preview` dibuat dinamis pada header tiap Step 02–08.
+   - Iframe hanya dibuat saat tombol ditekan dan dihapus saat modal ditutup, sehingga audio, Leaflet, timer, dan media preview berhenti sepenuhnya.
+   - Preview otomatis memilih frame mobile untuk viewport mobile dan landscape lebar untuk desktop. Tidak ada toggle manual yang membiarkan pengguna mobile memaksa layout desktop.
+   - Target preview sesuai room aktif: gate, reasons, gallery, atlas, music, letter, menu cerita, serta finale. Step 09 tetap memiliki preview penuh permanen.
+   - File utama: `studio/app.js`, `studio/index.html`, `studio/styles.css`, `app.js`.
+
+2. **Konfirmasi sebelum preset menimpa tulisan**
+   - Preset Reasons, Letter, dan Occasion memakai dialog konfirmasi sebelum mengganti copy yang sudah ditulis pengguna.
+   - Fokus dikembalikan ke tombol pemicu ketika dialog ditutup.
+
+3. **Step 08 — Arrange & Finale**
+   - Chapter planner dan finale telah diberi visual comic/premium baru.
+   - Kartu module sekarang memiliki mini “Chapter preview” ringan berbasis CSS dan aset manifest; preview ikut berubah ketika judul/subtitle diedit. Ini bukan iframe baru, sehingga tidak menambah request atau beban preview.
+   - Handler module menggunakan lookup berdasarkan `type` saat mengubah title, subtitle, dan status enabled, agar respons save lama tidak mengarah ke objek yang sudah stale.
+   - Tombol panah urutan memakai selector `$$('[data-move]', row)`. Sebelumnya ada regression `moveButtons.forEach is not a function`; ini sudah diperbaiki.
+
+4. **Step 06 — Our Soundtrack**
+   - Ditambahkan heading dan panel soundtrack bergaya comic.
+   - Pengguna dapat mengganti atau menghapus cover tiap lagu. Foto cover memakai cropper yang sama, rasio 1:1, JPG/PNG/WebP maksimal 8 MB, upload type `photo`, dan disimpan pada `music.tracks[].coverUrl`.
+   - Upload cover mencari track memakai `id` stabil dan `syncAll()` juga mencari `.track-editor` memakai `card.dataset.id`, agar autosave tidak salah mengubah track setelah render ulang.
+   - File utama: `studio/app.js`, `studio/index.html`, `studio/styles.css`, `shared/i18n.js`.
+
+### B. Handoff UI terbaru
+
+Screenshot terakhir Aldo (file `codex-clipboard-f3f1a9b1-6e1b-46af-914f-3259a63e08ad.png`) menemukan konflik CSS pada **Our Soundtrack**: grid lama dan grid baru saling memosisikan aksi cover di luar kartu serta membuat kartu sangat tinggi.
+
+- **Perbaikan terbaru:** `.track-editor` sekarang memakai flex layout tunggal, bukan grid bertumpuk. Cover, metadata, aksi cover, dan tombol hapus memiliki area eksplisit.
+- Tombol hapus diikat dengan `position:absolute` di kanan atas kartu; aksi `Change artwork`/`Remove artwork` dan hint tetap berada di dalam kartu.
+- Pada breakpoint kecil, aksi pindah ke baris bawah metadata dengan lebar yang terukur. Cover tidak lagi melebar menjadi panel besar.
+- Visual QA mock lokal menunjukkan satu kartu lagu berukuran ringkas dan semua aksi berada dalam kartu. Tetap periksa browser desktop nyata dan viewport 320–428px sebelum release.
+- Jangan menghapus fungsi upload/crop/ID lookup yang sudah ada.
+
+Screenshot sebelumnya (`codex-clipboard-accaa4fd-fdc4-4dc4-a58e-da525efaaf9f.png`) juga menunjukkan kontrol Step 08 pernah terpotong di desktop. CSS terbaru mencoba memisahkan toggle dan dua tombol panah ke kolom kontrol vertikal agar seluruh tombol dapat diklik. Agent berikutnya tetap wajib memeriksa visual nyata di desktop dan 320–428px; jangan hanya mengandalkan test tekstual.
+
+### C. Validasi terakhir
+
+- `npm run check` terakhir: **lulus**.
+- Production build berhasil.
+- Semua **25/25 test** lulus, termasuk kontrak preview modal, dialog preset, schema/i18n, media/Atlas, mini preview chapter, dan upload cover soundtrack.
+- `git diff --check` tidak menemukan whitespace error.
+- Visual QA mock Studio telah dilakukan pada `http://127.0.0.1:3100/studio/sample-demo?mock=1#token=demo-token`; tombol panah module berhasil mengubah urutan. Ini hanya mock lokal dan tidak menyentuh data customer.
+
+### D. File yang sedang berubah di working tree
+
+Pada handoff ini, setidaknya file berikut memiliki perubahan lokal dari sesi sebelumnya:
+
+- `app.js`
+- `rooms/atlas.js`
+- `shared/i18n.js`
+- `shared/themes.js`
+- `studio/app.js`
+- `studio/index.html`
+- `studio/styles.css`
+- `tests/frontend.test.js`
+- `assets/themes/spiderman/icon-atlas-v2.webp` (baru)
+
+Jangan melakukan `git reset`, `git checkout .`, commit, push, atau deploy tanpa instruksi eksplisit Aldo.

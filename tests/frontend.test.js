@@ -40,6 +40,20 @@ test("Studio gives media and Atlas controls a visible, resilient editing path", 
   assert.doesNotMatch(mock, /readAsDataURL/);
 });
 
+test("Atlas help is contextual, localized, and replaces the oversized overview tip", () => {
+  const html = read("studio/index.html"); const app = read("studio/app.js"); const css = read("studio/styles.css");
+  assert.match(html, /id="atlas-help-dialog"/); assert.match(html, /data-atlas-help/);
+  assert.doesNotMatch(html, /class="atlas-studio-note"/);
+  assert.match(app, /function openAtlasHelp/); assert.match(app, /function closeAtlasHelp/);
+  assert.match(css, /\.atlas-help-trigger/); assert.match(css, /\.atlas-help-dialog/);
+});
+
+test("gift opening uses a compact visual cue without the old text pill", () => {
+  const html = read("gift/index.html"); const css = read("styles.css");
+  assert.match(html, /class="gift-open-cue"/); assert.doesNotMatch(html, /class="tap-copy"/);
+  assert.match(css, /@keyframes openCuePulse/);
+});
+
 test("Studio allows dynamic Memory Archive section title and subtitle editing", () => {
   const html = read("studio/index.html"); const app = read("studio/app.js");
   assert.match(html, /id="gallery-module-title"/);
@@ -58,6 +72,15 @@ test("gift renderer is theme-neutral and customer media is constructed inside ro
   assert.match(app, /function renderGallery/); assert.match(app, /function renderMusic/); assert.match(app, /function renderLetter/);
   assert.match(app, /function renderAtlas/);
   assert.match(app, /get\("preview"\) === "1"/);
+});
+
+test("menu character decorations are theme-driven and remain lazy until the menu renders", () => {
+  const html = read("gift/index.html"); const app = read("app.js"); const themes = read("shared/themes.js");
+  assert.match(html, /id="menu-character-left"/); assert.match(html, /id="menu-character-right"/);
+  assert.doesNotMatch(html, /spiderman-tom-holland\.gif/);
+  assert.match(app, /function renderMenuCharacters/); assert.match(app, /theme\?\.assets\?\.menuCharacters/);
+  assert.doesNotMatch(app, /themeId\s*===|case\s+["']spiderman|if\s*\([^)]*spiderman/i);
+  assert.match(themes, /menuCharacters/);
 });
 
 test("Atlas dependencies are local and remain lazy until the room is opened", () => {
@@ -84,4 +107,63 @@ test("production allowlist excludes source masters and secrets", () => {
   assert.match(wrangler, /binding\s*=\s*["']GIFT_KV["']/);
   assert.match(wrangler, /id\s*=\s*["'](?:REPLACE_WITH_STORYBOOK_KV_NAMESPACE_ID|[a-f0-9]{32})["']/i);
   assert.doesNotMatch(wrangler, /ADMIN_SECRET\s*=|SIGNING_SECRET\s*=|GENERATOR_SECRET\s*=/);
+});
+
+
+test("Studio room previews are lazy while the final review remains always visible", () => {
+  const html = read("studio/index.html"); const studio = read("studio/app.js"); const gift = read("app.js");
+  assert.match(html, /id="studio-preview-modal"/);
+  assert.match(html, /id="gift-preview"/);
+  assert.doesNotMatch(html, /id="open-full-preview"/);
+  assert.match(studio, /function openPreview/);
+  assert.match(studio, /EXAMPLE_PROJECT_ID = "gift-2cf4f3ec9cf1eb9b"/);
+  assert.match(studio, /data-example-step/);
+  assert.match(studio, /exampleGiftSrc/);
+  assert.match(gift, /params\.get\("example"\) === "1"/);
+  assert.match(studio, /function detectedPreviewViewport/);
+  assert.doesNotMatch(html, /preview-viewport-switch/);
+  assert.match(studio, /function closePreview/);
+  assert.match(studio, /data-preview-step/);
+  assert.match(studio, /target: "room", roomType: "atlas"/);
+  assert.match(studio, /previewFrameLoaded/);
+  assert.match(studio, /fullPreviewLoaded/);
+  assert.match(studio, /frame.remove\(\)/);
+  assert.match(gift, /function previewTarget/);
+  assert.match(gift, /event.data.context/);
+  assert.match(gift, /roomResize/);
+});
+
+test("Studio confirms before a preset overwrites existing personal writing", () => {
+  const html = read("studio/index.html"); const studio = read("studio/app.js");
+  assert.match(html, /id="preset-confirm-dialog"/);
+  assert.match(html, /id="confirm-preset"/);
+  assert.match(studio, /function requestPreset/);
+  assert.match(studio, /function confirmPreset/);
+  assert.match(studio, /presetConfirmReasons/);
+  assert.doesNotMatch(studio, /confirm\(I18n\.t\("studio\.presetWarning"\)\)/);
+});
+
+test("Arrange cards keep their fields and lightweight visual previews together", () => {
+  const html = read("studio/index.html"); const studio = read("studio/app.js"); const css = read("studio/styles.css");
+  assert.match(html, /class="module-mini-preview"/);
+  assert.match(html, /class="module-preview-paper"/);
+  assert.match(studio, /const syncModulePreview/);
+  assert.match(studio, /module-preview-title/);
+  assert.match(css, /\.chapter-planner \.module-row>\.module-card-main/);
+  assert.match(css, /minmax\(280px,1fr\)/);
+});
+
+test("Soundtrack artwork uses the same safe crop and stable-ID upload path", () => {
+  const html = read("studio/index.html"); const studio = read("studio/app.js");
+  assert.match(html, /class="track-cover-file"/);
+  assert.match(html, /class="remove-track-cover"/);
+  assert.match(studio, /function uploadTrackCover/);
+  assert.match(studio, /aspectRatio: 1/);
+  assert.match(studio, /draft\.music\.tracks\.find\(entry => entry\.id === trackId\)/);
+  assert.match(studio, /draft\.music\.tracks\.find\(entry => entry\.id === card\.dataset\.id\)/);
+  const css = read("studio/styles.css");
+  assert.match(html, /class="track-card-head"/);
+  assert.match(html, /class="track-card-content"/);
+  assert.match(css, /\.soundtrack-step \.track-editor\{display:block/);
+  assert.match(css, /grid-template-areas:"cover fields" "cover actions"/);
 });
