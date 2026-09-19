@@ -116,7 +116,9 @@
     $("#theme-stylesheet").href = theme.stylesheet;
     document.body.style.setProperty("--surface-texture", `url('${theme.textures.surface}')`);
     document.body.style.setProperty("--paper-texture", `url('${theme.textures.paper}')`);
-    $("meta[name='theme-color']").content = theme.palette.primaryDark;
+    // Browser chrome stays neutral white on iPhone. The themed surface belongs
+    // to the gift canvas only, never to the status or home-indicator safe area.
+    $("meta[name='theme-color']").content = "#ffffff";
     const giftWrap = $("#open-wrap");
     giftWrap.classList.toggle("has-gift-art", Boolean(theme.assets.giftBox));
     setImage($("#gift-box-art"), theme.assets.giftBox, "", () => giftWrap.classList.remove("has-gift-art"));

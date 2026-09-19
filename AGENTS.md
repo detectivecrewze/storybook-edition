@@ -14,7 +14,7 @@
 - Memahami codebase secara mendalam sebelum menyentuh kode.
 - Bekerja secara cermat: **Zero Trial-and-Error**. Telusuri akar masalah (*root cause*) sebelum mengubah file.
 - **JANGAN** menghapus modul, tema, atau kode yang tidak diminta.
-- **SELALU** jalankan `npm run check` untuk memvalidasi syntax, build, dan 33 test suites sebelum commit.
+- **SELALU** jalankan `npm run check` untuk memvalidasi syntax, build, dan 34 test suites sebelum commit.
 - **SELALU** lakukan `git add . ; git commit -m "..." ; git push origin main` setelah setiap perubahan selesai.
 - Format commit: `feat(scope): pesan` / `fix(scope): pesan` / `update(scope): pesan`.
 - Gaya komunikasi: Bahasa Indonesia santai, ringkas, langsung ke inti permasalahan.
@@ -341,5 +341,6 @@ Fitur dan perbaikan komprehensif yang dikerjakan pada branch `feat/studio-onboar
   - `app.js`: Gift Viewer tetap memegang kontrol penuh atas background merah/hitam dan tekstur komik di fullscreen kado dan iframe preview.
 
 ### G. Status Pengujian & Integrasi
-- Seluruh 33 unit & integration test suites lulus 100% (`33/33 passed`).
+- Mengamankan tampilan mobile iPhone: browser chrome tetap netral putih (`#ffffff`), sedangkan canvas kado bertema dibatasi rapi di dalam area aman (`inset: var(--viewport-safe-top) 0 var(--viewport-safe-bottom)`).
+- Seluruh 34 unit & integration test suites lulus 100% (`34/34 passed`).
 - Perubahan dari branch `feat/studio-onboarding-modal` di-merge secara bersih ke branch `main`.

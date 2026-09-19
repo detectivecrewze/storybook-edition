@@ -54,6 +54,16 @@ test("gift opening keeps the full gift box as its only clean click target", () =
   assert.doesNotMatch(html, /class="tap-copy"/); assert.doesNotMatch(css, /openCuePulse|gift-open-cue/);
 });
 
+test("iPhone browser chrome stays white while the themed gift canvas respects safe areas", () => {
+  const html = read("gift/index.html"); const app = read("app.js"); const css = read("styles.css");
+  assert.match(html, /name="theme-color" content="#ffffff"/);
+  assert.match(html, /apple-mobile-web-app-status-bar-style" content="default"/);
+  assert.match(app, /meta\[name='theme-color'\]\"\)\.content = "#ffffff"/);
+  assert.match(css, /--viewport-safe-top: env\(safe-area-inset-top, 0px\)/);
+  assert.match(css, /\.screen \{ position: fixed; inset: var\(--viewport-safe-top\) 0 var\(--viewport-safe-bottom\); \}/);
+  assert.match(css, /html, body \{ width: 100%; min-height: 100dvh; margin: 0; background: #fff; \}/);
+});
+
 test("Studio allows dynamic Memory Archive section title and subtitle editing", () => {
   const html = read("studio/index.html"); const app = read("studio/app.js");
   assert.match(html, /id="gallery-module-title"/);
