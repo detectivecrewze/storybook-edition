@@ -147,6 +147,8 @@ test("Studio room previews are lazy while the final review remains always visibl
   assert.match(studio, /frame.remove\(\)/);
   assert.match(gift, /function previewTarget/);
   assert.match(gift, /event.data.context/);
+  assert.match(gift, /storybook-preview-target/);
+  assert.match(studio, /storybook-preview-target/);
   assert.match(gift, /roomResize/);
 });
 

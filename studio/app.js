@@ -149,7 +149,7 @@
     const context = previewContext; if (!context) return;
     $("#studio-preview-title").textContent = previewTitle(context);
     $("#studio-preview-context").textContent = context.isExample ? I18n.t("studio.exampleInteractiveHelp") : context.target === "gate" ? I18n.t("studio.previewGateHelp") : I18n.t("studio.previewInteractiveHelp");
-    const sceneSwitch = $("#preview-scene-switch"); sceneSwitch.hidden = context.isExample || !context.sceneSwitch;
+    const sceneSwitch = $("#preview-scene-switch"); sceneSwitch.hidden = !context.sceneSwitch;
     $$("[data-preview-scene]", sceneSwitch).forEach(button => button.setAttribute("aria-selected", String((context.target === "finale" ? "finale" : "menu") === button.dataset.previewScene)));
   }
   function detectedPreviewViewport() { return matchMedia("(min-width: 621px)").matches ? "desktop" : "mobile"; }
@@ -175,7 +175,17 @@
     previewContext = { ...context, isExample: example }; previewRestoreFocus = trigger || document.activeElement; previewFrameLoaded = false;
     updatePreviewControls(); setPreviewViewport(); device.replaceChildren();
     const frame = document.createElement("iframe"); frame.title = I18n.t("studio.preview"); frame.loading = "eager"; frame.allow = "autoplay; fullscreen"; frame.setAttribute("referrerpolicy", "strict-origin-when-cross-origin");
-    frame.addEventListener("load", () => { previewFrameLoaded = true; if (example) setPreviewStatus("studio.exampleStatus"); else sendPreview({ immediate: true }); }, { once: true });
+    frame.addEventListener("load", () => {
+      previewFrameLoaded = true;
+      if (example) {
+        setPreviewStatus("studio.exampleStatus");
+        if (previewContext?.target && previewContext.target !== "menu") {
+          frame.contentWindow?.postMessage({ type: "storybook-preview-target", context: activePreviewContext() }, location.origin);
+        }
+      } else {
+        sendPreview({ immediate: true });
+      }
+    }, { once: true });
     frame.src = example ? exampleGiftSrc(context) : previewGiftSrc(); device.append(frame); document.documentElement.classList.add("is-preview-open"); document.body.classList.add("is-preview-open"); dialog.showModal();
     setPreviewStatus(example ? "studio.exampleStatus" : "studio.previewUpdating");
   }
@@ -1222,9 +1232,22 @@
     $("#previous-step").addEventListener("click", () => goToStep(currentStep - 1)); $("#next-step").addEventListener("click", () => { syncAll(); goToStep(currentStep + 1); }); $$("[data-step-target]").forEach(button => button.addEventListener("click", () => { syncAll(); goToStep(Number(button.dataset.stepTarget)); }));
     $$("[data-preview-step]").forEach(button => button.addEventListener("click", () => openPreview(PREVIEW_TARGETS[Number(button.dataset.previewStep)], button)));
     $$("[data-example-step]").forEach(button => button.addEventListener("click", () => openPreview(PREVIEW_TARGETS[Number(button.dataset.exampleStep)], button, { example: true })));
-
     $("#close-studio-preview")?.addEventListener("click", () => closePreview());
-    $$("[data-preview-scene]").forEach(button => button.addEventListener("click", () => { if (!previewContext) return; previewContext.target = button.dataset.previewScene; previewContext.roomType = ""; updatePreviewControls(); sendPreview({ immediate: true }); button.focus({ preventScroll: true }); }));
+    $$("[data-preview-scene]").forEach(button => button.addEventListener("click", () => {
+      if (!previewContext) return;
+      previewContext.target = button.dataset.previewScene;
+      previewContext.roomType = "";
+      updatePreviewControls();
+      if (previewContext.isExample) {
+        const modalFrame = $("#studio-preview-device iframe");
+        if (modalFrame?.contentWindow && previewFrameLoaded) {
+          modalFrame.contentWindow.postMessage({ type: "storybook-preview-target", context: activePreviewContext() }, location.origin);
+        }
+      } else {
+        sendPreview({ immediate: true });
+      }
+      button.focus({ preventScroll: true });
+    }));
     const previewDialog = $("#studio-preview-modal");
     if (previewDialog) { previewDialog.addEventListener("cancel", event => { event.preventDefault(); closePreview(); }); previewDialog.addEventListener("click", event => { if (event.target === previewDialog) closePreview(); }); $("#preview-scene-switch")?.addEventListener("keydown", event => { if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return; const tabs = $$("[data-preview-scene]"); const index = tabs.indexOf(document.activeElement); if (index < 0) return; event.preventDefault(); tabs[(index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length].click(); }); }
     window.addEventListener("resize", () => { if ($("#studio-preview-modal")?.open) setPreviewViewport(); });

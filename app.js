@@ -315,14 +315,26 @@
   function previewTarget(context) {
     const target = ["gate", "room", "menu", "finale"].includes(context?.target) ? context.target : "gate";
     if (target === "room") {
-      const module = project.modules.find(entry => entry.type === context.roomType);
+      const module = project?.modules?.find(entry => entry.type === context.roomType);
       if (module) return openRoom(module, null, { preview: true });
     }
-    if (target === "menu") { renderMenu(); return showScreen("menu", { focus: false }); }
-    if (target === "finale") { prepareFinale(); return showScreen("finale", { focus: false }); }
+    if (target === "menu") { roomCleanup(); roomCleanup = () => {}; renderMenu(); return showScreen("menu", { focus: false }); }
+    if (target === "finale") { roomCleanup(); roomCleanup = () => {}; prepareFinale(); return showScreen("finale", { focus: false }); }
     showScreen("gate", { focus: false });
   }
-  window.addEventListener("message", event => { if (event.origin !== location.origin || event.data?.type !== "storybook-preview" || !event.data.project) return; project = Project.normalizeProject(event.data.project, event.data.project.projectId || "sample-demo"); renderAll(); stateBox.hidden = true; app.hidden = false; previewTarget(event.data.context); });
+  window.addEventListener("message", event => {
+    if (event.origin !== location.origin) return;
+    if (event.data?.type === "storybook-preview-target" && event.data.context) {
+      if (project) previewTarget(event.data.context);
+      return;
+    }
+    if (event.data?.type !== "storybook-preview" || !event.data.project) return;
+    project = Project.normalizeProject(event.data.project, event.data.project.projectId || "sample-demo");
+    renderAll();
+    stateBox.hidden = true;
+    app.hidden = false;
+    previewTarget(event.data.context);
+  });
   window.addEventListener("resize", () => roomResize?.());
   window.addEventListener("pagehide", () => { clearOpeningTransition(); roomCleanup(); storyAudio.pause(); storyAudio.removeAttribute("src"); });
   if (new URLSearchParams(location.search).get("preview") === "1") showState("Menyiapkan preview...", "Studio sedang mengirim perubahan terbaru.");
