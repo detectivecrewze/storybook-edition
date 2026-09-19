@@ -100,6 +100,7 @@ h1:focus, h2:focus, h3:focus, [tabindex="-1"]:focus { outline: none !important; 
 .greeting-card::before, .greeting-card::after { content: ""; position: absolute; width: 108px; height: 25px; background: rgba(236,214,157,.76); }
 .greeting-card::before { left: -22px; top: 16px; transform: rotate(-7deg); }
 .greeting-card::after { right: -22px; bottom: 17px; transform: rotate(-7deg); }
+.greeting-art { display: block; margin: 0 auto 12px; width: min(42vw, 160px); height: min(28dvh, 190px); object-fit: contain; filter: drop-shadow(0 8px 5px rgba(0,0,0,.18)); }
 .greeting-card h1 { max-width: 15ch; margin: 0 auto 14px; font: 400 clamp(2.35rem, 8vw, 4.8rem)/.96 var(--font-display); letter-spacing: .025em; outline: none !important; -webkit-tap-highlight-color: transparent; }
 .greeting-card h1:focus, .greeting-card h1:focus-visible { outline: none !important; box-shadow: none !important; }
 .greeting-message { max-width: 34rem; margin: 0 auto 20px; color: var(--theme-muted); line-height: 1.65; }
@@ -248,7 +249,7 @@ h1:focus, h2:focus, h3:focus, [tabindex="-1"]:focus { outline: none !important; 
   .opening-emblem { width: 76px; height: 104px; }
   .greeting-screen, .menu-screen, .room-screen, .finale-screen { padding-inline: 8px; }
   .greeting-card, .finale-card { width: calc(100vw - 20px); margin-top: 4px; padding: 28px 20px; box-shadow: 7px 8px 0 rgba(18,12,15,.82); }
-  .greeting-art, .finale-art { width: 112px; height: 142px; }
+  .greeting-art, .finale-art { width: min(44vw, 150px); height: 130px; object-fit: contain; }
   .finale-companion { width: 108px; max-height: 132px; }
   .greeting-card h1, .finale-card h2 { font-size: clamp(2.25rem, 13vw, 3.5rem); }
   .menu-shell { width: calc(100vw - 18px); min-height: 0; margin: 2px auto 20px; padding: 26px 15px 28px; box-shadow: 7px 8px 0 rgba(18,12,15,.82); }
@@ -309,7 +310,7 @@ h1:focus, h2:focus, h3:focus, [tabindex="-1"]:focus { outline: none !important; 
 
 @media (max-height: 760px) and (min-width: 621px) {
   .greeting-card, .finale-card { margin-block: 4px; padding: 24px 40px; }
-  .greeting-art, .finale-art { height: 112px; margin-bottom: 4px; }
+  .greeting-art, .finale-art { height: 112px; margin-bottom: 4px; object-fit: contain; }
   .greeting-card h1, .finale-card h2 { font-size: clamp(2.2rem,5.5vw,3.55rem); }
   .greeting-message { margin-bottom: 12px; line-height: 1.5; }
   .gift-to { margin-bottom: 16px; }

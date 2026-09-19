@@ -27,9 +27,9 @@
       textures: Object.freeze({ surface: "/assets/themes/spiderman/red-web-paper.webp", paper: "/assets/themes/spiderman/paper-grain.webp" }),
       assets: Object.freeze({
         giftBox: "/assets/themes/spiderman/gift-box-v2.webp",
-        openingEmblem: "/assets/themes/spiderman/spiderman-character.webp",
-        greeting: "/assets/themes/spiderman/spiderman-character.webp",
-        finale: "/assets/themes/spiderman/spiderman-character.webp",
+        openingEmblem: "/assets/themes/spiderman/spiderman-web.webp",
+        greeting: "/assets/themes/spiderman/spiderman-web.webp",
+        finale: "/assets/themes/spiderman/spiderman-web.webp",
         skyline: "/assets/themes/spiderman/city-silhouette.webp",
         reasons: "/assets/themes/spiderman/icon-reasons.webp",
         gallery: "/assets/themes/spiderman/icon-gallery.webp",
