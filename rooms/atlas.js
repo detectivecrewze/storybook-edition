@@ -66,6 +66,9 @@
     tileLayer = root.L.tileLayer("https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png", {
       subdomains: "abc",
       maxZoom: 19,
+      keepBuffer: 2,
+      updateWhenZooming: false,
+      updateWhenIdle: true,
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/">Humanitarian OpenStreetMap Team</a>'
     });
     tileLayer.on("tileerror", () => {
@@ -300,10 +303,19 @@
       else if (event.key === "ArrowRight") { event.preventDefault(); select(activeIndex + 1); }
     });
 
-    requestAnimationFrame(() => {
-      map.invalidateSize();
+    // Wait for the first tile to paint before sizing the map and starting the
+    // cinematic tour. This prevents the blank-map flash that iOS Safari shows
+    // when invalidateSize fires before any tile is on screen.
+    let startedMap = false;
+    const onFirstTile = () => {
+      if (startedMap || destroyed) return;
+      startedMap = true;
+      map.invalidateSize({ pan: false, animate: false });
       runJourneyAnimation();
-    });
+    };
+    tileLayer.once("tileload", onFirstTile);
+    // Fallback: if tiles take more than 1.2 s (e.g. offline), start anyway.
+    later(onFirstTile, 1200);
 
     const dispose = () => {
       cancelAnimation();

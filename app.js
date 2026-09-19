@@ -233,8 +233,6 @@
     let disposed = false; let cleanup = () => {};
     const loading = document.createElement("div"); loading.className = "atlas-loading"; loading.setAttribute("role", "status"); loading.textContent = project.settings.language === "en" ? "Drawing your map…" : "Menggambar peta kalian…"; roomContent.append(loading);
     Promise.all([
-      loadResource("/assets/vendor/leaflet/leaflet.css", "style"),
-      loadResource("/rooms/atlas.css", "style"),
       window.L ? Promise.resolve() : loadResource("/assets/vendor/leaflet/leaflet.js", "script"),
       window.StorybookAtlasRoom ? Promise.resolve() : loadResource("/rooms/atlas.js", "script")
     ]).then(() => {
@@ -250,6 +248,7 @@
     dispose.resize = () => cleanup?.resize?.();
     return dispose;
   }
+
   function renderMusic() {
     const tracks = availableTracks();
     if (!tracks.length) { roomContent.textContent = I18n.t("gift.empty"); return () => {}; }
@@ -284,7 +283,19 @@
     roomContent.append(shell); return () => { clearInterval(timer); clearTimeout(revealTimer); };
   }
 
-  function renderAll() { clearOpeningTransition(); if (panelPrefetchHandle) { "cancelIdleCallback" in window ? cancelIdleCallback(panelPrefetchHandle) : clearTimeout(panelPrefetchHandle); panelPrefetchHandle = 0; } roomCleanup(); roomCleanup = () => {}; roomResize = () => {}; storyAudio.pause(); storyAudio.removeAttribute("src"); storyAudio.load(); activeTrackIndex = 0; opened.clear(); $("#open-wrap").classList.remove("is-opening"); $("#greeting-art").removeAttribute("src"); $("#greeting-art").hidden = true; $("#finale-art").removeAttribute("src"); $("#finale-art").hidden = true; $("#finale-skyline").style.backgroundImage = ""; $("#module-grid").replaceChildren(); $("#menu-character-left").replaceChildren(); $("#menu-character-right").replaceChildren(); applyTheme(); renderStaticCopy(); prefetchOpeningPanels(); }
+  function preloadAtlasScripts() {
+    // Preload Leaflet and atlas room JS in the background so no script inject
+    // happens when the user taps the Atlas chapter (eliminating the refresh feel on iOS).
+    const idleLoad = () => {
+      if (!window.L) loadResource("/assets/vendor/leaflet/leaflet.js", "script").catch(() => {});
+      if (!window.StorybookAtlasRoom) loadResource("/rooms/atlas.js", "script").catch(() => {});
+    };
+    if ("requestIdleCallback" in window) requestIdleCallback(idleLoad, { timeout: 3000 });
+    else setTimeout(idleLoad, 1500);
+  }
+
+  function renderAll() { clearOpeningTransition(); if (panelPrefetchHandle) { "cancelIdleCallback" in window ? cancelIdleCallback(panelPrefetchHandle) : clearTimeout(panelPrefetchHandle); panelPrefetchHandle = 0; } roomCleanup(); roomCleanup = () => {}; roomResize = () => {}; storyAudio.pause(); storyAudio.removeAttribute("src"); storyAudio.load(); activeTrackIndex = 0; opened.clear(); $("#open-wrap").classList.remove("is-opening"); $("#greeting-art").removeAttribute("src"); $("#greeting-art").hidden = true; $("#finale-art").removeAttribute("src"); $("#finale-art").hidden = true; $("#finale-skyline").style.backgroundImage = ""; $("#module-grid").replaceChildren(); $("#menu-character-left").replaceChildren(); $("#menu-character-right").replaceChildren(); applyTheme(); renderStaticCopy(); prefetchOpeningPanels(); preloadAtlasScripts(); }
+
   async function loadGift() {
     const projectId = Project.projectIdFromPath(location.pathname, location.search) || "sample-demo";
     try {

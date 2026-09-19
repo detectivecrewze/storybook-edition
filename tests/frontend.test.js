@@ -94,9 +94,13 @@ test("menu character decorations are theme-driven and remain lazy until the menu
   assert.match(themes, /menuCharacters/);
 });
 
-test("Atlas dependencies are local and remain lazy until the room is opened", () => {
+test("Atlas resources are preloaded silently and JS remains lazy until the room is opened", () => {
   const html = read("gift/index.html"); const app = read("app.js"); const build = read("build.mjs");
-  assert.doesNotMatch(html, /leaflet/i);
+  // Leaflet JS must NOT be in a blocking <script> tag — it stays lazy via app.js loadResource.
+  assert.doesNotMatch(html, /<script[^>]+leaflet/i);
+  // Preload hints must exist so the browser fetches assets before the user taps Atlas.
+  assert.match(html, /rel="preload"[^>]+leaflet/i);
+  // app.js must still contain the conditional loadResource calls for JS (lazy fallback).
   assert.match(app, /\/assets\/vendor\/leaflet\/leaflet\.js/);
   assert.match(app, /\/rooms\/atlas\.js/);
   assert.match(build, /"rooms"/);

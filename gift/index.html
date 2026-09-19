@@ -15,6 +15,13 @@
   <link rel="preload" as="style" href="/styles.css">
   <link rel="stylesheet" href="/styles.css">
   <link id="theme-stylesheet" rel="stylesheet" href="/assets/themes/spiderman/theme.css">
+  <!-- Atlas room resources preloaded silently so opening the Atlas chapter feels instant -->
+  <link rel="preload" as="style" href="/assets/vendor/leaflet/leaflet.css" fetchpriority="low">
+  <link rel="preload" as="style" href="/rooms/atlas.css" fetchpriority="low">
+  <link rel="preload" as="script" href="/assets/vendor/leaflet/leaflet.js" fetchpriority="low">
+  <link rel="preload" as="script" href="/rooms/atlas.js" fetchpriority="low">
+  <link id="leaflet-css" rel="stylesheet" href="/assets/vendor/leaflet/leaflet.css" media="print" onload="this.media='all'">
+  <link id="atlas-css" rel="stylesheet" href="/rooms/atlas.css" media="print" onload="this.media='all'">
 </head>
 <body>
   <div class="app-state" id="app-state" role="status" aria-live="polite">
