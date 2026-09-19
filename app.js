@@ -58,7 +58,8 @@
     overlay.classList.remove("is-revealing", "is-opening"); overlay.hidden = true;
   }
   function prefetchOpeningPanels() {
-    const sources = project?.opening?.panelImages?.filter(Boolean) || [];
+    const themePanels = theme?.assets?.openingPanels || [];
+    const sources = Array.from({ length: 4 }, (_, index) => project?.opening?.panelImages?.[index] || themePanels[index] || "").filter(Boolean);
     const load = () => sources.forEach(source => {
       if (panelImageState.has(source)) return;
       panelImageState.set(source, "loading");
@@ -70,8 +71,9 @@
     panelPrefetchHandle = "requestIdleCallback" in window ? requestIdleCallback(load, { timeout: 1800 }) : setTimeout(load, 650);
   }
   function applyOpeningPanelImages() {
+    const themePanels = theme?.assets?.openingPanels || [];
     $$(".comic-transition-panel").forEach((panel, index) => {
-      const source = project?.opening?.panelImages?.[index] || "";
+      const source = project?.opening?.panelImages?.[index] || themePanels[index] || "";
       panel.classList.toggle("has-photo", Boolean(source) && panelImageState.get(source) !== "failed");
       if (source && panelImageState.get(source) !== "failed") panel.style.setProperty("--panel-photo", `url('${source.replaceAll("'", "%27")}')`);
       else panel.style.removeProperty("--panel-photo");

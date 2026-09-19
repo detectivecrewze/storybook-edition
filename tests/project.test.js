@@ -115,6 +115,7 @@ test("both locale dictionaries have identical keys", () => {
 test("production and fixture themes satisfy the same renderer contract", () => {
   assert.deepEqual(Object.keys(Themes.THEMES), ["spiderman", "batman"]);
   Object.values(Themes.THEMES).forEach(theme => assert.equal(Themes.validateThemeManifest(theme).valid, true, theme.id));
+  assert.equal(Themes.THEMES.spiderman.assets.openingPanels.length, 4);
   assert.equal(Themes.validateThemeManifest(secondTheme).valid, true);
   const broken = structuredClone(secondTheme); delete broken.assets.gallery;
   assert.equal(Themes.validateThemeManifest(broken).valid, false);

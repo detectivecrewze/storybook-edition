@@ -26,7 +26,8 @@ const directories = [
   "rooms",
   "assets/data",
   "assets/themes",
-  "assets/vendor"
+  "assets/vendor",
+  "assets/spiderman"
 ];
 
 await rm(output, { recursive: true, force: true });

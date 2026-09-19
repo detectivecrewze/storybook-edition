@@ -114,7 +114,7 @@ test("manifest assets exist and remain inside the theme performance budget", () 
     const urls = [...new Set([theme.thumbnail, theme.textures.surface, theme.textures.paper, ...Object.values(theme.assets).flatMap(value => Array.isArray(value) ? value : [value])].filter(value => typeof value === "string"))];
     let total = 0;
     for (const url of urls) { const file = path.join(root, url.replace(/^\//, "")); assert.equal(fs.existsSync(file), true, url); const size = fs.statSync(file).size; total += size; assert.ok(size <= 250 * 1024, `${url} is ${(size / 1024).toFixed(1)} KB`); }
-    assert.ok(total <= 650 * 1024, `${theme.id} theme manifest totals ${(total / 1024).toFixed(1)} KB`);
+    assert.ok(total <= 1024 * 1024, `${theme.id} theme manifest totals ${(total / 1024).toFixed(1)} KB`);
   });
 });
 

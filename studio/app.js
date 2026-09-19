@@ -250,7 +250,7 @@
   function renderThemes() {
     applyStudioTheme();
     const host = $("#theme-grid"); host.replaceChildren();
-    Object.values(Themes.THEMES).forEach(theme => { const button = document.createElement("button"); button.type = "button"; button.className = `theme-card${draft.themeId === theme.id ? " is-selected" : ""}`; button.setAttribute("aria-pressed", draft.themeId === theme.id ? "true" : "false"); button.innerHTML = `<img alt=""><span><strong></strong><small></small></span>`; $("img", button).src = theme.thumbnail; $("strong", button).textContent = theme.label; $("small", button).textContent = typeof theme.description === "string" ? theme.description : theme.description[draft.settings.language] || theme.description.id; button.addEventListener("click", () => { if (draft.themeId === theme.id) return; draft.themeId = theme.id; renderThemes(); renderModules(); updateGiftResult(); queueSave({ immediatePreview: true }); }); host.append(button); });
+    Object.values(Themes.THEMES).forEach(theme => { const button = document.createElement("button"); button.type = "button"; button.className = `theme-card${draft.themeId === theme.id ? " is-selected" : ""}`; button.setAttribute("aria-pressed", draft.themeId === theme.id ? "true" : "false"); button.innerHTML = `<img alt=""><span><strong></strong><small></small></span>`; $("img", button).src = theme.thumbnail; $("strong", button).textContent = theme.label; $("small", button).textContent = typeof theme.description === "string" ? theme.description : theme.description[draft.settings.language] || theme.description.id; button.addEventListener("click", () => { if (draft.themeId === theme.id) return; draft.themeId = theme.id; renderThemes(); renderModules(); renderOpeningPanels(); updateGiftResult(); queueSave({ immediatePreview: true }); }); host.append(button); });
   }
   function renderOccasions() { const select = $("#occasion-preset"); select.replaceChildren(...Object.values(Project.OCCASION_PRESETS).map(preset => { const option = document.createElement("option"); option.value = preset.id; option.textContent = preset.label[draft.settings.language]; return option; })); select.value = draft.occasionPreset; }
   function renderReasons() {
@@ -258,9 +258,12 @@
   }
   function renderOpeningPanels() {
     const host = $("#opening-panel-grid"); host.replaceChildren();
+    const currentTheme = Themes.getTheme(draft.themeId);
+    const defaultPanels = currentTheme?.assets?.openingPanels || ["", "", "", ""];
     draft.opening.panelImages.forEach((source, index) => {
       const fragment = $("#opening-panel-template").content.cloneNode(true); const card = $("article", fragment); $("strong", card).textContent = `${I18n.t("studio.choosePhoto")} ${index + 1}`;
-      const preview = $(".opening-panel-preview", card); if (source) { const image = document.createElement("img"); image.src = source; image.alt = `Opening panel ${index + 1}`; image.onerror = () => preview.replaceChildren(document.createTextNode("PHOTO")); preview.replaceChildren(image); }
+      const effectiveSource = source || defaultPanels[index] || "";
+      const preview = $(".opening-panel-preview", card); if (effectiveSource) { const image = document.createElement("img"); image.src = effectiveSource; image.alt = `Opening panel ${index + 1}`; image.onerror = () => preview.replaceChildren(document.createTextNode("PHOTO")); preview.replaceChildren(image); }
       $(".opening-panel-file", card).addEventListener("change", event => { const file = event.target.files[0]; event.target.value = ""; uploadOpeningPanel(file, index); });
       $(".remove-opening-photo", card).hidden = !source; $(".remove-opening-photo", card).addEventListener("click", () => { draft.opening.panelImages[index] = ""; renderOpeningPanels(); queueSave(); });
       I18n.apply(card); host.append(fragment);

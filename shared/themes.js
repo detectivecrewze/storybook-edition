@@ -46,6 +46,12 @@
           "/assets/themes/spiderman/decal-mask.webp",
           "/assets/themes/spiderman/decal-burst.webp",
           "/assets/themes/spiderman/decal-spider.webp"
+        ]),
+        openingPanels: Object.freeze([
+          "/assets/themes/spiderman/spiderman-opening/opening-1.webp",
+          "/assets/themes/spiderman/spiderman-opening/opening-2.webp",
+          "/assets/themes/spiderman/spiderman-opening/opening-3.webp",
+          "/assets/themes/spiderman/spiderman-opening/opening-4.webp"
         ])
       }),
       motion: Object.freeze({ room: "paper-slide", card: "card-flip", letter: "envelope-open", duration: 420 })
@@ -90,7 +96,8 @@
           "/assets/themes/batman/icon-gallery.webp",
           "/assets/themes/batman/icon-atlas.webp",
           "/assets/themes/batman/city-silhouette.webp"
-        ])
+        ]),
+        openingPanels: Object.freeze([])
       }),
       motion: Object.freeze({ room: "paper-slide", card: "card-flip", letter: "envelope-open", duration: 480 })
     })
