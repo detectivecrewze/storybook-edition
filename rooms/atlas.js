@@ -171,7 +171,7 @@
         if (!popup || !container) return;
         const frameBounds = container.getBoundingClientRect();
         const popupBounds = popup.getBoundingClientRect();
-        const minHeadroom = container.clientWidth <= 600 ? 14 : 20;
+        const minHeadroom = container.clientWidth <= 600 ? 12 : 16;
         const topOverflow = frameBounds.top + minHeadroom - popupBounds.top;
         const bottomOverflow = popupBounds.bottom - (frameBounds.bottom - 12);
         // Leaflet autoPan remains disabled. This is a measured, one-time
@@ -188,9 +188,9 @@
       // Place the pin in the lower portion of the map so the comic popup
       // has ample headroom above it and never touches or clips the top edge.
       const isMobile = size.x <= 600;
-      const ratio = isMobile ? 0.22 : 0.26;
-      const minOffset = isMobile ? 75 : 100;
-      const maxOffset = isMobile ? 105 : 145;
+      const ratio = isMobile ? 0.20 : 0.24;
+      const minOffset = isMobile ? 65 : 88;
+      const maxOffset = isMobile ? 95 : 130;
       const offsetY = Math.min(maxOffset, Math.max(minOffset, Math.round(size.y * ratio)));
       const cameraPoint = targetPoint.subtract([0, offsetY]);
       return map.unproject(cameraPoint, zoom);
