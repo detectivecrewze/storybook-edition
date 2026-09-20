@@ -227,14 +227,29 @@ test("Studio maintains light neutral workspace background and Themes.applyTheme 
   assert.doesNotMatch(themes, /document\.body\.style\.backgroundColor/);
 });
 
-test("Atlas room only plays cinematic tour on first visit and skips on revisit", () => {
+test("Atlas opens its cinematic tour on each fresh gift load and skips in-page revisits", () => {
   const app = read("app.js");
   const atlas = read("rooms/atlas.js");
   assert.match(app, /function isFirstAtlasVisit/);
   assert.match(app, /cinematic:\s*firstVisit/);
   assert.match(app, /atlasVisited\s*=\s*false/);
+  assert.doesNotMatch(app, /storybook:atlas-seen|sessionStorage\.getItem\(storageKey\)/);
   assert.match(atlas, /const cinematic\s*=/);
   assert.match(atlas, /cinematic && !reducedMotion && !cinematicCancelled/);
+});
+
+test("Atlas location popups are a theme-neutral comic dossier with protected personal notes", () => {
+  const atlas = read("rooms/atlas.js"); const css = read("rooms/atlas.css");
+  const spiderTheme = read("assets/themes/spiderman/theme.css"); const batmanTheme = read("assets/themes/batman/theme.css");
+  assert.match(atlas, /atlas-popup-kicker/); assert.match(atlas, /const order = String\(index \+ 1\)\.padStart\(2, "0"\)/);
+  assert.doesNotMatch(atlas, /TITIK KENANGAN|MEMORY POINT/);
+  assert.match(atlas, /atlas-popup-visual is-placeholder/); assert.match(atlas, /disableScrollPropagation/);
+  assert.match(atlas, /function openLocationPopup/); assert.match(atlas, /getBoundingClientRect/);
+  assert.doesNotMatch(atlas, /themeId\s*===|case\s+["']spiderman|if\s*\([^)]*spiderman/i);
+  assert.match(css, /aspect-ratio:4 \/ 3/); assert.match(css, /font-family:var\(--font-hand,cursive\)/); assert.match(css, /overscroll-behavior:contain/);
+  assert.match(css, /atlas-pin-ring/); assert.match(css, /atlas-pin-tail/);
+  assert.doesNotMatch(atlas, /atlas-popup-maps-link/);
+  assert.match(spiderTheme, /--atlas-popup-decal/); assert.match(batmanTheme, /--atlas-popup-decal/);
 });
 
 

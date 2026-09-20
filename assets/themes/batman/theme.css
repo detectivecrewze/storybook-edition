@@ -13,3 +13,4 @@
 [data-theme="batman"] .menu-shell::after,[data-theme="batman"] .room-shell::after{content:"";position:absolute;right:-56px;bottom:-42px;width:230px;height:118px;background:url('/assets/themes/batman/city-silhouette.webp') center bottom/contain no-repeat;opacity:.12;pointer-events:none}
 [data-theme="batman"] .room-shell::after{left:-44px;right:auto;top:12px;bottom:auto;transform:scaleX(-1)}
 [data-theme="batman"] .module-card,[data-theme="batman"] .gallery-frame,[data-theme="batman"] .music-player{border-color:#11151c}
+[data-theme="batman"] .atlas-room{--atlas-popup-surface:#101927;--atlas-popup-ink:#f4eedf;--atlas-popup-edge:#d6a62e;--atlas-popup-shadow:#05080e;--atlas-popup-accent:#f0c54a;--atlas-popup-secondary:#273b55;--atlas-popup-note:#d5d9d2;--atlas-popup-decal:url('/assets/themes/batman/city-silhouette.webp');--atlas-pin-fill:#101927;--atlas-pin-edge:#d6a62e;--atlas-pin-ink:#f0c54a;--atlas-pin-active:#f0c54a}

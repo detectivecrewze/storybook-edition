@@ -23,19 +23,12 @@
   let lastTrigger = null;
   const opened = new Set();
   let atlasVisited = false;
-  let isCurrentRoomPreview = false;
-  function isFirstAtlasVisit(preview = false) {
-    try {
-      const storageKey = `storybook:atlas-seen:${project?.projectId || "default"}`;
-      if (sessionStorage.getItem(storageKey) === "1" || atlasVisited) return false;
-      if (!preview) sessionStorage.setItem(storageKey, "1");
-      atlasVisited = true;
-      return true;
-    } catch {
-      const first = !atlasVisited;
-      atlasVisited = true;
-      return first;
-    }
+  function isFirstAtlasVisit() {
+    // Keep the opening journey special on a fresh gift load, but do not replay
+    // it when someone returns to Atlas from this page's story menu.
+    const first = !atlasVisited;
+    atlasVisited = true;
+    return first;
   }
 
   function showState(title, message, retry = false) {
@@ -198,7 +191,6 @@
     $("#finale-launch").disabled = !ready;
   }
   function openRoom(module, trigger, { preview = false } = {}) {
-    isCurrentRoomPreview = Boolean(preview);
     roomCleanup(); roomCleanup = () => {}; roomResize = () => {};
     lastTrigger = trigger || lastTrigger; currentRoom = module.type; if (!preview) opened.add(module.type);
     $("#room-kicker").textContent = `${I18n.t("gift.open")} ${String(module.order + 1).padStart(2, "0")}`;
@@ -249,7 +241,7 @@
   }
   function renderAtlas() {
     let disposed = false; let cleanup = () => {};
-    const firstVisit = isFirstAtlasVisit(isCurrentRoomPreview);
+    const firstVisit = isFirstAtlasVisit();
     const loading = document.createElement("div"); loading.className = "atlas-loading"; loading.setAttribute("role", "status"); loading.textContent = project.settings.language === "en" ? "Drawing your map…" : "Menggambar peta kalian…"; roomContent.append(loading);
     Promise.all([
       window.L ? Promise.resolve() : loadResource("/assets/vendor/leaflet/leaflet.js", "script"),
@@ -332,7 +324,7 @@
   $("#enter-story").addEventListener("click", () => { renderMenu(); showScreen("menu"); });
   $("#room-back").addEventListener("click", returnToMenu);
   $("#finale-launch").addEventListener("click", () => { prepareFinale(); showScreen("finale"); });
-  $("#replay-story").addEventListener("click", () => { clearOpeningTransition(); opened.clear(); atlasVisited = false; try { sessionStorage.removeItem(`storybook:atlas-seen:${project?.projectId || "default"}`); } catch {} $("#open-wrap").classList.remove("is-opening"); renderMenu(); showScreen("gate"); });
+  $("#replay-story").addEventListener("click", () => { clearOpeningTransition(); opened.clear(); atlasVisited = false; $("#open-wrap").classList.remove("is-opening"); renderMenu(); showScreen("gate"); });
   document.addEventListener("keydown", event => { if (event.key !== "Escape") return; if ($("#room").classList.contains("is-active")) returnToMenu(); else if ($("#finale").classList.contains("is-active")) showScreen("menu"); });
   function previewTarget(context) {
     const target = ["gate", "room", "menu", "finale"].includes(context?.target) ? context.target : "gate";

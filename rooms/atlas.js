@@ -6,13 +6,39 @@
   const mapsUrl = location => `https://www.google.com/maps/search/?api=1&query=${Number(location.latitude)},${Number(location.longitude)}`;
   function element(tag, className, text) { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; }
 
-  function locationCard(location, index) {
+  function locationCard(location, index, language) {
+    const order = String(index + 1).padStart(2, "0");
     const card = element("article", "atlas-popup-card");
-    if (location.photoUrl) { const image = element("img", "atlas-popup-photo"); image.alt = location.label; image.loading = "lazy"; image.src = location.photoUrl; image.onerror = () => image.remove(); card.append(image); }
-    const badge = element("span", "atlas-popup-number", String(index + 1).padStart(2, "0"));
-    const title = element("h3", "", location.label);
-    card.append(badge, title);
-    if (location.note) card.append(element("p", "", location.note));
+    const visual = element("figure", "atlas-popup-visual is-placeholder");
+    const placeholder = element("span", "atlas-popup-placeholder", language === "en" ? "Memory point" : "Titik kenangan");
+    visual.append(placeholder);
+
+    if (location.photoUrl) {
+      const image = element("img", "atlas-popup-photo");
+      image.alt = location.label;
+      image.loading = "lazy";
+      image.src = location.photoUrl;
+      image.addEventListener("load", () => visual.classList.remove("is-placeholder"), { once: true });
+      image.onerror = () => image.remove();
+      visual.append(image);
+    }
+
+    const copy = element("div", "atlas-popup-copy");
+    const kicker = element("span", "atlas-popup-kicker", order);
+    const title = element("h3", "atlas-popup-title", location.label);
+    copy.append(kicker, title);
+
+    if (location.note) {
+      const noteScroll = element("div", "atlas-popup-note-scroll");
+      noteScroll.tabIndex = 0;
+      noteScroll.setAttribute("aria-label", language === "en" ? "Location story" : "Cerita lokasi");
+      noteScroll.append(element("p", "atlas-popup-note", location.note));
+      root.L?.DomEvent?.disableClickPropagation?.(noteScroll);
+      root.L?.DomEvent?.disableScrollPropagation?.(noteScroll);
+      copy.append(noteScroll);
+    }
+
+    card.append(visual, copy);
     return card;
   }
 
@@ -103,16 +129,16 @@
     const markers = locations.map((location, index) => {
       const icon = root.L.divIcon({
         className: "atlas-pin-shell",
-        html: `<div class="atlas-pin-wrap"><div class="atlas-pin-head" id="atlas-pin-head-${index}"><span class="atlas-pin-num">${index + 1}</span></div><div class="atlas-pin-shadow"></div></div>`,
-        iconSize: [28, 34],
-        iconAnchor: [14, 34],
-        popupAnchor: [0, -34]
+        html: `<div class="atlas-pin-wrap"><span class="atlas-pin-ring"></span><div class="atlas-pin-head" id="atlas-pin-head-${index}"><span class="atlas-pin-num">${index + 1}</span></div><span class="atlas-pin-tail"></span><span class="atlas-pin-shadow"></span></div>`,
+        iconSize: [34, 42],
+        iconAnchor: [17, 42],
+        popupAnchor: [0, -42]
       });
       const marker = root.L.marker([location.latitude, location.longitude], { icon, keyboard: true, opacity: 1 }).addTo(map);
       marker.bindPopup(locationCard(location, index, language), {
         className: "atlas-comic-popup",
-        maxWidth: 290,
-        minWidth: 255,
+        maxWidth: 248,
+        minWidth: 236,
         autoPan: false
       });
       marker.on("click", (e) => {
@@ -135,11 +161,32 @@
       });
     }
 
+    function openLocationPopup(index) {
+      const marker = markers[index];
+      marker?.openPopup();
+      later(() => {
+        if (destroyed || !map || !marker?.isPopupOpen?.()) return;
+        const popup = map.getPopup()?.getElement?.();
+        const container = map.getContainer?.();
+        if (!popup || !container) return;
+        const popupBounds = popup.getBoundingClientRect();
+        const frameBounds = container.getBoundingClientRect();
+        const topOverflow = frameBounds.top + 14 - popupBounds.top;
+        const bottomOverflow = popupBounds.bottom - (frameBounds.bottom - 12);
+        // Leaflet autoPan remains disabled. This is a measured, one-time
+        // correction after our comic card has its final rendered height.
+        if (topOverflow > 0) map.panBy([0, -topOverflow], { animate: false });
+        else if (bottomOverflow > 0) map.panBy([0, bottomOverflow], { animate: false });
+      }, 0);
+    }
+
     function getCameraCenterForPin(location, zoom) {
       if (!map) return [location.latitude, location.longitude];
       const size = map.getSize();
       const targetPoint = map.project([location.latitude, location.longitude], zoom);
-      const offsetY = Math.min(190, Math.max(125, Math.round(size.y * 0.38)));
+      // Start with a generous top margin; openLocationPopup makes the final
+      // correction from the actual rendered card dimensions.
+      const offsetY = Math.min(200, Math.max(145, Math.round(size.y * 0.38)));
       const cameraPoint = targetPoint.subtract([0, offsetY]);
       return map.unproject(cameraPoint, zoom);
     }
@@ -197,7 +244,7 @@
             selectTimeout = null;
           }
           if (!destroyed && map && activeIndex === targetIndex) {
-            markers[targetIndex]?.openPopup();
+            openLocationPopup(targetIndex);
           }
         };
 
@@ -206,7 +253,7 @@
         timers.add(selectTimeout);
       } else {
         map.setView(cameraCenter, targetZoom);
-        markers[activeIndex]?.openPopup();
+        openLocationPopup(activeIndex);
       }
     }
 
@@ -217,7 +264,7 @@
       if (cinematicCancelled || !cinematic || reducedMotion || locations.length === 0) {
         fitAll(false);
         if (locations.length === 1) {
-          markers[0]?.openPopup();
+          openLocationPopup(0);
           updateActiveMarker(0);
         } else {
           updateActiveMarker(-1);
@@ -260,7 +307,7 @@
         const onMoveEnd = () => {
           map.off("moveend", onMoveEnd);
           if (!aborted && !destroyed && map) {
-            markers[index]?.openPopup();
+            openLocationPopup(index);
           }
           resolve();
         };
@@ -268,7 +315,7 @@
         moveTimeout = setTimeout(() => {
           map.off("moveend", onMoveEnd);
           if (!aborted && !destroyed && map) {
-            markers[index]?.openPopup();
+            openLocationPopup(index);
           }
           resolve();
         }, Math.round(duration * 1000) + 300);
@@ -327,7 +374,7 @@
       } else {
         fitAll(false);
         if (locations.length === 1) {
-          markers[0]?.openPopup();
+          openLocationPopup(0);
           updateActiveMarker(0);
         } else {
           updateActiveMarker(-1);
