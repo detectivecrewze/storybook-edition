@@ -73,6 +73,7 @@
   });
 
   function setState(title, message, retry = false) { $("#studio-state strong").textContent = title; $("#studio-state p").textContent = message; $("#studio-retry").hidden = !retry; $("#studio-state").hidden = false; $("#studio-app").hidden = true; }
+  function catalogQuote(track) { const value = Object.hasOwn(track || {}, "quote") ? track.quote : Object.hasOwn(track || {}, "quotes") ? track.quotes : track?.lyrics; return typeof value === "string" ? value.trim().slice(0, Project.MAX_MUSIC_QUOTE_LENGTH) : ""; }
   function saveIndicator(state) { const node = $("#save-state"); node.className = `save-state is-${state}`; node.textContent = state === "saving" ? I18n.t("studio.saving") : state === "dirty" ? I18n.t("studio.unsaved") : I18n.t("studio.autosaved"); }
   function draftSnapshot() {
     // API requests must receive an immutable copy. Passing the live object lets a
@@ -556,11 +557,11 @@
     const host = $("#music-list"); host.replaceChildren(); draft.music.tracks.forEach((track, index) => {
       const fragment = $("#track-template").content.cloneNode(true); const card = $("article", fragment);
       card.dataset.id = track.id;
-      const titleInput = $(".track-title", card); const artistInput = $(".track-artist", card);
+      const titleInput = $(".track-title", card); const artistInput = $(".track-artist", card); const quoteInput = $(".track-quote", card); const quoteCount = $(".track-quote-count", card);
       const coverInput = $(".track-cover-file", card); const removeCover = $(".remove-track-cover", card);
       const summary = $(".track-card-summary", card);
       $(".track-card-index", card).textContent = String(index + 1).padStart(2, "0");
-      titleInput.value = track.title; artistInput.value = track.artist;
+      titleInput.value = track.title; artistInput.value = track.artist; quoteInput.value = track.quote || ""; quoteCount.textContent = String(quoteInput.value.length);
       const syncSummary = () => { summary.textContent = [titleInput.value.trim(), artistInput.value.trim()].filter(Boolean).join(" · ") || `Track ${index + 1}`; };
       syncSummary();
       setTrackCoverPreview(card, track.coverUrl);
@@ -568,12 +569,13 @@
       const getActiveTrack = () => draft.music.tracks.find(entry => entry.id === track.id) || null;
       titleInput.addEventListener("input", event => { const current = getActiveTrack(); track.title = event.target.value; if (current) current.title = event.target.value; syncSummary(); queueSave(); });
       artistInput.addEventListener("input", event => { const current = getActiveTrack(); track.artist = event.target.value; if (current) current.artist = event.target.value; syncSummary(); queueSave(); });
+      quoteInput.addEventListener("input", event => { const current = getActiveTrack(); track.quote = event.target.value; if (current) current.quote = event.target.value; quoteCount.textContent = String(event.target.value.length); queueSave(); });
       coverInput.addEventListener("change", event => { const file = event.target.files[0]; event.target.value = ""; const current = getActiveTrack(); if (current) uploadTrackCover(file, current, card); });
       removeCover.addEventListener("click", () => { const current = getActiveTrack(); if (!current) return; current.coverUrl = ""; track.coverUrl = ""; removeCover.hidden = true; setTrackCoverPreview(card, ""); trackCoverStatus(card, ""); queueSave({ immediatePreview: true }); });
       $("[data-remove]", card).addEventListener("click", () => { syncAll(); const currentIndex = draft.music.tracks.findIndex(entry => entry.id === track.id); if (currentIndex < 0) return; draft.music.tracks.splice(currentIndex, 1); renderMusic(); queueSave({ immediatePreview: true }); });
       I18n.apply(card); host.append(fragment);
     });
-  }  function renderCatalog(filter = "") { const host = $("#music-catalog"); host.replaceChildren(); const query = filter.trim().toLowerCase(); catalog.filter(track => !query || `${track.title} ${track.artist}`.toLowerCase().includes(query)).slice(0, 30).forEach(track => { const button = document.createElement("button"); button.type = "button"; button.className = "catalog-track"; button.innerHTML = `<img alt=""><span><strong></strong><small></small></span>`; $("img", button).src = track.coverUrl; $("strong", button).textContent = track.title; $("small", button).textContent = track.artist; button.addEventListener("click", () => { if (draft.music.tracks.length >= Project.MAX_MUSIC_TRACKS || draft.music.tracks.some(item => item.audioUrl === track.audioUrl)) return; draft.music.tracks.push({ id: track.id || Project.makeId("track"), sourceType: "catalog", catalogId: track.id || "", audioUrl: track.audioUrl, coverUrl: track.coverUrl || "", title: track.title, artist: track.artist || "" }); renderMusic(); queueSave(); }); host.append(button); }); }
+  }  function renderCatalog(filter = "") { const host = $("#music-catalog"); host.replaceChildren(); const query = filter.trim().toLowerCase(); catalog.filter(track => !query || `${track.title} ${track.artist}`.toLowerCase().includes(query)).slice(0, 30).forEach(track => { const button = document.createElement("button"); button.type = "button"; button.className = "catalog-track"; button.innerHTML = `<img alt=""><span><strong></strong><small></small></span>`; $("img", button).src = track.coverUrl; $("strong", button).textContent = track.title; $("small", button).textContent = track.artist; button.addEventListener("click", () => { if (draft.music.tracks.length >= Project.MAX_MUSIC_TRACKS || draft.music.tracks.some(item => item.audioUrl === track.audioUrl)) return; draft.music.tracks.push({ id: track.id || Project.makeId("track"), sourceType: "catalog", catalogId: track.id || "", audioUrl: track.audioUrl, coverUrl: track.coverUrl || "", title: track.title, artist: track.artist || "", quote: catalogQuote(track) }); renderMusic(); queueSave(); }); host.append(button); }); }
   function updateChapterCount() {
     const count = $("#chapter-count");
     if (!count || !draft) return;
@@ -707,6 +709,8 @@
       if (title) track.title = title.value.trim();
       const artist = $(".track-artist", card);
       if (artist) track.artist = artist.value.trim();
+      const quote = $(".track-quote", card);
+      if (quote) track.quote = quote.value;
     });
     $$(".atlas-editor", $("#atlas-list")).forEach((card, index) => {
       const loc = draft.atlas.locations.find(entry => entry.id === card.dataset.id) || draft.atlas.locations[index];
@@ -1055,7 +1059,7 @@
       reportUploadError("Foto lokasi", error);
     }
   }
-  async function uploadAudio(file) { if (!file) return; if (draft.music.tracks.length >= Project.MAX_MUSIC_TRACKS) return alert(I18n.t("studio.maxTracks")); if (file.size > 20 * 1024 * 1024) return alert(I18n.t("studio.maxAudio")); try { console.info("[Storybook Studio] Preparing audio", { projectId, size: file.size, type: file.type }); const result = await api.upload(file, "audio"); draft.music.tracks.push({ id: Project.makeId("track"), sourceType: "upload", catalogId: "", audioUrl: result.url, coverUrl: "", title: file.name.replace(/\.[^.]+$/, ""), artist: "" }); renderMusic(); queueSave(); } catch (error) { reportUploadError("Audio", error); } }
+  async function uploadAudio(file) { if (!file) return; if (draft.music.tracks.length >= Project.MAX_MUSIC_TRACKS) return alert(I18n.t("studio.maxTracks")); if (file.size > 20 * 1024 * 1024) return alert(I18n.t("studio.maxAudio")); try { console.info("[Storybook Studio] Preparing audio", { projectId, size: file.size, type: file.type }); const result = await api.upload(file, "audio"); draft.music.tracks.push({ id: Project.makeId("track"), sourceType: "upload", catalogId: "", audioUrl: result.url, coverUrl: "", title: file.name.replace(/\.[^.]+$/, ""), artist: "", quote: "" }); renderMusic(); queueSave(); } catch (error) { reportUploadError("Audio", error); } }
   function roundedCanvasRect(context, x, y, width, height, radius) {
     const safeRadius = Math.min(radius, width / 2, height / 2);
     context.beginPath();

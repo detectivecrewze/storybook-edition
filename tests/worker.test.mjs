@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { File } from "node:buffer";
 import { webcrypto } from "node:crypto";
+import { normalizeProject as normalizeWorkerProject, MAX_MUSIC_QUOTE_LENGTH } from "../worker/src/project.js";
 if (!globalThis.crypto) globalThis.crypto = webcrypto;
 if (!globalThis.File) globalThis.File = File;
 if (!globalThis.btoa) globalThis.btoa = value => Buffer.from(value, "binary").toString("base64");
@@ -12,7 +13,16 @@ class MockR2 { constructor() { this.values = new Map(); } async put(key, value, 
 function env() { return { GIFT_KV: new MockKV(), MEDIA_BUCKET: new MockR2(), ALLOWED_ORIGINS: "https://storybook.test", ALLOWED_ORIGIN_SUFFIXES: ".vercel.app", PUBLIC_GIFT_BASE_URL: "https://storybook.test", PUBLIC_STUDIO_BASE_URL: "https://storybook.test", MEDIA_BASE_URL: "https://media.test", PROJECT_SIGNING_SECRET: "stable-project-signing-secret", ADMIN_SECRET: "admin-secret", INTERNAL_GENERATOR_SECRET: "generator-secret" }; }
 async function call(environment, path, options = {}) { const headers = new Headers(options.headers || {}); headers.set("Origin", options.origin || "https://storybook.test"); if (options.token) headers.set("Authorization", `Bearer ${options.token}`); let body = options.body; if (body && !(body instanceof FormData)) { headers.set("Content-Type", "application/json"); body = JSON.stringify(body); } const response = await worker.fetch(new Request(`https://worker.test${path}`, { method: options.method || "GET", headers, body }), environment); return { response, payload: await response.json().catch(() => ({})) }; }
 const tokenFrom = url => new URLSearchParams(new URL(url).hash.slice(1)).get("token");
-function complete(project) { return { ...project, identity: { recipient: "Nadia", sender: "Aldo", eventDate: "" }, reasons: { items: ["One", "Two", "Three", "Four"] }, gallery: { items: [{ id: "media-1", mediaType: "image", mediaUrl: "https://media.test/storybook/photo.webp", title: "Moment", caption: "Caption" }] }, music: { tracks: [{ id: "track-1", sourceType: "catalog", audioUrl: "https://media.test/storybook/song.mp3", coverUrl: "", title: "Our Song", artist: "Artist" }] }, letter: { greeting: "Dear Nadia,", paragraphs: ["A story for you."], signoff: "Aldo" } }; }
+function complete(project) { return { ...project, identity: { recipient: "Nadia", sender: "Aldo", eventDate: "" }, reasons: { items: ["One", "Two", "Three", "Four"] }, gallery: { items: [{ id: "media-1", mediaType: "image", mediaUrl: "https://media.test/storybook/photo.webp", title: "Moment", caption: "Caption" }] }, music: { tracks: [{ id: "track-1", sourceType: "catalog", audioUrl: "https://media.test/storybook/song.mp3", coverUrl: "", title: "Our Song", artist: "Artist", quote: "A saved song note." }] }, letter: { greeting: "Dear Nadia,", paragraphs: ["A story for you."], signoff: "Aldo" } }; }
+
+test("worker normalizes optional quotes without reviving an explicit blank", () => {
+  const project = normalizeWorkerProject({ music: { tracks: [
+    { audioUrl: "https://media.test/song-1.mp3", title: "Legacy", quotes: "Legacy quote" },
+    { audioUrl: "https://media.test/song-2.mp3", title: "Blank", quote: "", lyrics: "Ignore this" },
+    { audioUrl: "https://media.test/song-3.mp3", title: "Long", quote: "x".repeat(MAX_MUSIC_QUOTE_LENGTH + 1) }
+  ] } }, "gift-worker-quotes");
+  assert.deepEqual(project.music.tracks.map(track => track.quote), ["Legacy quote", "", "x".repeat(MAX_MUSIC_QUOTE_LENGTH)]);
+});
 
 test("internal generator is authenticated and idempotent", async () => {
   const environment = env();
@@ -30,6 +40,7 @@ test("draft, publish, public gift, and private autosave stay separated", async (
   const studio = await call(environment, `/api/studio/${id}`, { token });
   assert.equal((await call(environment, `/api/studio/${id}`, { method: "PUT", token, body: { project: studio.payload.project, status: "published" } })).response.status, 422);
   const published = await call(environment, `/api/studio/${id}`, { method: "PUT", token, body: { project: complete(studio.payload.project), status: "published" } }); assert.equal(published.response.status, 200);
+  assert.equal((await call(environment, `/api/gift/${id}`)).payload.project.music.tracks[0].quote, "A saved song note.");
   const edited = structuredClone(published.payload.project); edited.opening.title = "Unpublished change";
   await call(environment, `/api/studio/${id}`, { method: "PUT", token, body: { project: edited, status: "draft" } });
   assert.notEqual((await call(environment, `/api/gift/${id}`)).payload.project.opening.title, "Unpublished change");

@@ -97,7 +97,12 @@
           "/assets/themes/batman/icon-atlas.webp",
           "/assets/themes/batman/city-silhouette.webp"
         ]),
-        openingPanels: Object.freeze([])
+        openingPanels: Object.freeze([
+          "/assets/themes/batman/batman-opening/opening-1.webp",
+          "/assets/themes/batman/batman-opening/opening-2.webp",
+          "/assets/themes/batman/batman-opening/opening-3.webp",
+          "/assets/themes/batman/batman-opening/opening-4.webp"
+        ])
       }),
       motion: Object.freeze({ room: "paper-slide", card: "card-flip", letter: "envelope-open", duration: 480 })
     })

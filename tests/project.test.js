@@ -1,6 +1,7 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
 const Themes = require("../shared/themes.js");
 const Project = require("../shared/project.js");
 const I18n = require("../shared/i18n.js");
@@ -33,6 +34,24 @@ test("normalization caps collection sizes, keeps order, and rejects unsupported 
   assert.equal(normalized.music.tracks.length, 3);
   assert.equal(normalized.atlas.locations.length, 10);
   assert.equal(normalized.modules[0].type, "letter");
+});
+
+test("music quotes keep an explicit blank, accept legacy aliases, and stay bounded", () => {
+  const project = Project.normalizeProject({ music: { tracks: [
+    { audioUrl: "/song-1.mp3", title: "Current", quote: "  A personal line\nfor you.  " },
+    { audioUrl: "/song-2.mp3", title: "Legacy", quotes: "A legacy quote" },
+    { audioUrl: "/song-3.mp3", title: "Blank", quote: "", lyrics: "This must stay hidden" }
+  ] } }, "gift-quotes");
+  assert.deepEqual(project.music.tracks.map(track => track.quote), ["A personal line\nfor you.", "A legacy quote", ""]);
+  const long = "x".repeat(Project.MAX_MUSIC_QUOTE_LENGTH + 1);
+  assert.equal(Project.normalizeProject({ music: { tracks: [{ audioUrl: "/song.mp3", title: "Long", quote: long }] } }, "gift-long").music.tracks[0].quote.length, Project.MAX_MUSIC_QUOTE_LENGTH);
+});
+
+test("music catalog includes supplied quote defaults and keeps unmatched tracks empty", () => {
+  const catalog = JSON.parse(fs.readFileSync(require.resolve("../assets/data/music.json"), "utf8"));
+  assert.equal(catalog.filter(track => track.quote).length, 28);
+  assert.deepEqual(catalog.filter(track => !track.quote).map(track => track.id), ["happy-birthday-instrumental", "apocalypse", "alexandra", "ribs", "ini-abadi", "on-bended-knee", "beranjak-dewasa", "untuk-perempuan-yang-sedang-dalam-pelukan", "besok-kita-pergi-makan"]);
+  assert.ok(catalog.filter(track => track.quote).every(track => track.quote.length <= Project.MAX_MUSIC_QUOTE_LENGTH));
 });
 
 test("schema v1 projects gain an empty disabled Atlas without changing the original four rooms", () => {
@@ -116,6 +135,7 @@ test("production and fixture themes satisfy the same renderer contract", () => {
   assert.deepEqual(Object.keys(Themes.THEMES), ["spiderman", "batman"]);
   Object.values(Themes.THEMES).forEach(theme => assert.equal(Themes.validateThemeManifest(theme).valid, true, theme.id));
   assert.equal(Themes.THEMES.spiderman.assets.openingPanels.length, 4);
+  assert.equal(Themes.THEMES.batman.assets.openingPanels.length, 4);
   assert.equal(Themes.validateThemeManifest(secondTheme).valid, true);
   const broken = structuredClone(secondTheme); delete broken.assets.gallery;
   assert.equal(Themes.validateThemeManifest(broken).valid, false);

@@ -7,6 +7,7 @@ export const OCCASION_IDS = new Set(["romantic", "anniversary", "birthday", "app
 export const MAX_REASONS = 10;
 export const MAX_GALLERY_ITEMS = 15;
 export const MAX_MUSIC_TRACKS = 3;
+export const MAX_MUSIC_QUOTE_LENGTH = 180;
 export const MAX_ATLAS_LOCATIONS = 10;
 const DEFAULTS = {
   id: { titles: { reasons: "Kenapa Kamu Berarti", gallery: "Arsip Kenangan", atlas: "Atlas of us", music: "Soundtrack Kita", letter: "Sebuah Surat" }, subtitles: { reasons: "Hal-hal kecil yang membuatmu istimewa.", gallery: "Momen yang ingin selalu disimpan.", atlas: "Tempat-tempat yang menjadi bagian dari cerita kita.", music: "Lagu-lagu yang membawa kita kembali.", letter: "Kata-kata yang ingin kusampaikan." }, finale: ["Satu hal terakhir untukmu", "Terima kasih sudah menjadi bagian dari cerita yang begitu berarti.", "Dengan penuh kasih,"] },
@@ -26,6 +27,7 @@ const SAMPLE_REASONS = {
   en: ["You make ordinary days feel special.", "You listen with your whole heart.", "Your smile makes everything lighter.", "You always know how to make me laugh."]
 };
 function clean(value, fallback = "", max = 10000) { return typeof value === "string" ? value.trim().slice(0, max) : fallback; }
+function trackQuote(track) { if (!track || typeof track !== "object") return ""; return clean(Object.hasOwn(track, "quote") ? track.quote : Object.hasOwn(track, "quotes") ? track.quotes : track.lyrics, "", MAX_MUSIC_QUOTE_LENGTH); }
 function media(value) { const url = clean(value, "", 2048); return url.startsWith("/assets/") || /^https:\/\//i.test(url) ? url : ""; }
 export function normalizeThemeId(value) { const id = clean(value, "spiderman", 40).toLowerCase(); return SUPPORTED_THEME_IDS.has(id) ? id : "spiderman"; }
 function language(value) { return value === "id" ? "id" : "en"; }
@@ -39,7 +41,7 @@ export function normalizeProject(input, projectId, existing = null) {
     reasons: { items: (Array.isArray(source.reasons?.items) ? source.reasons.items : []).slice(0, MAX_REASONS).map(value => clean(value, "", 220)).filter(Boolean) },
     gallery: { items: gallerySource.slice(0, MAX_GALLERY_ITEMS).map((item, index) => { const mediaType = item?.mediaType === "video" ? "video" : "image"; return { id: clean(item?.id, `media-${index + 1}`, 100), mediaType, mediaUrl: media(item?.mediaUrl || item?.imageUrl || item?.videoUrl), title: clean(item?.title, "", 100), caption: clean(item?.caption || item?.story, "", 350) }; }) },
     atlas: { locations: atlasSource.slice(0, MAX_ATLAS_LOCATIONS).map((item, index) => { const latitude = item?.latitude === "" || item?.latitude == null ? null : Number(item.latitude); const longitude = item?.longitude === "" || item?.longitude == null ? null : Number(item.longitude); return { id: clean(item?.id, `location-${index + 1}`, 100), label: clean(item?.label, "", 100), latitude: Number.isFinite(latitude) && latitude >= -90 && latitude <= 90 ? latitude : null, longitude: Number.isFinite(longitude) && longitude >= -180 && longitude <= 180 ? longitude : null, mapsUrl: /^https:\/\//i.test(clean(item?.mapsUrl, "", 2048)) ? clean(item.mapsUrl, "", 2048) : "", photoUrl: media(item?.photoUrl), note: clean(item?.note, "", 500) }; }) },
-    music: { tracks: trackSource.slice(0, MAX_MUSIC_TRACKS).map((track, index) => ({ id: clean(track?.id, `track-${index + 1}`, 100), sourceType: track?.sourceType === "upload" ? "upload" : "catalog", catalogId: clean(track?.catalogId, "", 100), audioUrl: media(track?.audioUrl), coverUrl: media(track?.coverUrl), title: clean(track?.title, "", 100), artist: clean(track?.artist, "", 100) })).filter(track => track.audioUrl || track.title) },
+    music: { tracks: trackSource.slice(0, MAX_MUSIC_TRACKS).map((track, index) => ({ id: clean(track?.id, `track-${index + 1}`, 100), sourceType: track?.sourceType === "upload" ? "upload" : "catalog", catalogId: clean(track?.catalogId, "", 100), audioUrl: media(track?.audioUrl), coverUrl: media(track?.coverUrl), title: clean(track?.title, "", 100), artist: clean(track?.artist, "", 100), quote: trackQuote(track) })).filter(track => track.audioUrl || track.title) },
     letter: { greeting: clean(source.letter?.greeting, "", 120), paragraphs: (Array.isArray(source.letter?.paragraphs) ? source.letter.paragraphs : []).slice(0, 50).map(value => clean(value, "", 4000)).filter(Boolean), signoff: clean(source.letter?.signoff, "", 220) },
     finale: { title: clean(source.finale?.title, DEFAULTS[locale].finale[0], 140), message: clean(source.finale?.message, DEFAULTS[locale].finale[1], 500), signoff: clean(source.finale?.signoff, DEFAULTS[locale].finale[2], 160) }, settings: { language: locale }, createdAt: previous.createdAt || clean(source.createdAt, "", 40), updatedAt: clean(source.updatedAt || previous.updatedAt, "", 40), publishedAt: source.publishedAt || previous.publishedAt || null };
 }

@@ -195,6 +195,20 @@ test("Soundtrack artwork uses the same safe crop and stable-ID upload path", () 
   assert.match(css, /grid-template-areas:"cover fields" "cover actions"/);
 });
 
+test("Soundtrack exposes an optional per-track note that stays safe in the gift renderer", () => {
+  const html = read("studio/index.html"); const studio = read("studio/app.js"); const gift = read("app.js"); const css = read("styles.css");
+  assert.match(html, /class="track-quote"/);
+  assert.match(html, /maxlength="180"/);
+  assert.match(studio, /function catalogQuote/);
+  assert.match(studio, /track\.quote = event\.target\.value/);
+  assert.match(studio, /quote: catalogQuote\(track\)/);
+  assert.match(studio, /quote: ""/);
+  assert.match(gift, /function renderSongNote/);
+  assert.match(gift, /song-note__text.*textContent = quote/);
+  assert.match(css, /white-space: pre-wrap/);
+  assert.match(css, /overflow-wrap: anywhere/);
+});
+
 test("Studio guide dialog is present, wired correctly, and has no emojis", () => {
   const html = read("studio/index.html"); const studio = read("studio/app.js"); const css = read("studio/styles.css");
   assert.match(html, /id="studio-guide-dialog"/);

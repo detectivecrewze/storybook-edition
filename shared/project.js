@@ -11,6 +11,7 @@
   const MIN_REASONS = 4;
   const MAX_GALLERY_ITEMS = 15;
   const MAX_MUSIC_TRACKS = 3;
+  const MAX_MUSIC_QUOTE_LENGTH = 180;
   const MAX_ATLAS_LOCATIONS = 10;
   const MODULE_TYPES = Object.freeze(["reasons", "gallery", "atlas", "music", "letter"]);
   const PROJECT_ID_PATTERN = /^[a-z0-9][a-z0-9-]{2,63}$/;
@@ -91,6 +92,11 @@
     const gallerySource = Array.isArray(source.gallery?.items) ? source.gallery.items : [];
     const atlasSource = Array.isArray(source.atlas?.locations) ? source.atlas.locations : [];
     const tracksSource = Array.isArray(source.music?.tracks) ? source.music.tracks : [];
+    const quoteForTrack = track => {
+      if (!track || typeof track !== "object") return "";
+      const value = Object.hasOwn(track, "quote") ? track.quote : Object.hasOwn(track, "quotes") ? track.quotes : track.lyrics;
+      return text(value, "", MAX_MUSIC_QUOTE_LENGTH);
+    };
     const panelImages = Array.isArray(source.opening?.panelImages) ? source.opening.panelImages : [];
     const paragraphs = Array.isArray(source.letter?.paragraphs) ? source.letter.paragraphs : text(source.letter?.body).split(/\n\s*\n/);
     return {
@@ -101,7 +107,7 @@
       modules: normalizeModules(source.modules, language), reasons: { items: reasons.slice(0, MAX_REASONS).map(value => text(value, "", 220)).filter(Boolean) },
       gallery: { items: gallerySource.slice(0, MAX_GALLERY_ITEMS).map((item, index) => { const mediaType = item?.mediaType === "video" ? "video" : "image"; const mediaUrl = text(item?.mediaUrl || item?.imageUrl || item?.videoUrl, "", 2048); return { id: text(item?.id, `media-${index + 1}`, 100), mediaType, mediaUrl, title: text(item?.title, "", 100), caption: text(item?.caption || item?.story, "", 350) }; }) },
       atlas: { locations: atlasSource.slice(0, MAX_ATLAS_LOCATIONS).map((item, index) => { const latitude = item?.latitude === "" || item?.latitude == null ? null : Number(item.latitude); const longitude = item?.longitude === "" || item?.longitude == null ? null : Number(item.longitude); return { id: text(item?.id, `location-${index + 1}`, 100), label: text(item?.label, "", 100), latitude: Number.isFinite(latitude) ? latitude : null, longitude: Number.isFinite(longitude) ? longitude : null, mapsUrl: text(item?.mapsUrl, "", 2048), photoUrl: text(item?.photoUrl, "", 2048), note: text(item?.note, "", 500) }; }) },
-      music: { tracks: tracksSource.slice(0, MAX_MUSIC_TRACKS).map((track, index) => ({ id: text(track?.id, `track-${index + 1}`, 100), sourceType: track?.sourceType === "upload" ? "upload" : "catalog", catalogId: text(track?.catalogId, "", 100), audioUrl: text(track?.audioUrl, "", 2048), coverUrl: text(track?.coverUrl, "", 2048), title: text(track?.title, "", 100), artist: text(track?.artist, "", 100) })).filter(track => track.audioUrl || track.title) },
+      music: { tracks: tracksSource.slice(0, MAX_MUSIC_TRACKS).map((track, index) => ({ id: text(track?.id, `track-${index + 1}`, 100), sourceType: track?.sourceType === "upload" ? "upload" : "catalog", catalogId: text(track?.catalogId, "", 100), audioUrl: text(track?.audioUrl, "", 2048), coverUrl: text(track?.coverUrl, "", 2048), title: text(track?.title, "", 100), artist: text(track?.artist, "", 100), quote: quoteForTrack(track) })).filter(track => track.audioUrl || track.title) },
       letter: { greeting: text(source.letter?.greeting, "", 120), paragraphs: paragraphs.slice(0, 50).map(value => text(value, "", 4000)).filter(Boolean), signoff: text(source.letter?.signoff, "", 220) },
       finale: { title: text(source.finale?.title, fallback.finale.title, 140), message: text(source.finale?.message, fallback.finale.message, 500), signoff: text(source.finale?.signoff, fallback.finale.signoff, 160) },
       settings: { language }, createdAt: text(previous?.createdAt || source.createdAt, "", 40), updatedAt: text(source.updatedAt || previous?.updatedAt, "", 40), publishedAt: source.publishedAt || previous?.publishedAt || null
@@ -137,5 +143,5 @@
   }
   function projectIdFromPath(pathname, search = "") { try { const query = new URLSearchParams(String(search || "")).get("project"); if (query) return text(query).toLowerCase(); } catch {} const match = String(pathname || "").match(/^\/(?:gift|studio)\/([^/?#]+)/i); return match ? decodeURIComponent(match[1]).toLowerCase() : ""; }
 
-  return { SCHEMA_VERSION, PRODUCT_ID, MAX_REASONS, MIN_REASONS, MAX_GALLERY_ITEMS, MAX_MUSIC_TRACKS, MAX_ATLAS_LOCATIONS, MODULE_TYPES, PROJECT_ID_PATTERN, UI_DEFAULTS, VALIDATION_MESSAGES, OCCASION_PRESETS, emptyProject, normalizeProject, validateProject, normalizeLanguage, normalizeOccasion, applyOccasionPreset, changeLanguage, moduleDefaults, projectIdFromPath, makeId };
+  return { SCHEMA_VERSION, PRODUCT_ID, MAX_REASONS, MIN_REASONS, MAX_GALLERY_ITEMS, MAX_MUSIC_TRACKS, MAX_MUSIC_QUOTE_LENGTH, MAX_ATLAS_LOCATIONS, MODULE_TYPES, PROJECT_ID_PATTERN, UI_DEFAULTS, VALIDATION_MESSAGES, OCCASION_PRESETS, emptyProject, normalizeProject, validateProject, normalizeLanguage, normalizeOccasion, applyOccasionPreset, changeLanguage, moduleDefaults, projectIdFromPath, makeId };
 });

@@ -394,4 +394,66 @@ Penyempurnaan pengalaman interaktif pada room Letter dan Atlas of Us:
   - `rooms/atlas.js`: Menambahkan opsi `cinematic` pada fungsi `StorybookAtlasRoom.mount(host, data, options)`. Jika `cinematic` bernilai `false`, sistem melewati loop `flyTo` dan langsung memanggil `fitAll(false)`, menampilkan seluruh pin lokasi, jalur rute, dan kontrol navigasi secara instan dengan popup tertutup.
   - `app.js`: Melacak status kunjungan melalui flag memori `atlasVisited` dan `sessionStorage` per proyek (`storybook:atlas-seen:${projectId}`). Saat pengguna kembali ke room Atlas untuk kedua kalinya dan seterusnya, nilai `cinematic: false` dikirimkan secara otomatis.
   - **Replay Support**: Saat pengguna menekan tombol "Replay story" di layar penutup (finale), flag `atlasVisited` dan kunci `sessionStorage` di-reset kembali ke awal sehingga tur sinematik dapat dinikmati ulang secara utuh.
-- **Automated Testing**: Menambahkan automated test di `tests/frontend.test.js` untuk memverifikasi logika single-play cinematic tour dan proteksi anti-regresi. Seluruh **35/35 automated tests** di `npm run check` lulus 100%.
+  - **Automated Testing**: Menambahkan automated test di `tests/frontend.test.js` untuk memverifikasi logika single-play cinematic tour dan proteksi anti-regresi. Seluruh **35/35 automated tests** di `npm run check` lulus 100%.
+
+---
+
+## 12. QUOTE OPSIONAL DI ROOM OUR SOUNDTRACK
+
+Penambahan pesan personal per lagu pada room Music. Fitur ini bersifat opsional; lagu tanpa quote mempertahankan layout player seperti sebelumnya.
+
+### A. Kontrak Data & Kompatibilitas
+- `music.tracks[]` kini mempunyai properti opsional `quote`, maksimum **180 karakter**.
+- Normalizer browser (`shared/project.js`) dan Worker (`worker/src/project.js`) sama-sama menerima `quote` baru serta alias legacy `quotes` dan `lyrics`.
+- Prioritasnya penting: jika track menyimpan `quote: ""`, nilai tersebut adalah pilihan eksplisit customer dan **tidak boleh** dihidupkan kembali oleh nilai alias lama.
+- Tidak ada kenaikan `schemaVersion`, migrasi KV/R2, atau perubahan aturan publish. Track upload MP3 dimulai dengan `quote: ""`.
+
+### B. Katalog Quote Default
+- `assets/data/music.json` sekarang menyimpan default quote di record katalog Storybook yang sesuai dengan `wrapped-project/free-studio/playlist.json`.
+- Ada **28 dari 37** lagu yang menerima quote default. Sembilan lagu tanpa sumber quote tetap sengaja kosong:
+  `happy-birthday-instrumental`, `apocalypse`, `alexandra`, `ribs`, `ini-abadi`, `on-bended-knee`, `beranjak-dewasa`, `untuk-perempuan-yang-sedang-dalam-pelukan`, dan `besok-kita-pergi-makan`.
+- Saat user memilih lagu katalog di Studio, quote default ikut disalin ke track proyek. Quote kemudian berdiri sendiri dan dapat diedit atau dihapus tanpa mengubah katalog maupun track lain.
+
+### C. Studio Editor — Step 06 Our Soundtrack
+- Template track di `studio/index.html` memiliki textarea full-width `.track-quote` di bawah metadata dan kontrol artwork.
+- Field memakai label/hint bilingual, `maxlength="180"`, dan counter karakter `.track-quote-count`.
+- `studio/app.js` memakai lookup track berdasarkan `card.dataset.id`; listener textarea memperbarui track aktif yang masih hidup setelah autosave, memperbarui counter, dan memakai jalur debounce preview/autosave yang sama.
+- `studio/styles.css` menjaga kartu quote tetap rapi di desktop dan mobile: area input ada di baris terpisah, dapat di-resize vertikal, serta padding/typography diringkas pada viewport kecil.
+
+### D. Gift Player & Dukungan Tema
+- `app.js` membangun `blockquote.song-note` di antara metadata lagu dan progress/player controls. Konten customer selalu dipasang dengan `textContent`, bukan `innerHTML`.
+- Quote menggunakan `white-space: pre-wrap` dan `overflow-wrap: anywhere`; kapitalisasi serta baris baru customer dipertahankan tanpa horizontal overflow.
+- Quote berubah langsung ketika playlist, Previous, atau Next memilih lagu lain. Jika quote kosong, card diberi `hidden` sehingga player kembali ke layout normal.
+- Renderer tetap netral terhadap tema. `styles.css` hanya memakai CSS custom properties, lalu `assets/themes/spiderman/theme.css` dan `assets/themes/batman/theme.css` mengatur warna paper/dossier, aksen, outline, dan watermark masing-masing.
+
+### E. Pengujian & Aturan Anti-Regresi
+- Ditambahkan test normalisasi frontend dan Worker untuk quote baru, alias legacy, blank eksplisit, dan batas 180 karakter.
+- Ditambahkan test katalog untuk 28 default quote dan sembilan record kosong, test alur Worker → public gift, serta assertion UI renderer/Studio untuk penggunaan `textContent`, `pre-wrap`, dan `overflow-wrap`.
+- `npm run check` terakhir lulus **40/40 tests**, termasuk syntax check dan build produksi.
+- Jangan menambahkan percabangan `themeId === ...` ke renderer quote. Tambahkan visual tema melalui CSS variables/stylesheet tema.
+
+---
+
+## 13. DEFAULT OPENING PANELS TEMA BATMAN
+
+Penambahan 4 visual komik pembuka default untuk tema Batman agar sejajar dengan tema Spider-Man saat kado pertama kali dibuka.
+
+### A. Lokasi Aset & Pengorganisasian
+- Aset 4 panel pembuka default bertema Gotham noir disiapkan di `assets/themes/batman/batman-opening/`:
+  - `opening-1.webp` (34.9 KB)
+  - `opening-2.webp` (56.9 KB)
+  - `opening-3.webp` (78.9 KB)
+  - `opening-4.webp` (69.9 KB)
+- Salinan alias `1.webp` hingga `4.webp` juga tersedia di `assets/themes/batman/batman-opening/` dan folder fallback `assets/opening-batman/` untuk menjaga kompatibilitas path.
+- `build.mjs` menyertakan direktori aset terkait sehingga seluruh panel otomatis ter-bundle ke folder distribusi `dist/`.
+
+### B. Konfigurasi Tema & Integrasi Runtime
+- `shared/themes.js`: Memperbarui properti `THEMES.batman.assets.openingPanels` dari array kosong menjadi array 4 path webp resmi (`/assets/themes/batman/batman-opening/opening-1.webp` s/d `opening-4.webp`).
+- `app.js`: Fungsi `prefetchOpeningPanels()` dan `applyOpeningPanelImages()` otomatis mengonsumsi 4 panel tema Batman saat proyek belum memiliki foto opening kustom dari pembeli.
+- `studio/app.js`: Step 02 (*Opening*) otomatis merender pratinjau thumbnail default Batman saat tema Batman dipilih di Step 01, dan beralih dinamis jika tema diubah.
+
+### C. Pengujian & Budget Performa
+- Setiap gambar panel berada di bawah 80 KB (jauh di bawah batas aman maksimal 250 KB per aset).
+- Total ukuran seluruh aset manifest Batman tercatat sebesar **837 KB** (lulus pengujian `manifest assets exist and remain inside the theme performance budget` yang membatasi maksimal 1 MB).
+- `tests/project.test.js` menambahkan assertion bahwa kedua tema aktif (Spider-Man dan Batman) memiliki tepat 4 panel opening default.
+- Seluruh 40 unit test suites di `npm run check` lulus 100%.
