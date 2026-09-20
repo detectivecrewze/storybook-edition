@@ -14,7 +14,7 @@
 - Memahami codebase secara mendalam sebelum menyentuh kode.
 - Bekerja secara cermat: **Zero Trial-and-Error**. Telusuri akar masalah (*root cause*) sebelum mengubah file.
 - **JANGAN** menghapus modul, tema, atau kode yang tidak diminta.
-- **SELALU** jalankan `npm run check` untuk memvalidasi syntax, build, dan 34 test suites sebelum commit.
+- **SELALU** jalankan `npm run check` untuk memvalidasi syntax, build, dan 35 test suites sebelum commit.
 - **SELALU** lakukan `git add . ; git commit -m "..." ; git push origin main` setelah setiap perubahan selesai.
 - Format commit: `feat(scope): pesan` / `fix(scope): pesan` / `update(scope): pesan`.
 - Gaya komunikasi: Bahasa Indonesia santai, ringkas, langsung ke inti permasalahan.
@@ -344,3 +344,54 @@ Fitur dan perbaikan komprehensif yang dikerjakan pada branch `feat/studio-onboar
 - Mengamankan tampilan mobile iPhone: browser chrome tetap netral putih (`#ffffff`), sedangkan canvas kado bertema dibatasi rapi di dalam area aman (`inset: var(--viewport-safe-top) 0 var(--viewport-safe-bottom)`).
 - Seluruh 34 unit & integration test suites lulus 100% (`34/34 passed`).
 - Perubahan dari branch `feat/studio-onboarding-modal` di-merge secara bersih ke branch `main`.
+
+---
+
+## 9. PENYEMPURNAAN VISUAL TEMA SPIDER-MAN & OPTIMASI MOBILE CHROME (Commit 830e34c, 8805c21, 9364907, 0386f5c, 2d7f244)
+
+Pembaruan aset visual dan pengalaman platform yang telah diterapkan:
+
+### A. Mobile Chrome & Safe Areas
+- **Browser Chrome Netral**: Pada browser mobile (khususnya iPhone Safari), browser chrome dipastikan tetap putih netral (`#ffffff`), sedangkan kanvas kado bergaya komik menyesuaikan area aman (`inset: var(--viewport-safe-top) 0 var(--viewport-safe-bottom)`).
+- **Silent Script Preloading**: Resource script Leaflet dan Atlas room (`/rooms/atlas.js`) di-preload secara pasif di latar belakang saat browser sedang idle (`requestIdleCallback`), meniadakan jeda putih atau kesan reload saat pengguna pertama kali masuk ke chapter Atlas di iOS.
+
+### B. Aset Finale & Default Opening 4 Panel Spider-Man
+- **Animasi Finale Toei Spider-Man**: Ilustrasi penutup finale Spider-Man diperbarui menggunakan animasi webp Toei Spider-Man yang dinamis dan ikonik (`assets/themes/spiderman/finale-spiderman-web.webp`).
+- **Default Opening Panels**: Menyiapkan 4 foto pembuka komik default di folder `assets/spiderman/spiderman-opening/` dengan crop proporsional dan foto ke-4 yang disesuaikan secara presisi (`ca249bb8-5521-474c-82ed-f7a65bd0b4db-Spiderman-cropped.webp`). Pembeli tema Spider-Man kini otomatis memiliki visual panel pembuka yang rapi dan siap saji tanpa harus mengunggah foto manual terlebih dahulu.
+
+---
+
+## 10. PENYEMPURNAAN STUDIO EDITOR (Commit 764681d, d83eb7d, c7d7edd, d49dce2)
+
+Peningkatan kestabilan antarmuka dan alur pembuatan kado di Studio Editor:
+
+### A. Sticky Sidebar Desktop Full-Height
+- **Problem**: Saat halaman Studio Editor di-scroll ke bawah pada layar desktop, sidebar navigasi kiri sempat terpotong dan tidak memanjang penuh sampai batas bawah layar.
+- **Solusi**: Memperbaiki kontainer grid dan flex layout (`position: sticky`, `top: 0`, `height: 100vh`, serta overflow handling internal) sehingga sidebar navigasi kiri selalu tersemat kokoh dari ujung atas hingga bawah layar saat form di sisi kanan di-scroll.
+
+### B. Toggle Preview Greeting & Finale di Step 08
+- **Kebutuhan**: Pada Step 08 (*Arrange & Finale*), pratinjau sebelumnya hanya menampilkan kartu ucapan (greeting). Pengguna membutuhkan cara untuk mempratinjau bagian akhir penutup (finale).
+- **Solusi**: Menambahkan kontrol tombol alih (*toggle switch*) pada panel pratinjau Step 08 yang memungkinkan pengguna beralih secara langsung antara pratinjau kartu Greeting dan kartu Finale beserta artwork pendampingnya.
+
+### C. Penyederhanaan Form Step 01 (Hapus Special Date)
+- **Instruksi**: Kolom input `special date` pada Step 01 Studio Editor dihapus karena dinilai kurang diperlukan, sementara pilihan momen (`occasion`) tetap dipertahankan.
+- **Solusi**: Menghapus elemen input tanggal khusus dan listener terkait di `studio/index.html` dan `studio/app.js`, menyederhanakan formulir awal tanpa merusak skema data proyek.
+
+---
+
+## 11. REFINEMENT ROOM LETTER & ATLAS OF US (Commit 3af8c63, 6f273ee, 129d2e9)
+
+Penyempurnaan pengalaman interaktif pada room Letter dan Atlas of Us:
+
+### A. Efek Typewriter Sekuensial & Sendoff Rata Kanan (Room Letter)
+- **Problem Typewriter**: Teks tanda tangan / sendoff di akhir surat sebelumnya langsung muncul seketika di layar saat efek ketikan mesin tik (*typewriting*) baru dimulai pada paragraf isi surat, sehingga mengganggu alur membaca.
+- **Solusi**: Menyesuaikan timer typewriter di `app.js` agar teks signoff disembunyikan terlebih dahulu saat efek ketik berjalan. Setelah seluruh teks isi surat selesai diketik, sistem memberi jeda sejenak (pause), lalu mengetikkan teks sendoff secara sekuensial hingga selesai. Tombol "Tampilkan seluruh surat" tetap berfungsi instan menampilkan semua teks jika ditekan.
+- **Sendoff Rata Kanan**: Di `styles.css`, class `.letter-signoff` diperbarui dengan `text-align: right;` sehingga nama pengirim / kalimat penutup surat tersusun rapi di pojok kanan bawah kertas surat, menyerupai format surat fisik tradisional.
+
+### B. Smart Cinematic Tour Skip on Revisit (Room Atlas of Us)
+- **Kebutuhan**: Tur kamera sinematik terbang (*cinematic tour* yang menyorot pin secara berurutan) hanya diinginkan berjalan satu kali saat pertama kali masuk ke room Atlas (*first time use*). Ketika pengguna kembali lagi ke room Atlas setelah membuka menu atau chapter lain, animasi tur tidak perlu diulang kembali agar pengguna bisa langsung menjelajah peta.
+- **Solusi**:
+  - `rooms/atlas.js`: Menambahkan opsi `cinematic` pada fungsi `StorybookAtlasRoom.mount(host, data, options)`. Jika `cinematic` bernilai `false`, sistem melewati loop `flyTo` dan langsung memanggil `fitAll(false)`, menampilkan seluruh pin lokasi, jalur rute, dan kontrol navigasi secara instan dengan popup tertutup.
+  - `app.js`: Melacak status kunjungan melalui flag memori `atlasVisited` dan `sessionStorage` per proyek (`storybook:atlas-seen:${projectId}`). Saat pengguna kembali ke room Atlas untuk kedua kalinya dan seterusnya, nilai `cinematic: false` dikirimkan secara otomatis.
+  - **Replay Support**: Saat pengguna menekan tombol "Replay story" di layar penutup (finale), flag `atlasVisited` dan kunci `sessionStorage` di-reset kembali ke awal sehingga tur sinematik dapat dinikmati ulang secara utuh.
+- **Automated Testing**: Menambahkan automated test di `tests/frontend.test.js` untuk memverifikasi logika single-play cinematic tour dan proteksi anti-regresi. Seluruh **35/35 automated tests** di `npm run check` lulus 100%.
