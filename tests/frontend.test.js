@@ -134,6 +134,7 @@ test("Studio QR cards use each theme's registered character artwork", () => {
   assert.match(studio, /function loadQrArtwork/);
   assert.match(studio, /theme\.assets\?\.qr/);
   assert.match(studio, /function drawQrSticker/);
+  assert.match(studio, /function drawQrHeartSeal/);
   assert.match(studio, /image\.crossOrigin = "anonymous"/);
   assert.doesNotMatch(qrRenderer, /themeId\s*===|case\s+["']spiderman|if\s*\([^)]*spiderman/i);
   Object.values(Themes.THEMES).forEach(theme => {

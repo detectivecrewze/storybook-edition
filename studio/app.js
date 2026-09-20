@@ -1105,9 +1105,12 @@
   }
   function drawQrIllustration(context, image, x, y, width, height) {
     if (!image) return;
-    const ratio = Math.min(width / image.naturalWidth, height / image.naturalHeight);
-    const drawWidth = image.naturalWidth * ratio;
-    const drawHeight = image.naturalHeight * ratio;
+    const imageWidth = image.naturalWidth || image.width;
+    const imageHeight = image.naturalHeight || image.height;
+    if (!imageWidth || !imageHeight) return;
+    const ratio = Math.min(width / imageWidth, height / imageHeight);
+    const drawWidth = imageWidth * ratio;
+    const drawHeight = imageHeight * ratio;
     context.drawImage(image, x + (width - drawWidth) / 2, y + (height - drawHeight) / 2, drawWidth, drawHeight);
   }
   function drawQrSticker(context, image, x, y, size, rotation = 0) {
@@ -1125,9 +1128,17 @@
     const sources = theme.assets?.qr || {};
     const heroSource = sources.hero || theme.assets?.greeting;
     let hero = await loadQrImage(heroSource);
-    if (!hero && heroSource !== theme.assets?.greeting) hero = await loadQrImage(theme.assets?.greeting);
+    if (!hero && heroSource !== (sources.heroFallback || theme.assets?.greeting)) hero = await loadQrImage(sources.heroFallback || theme.assets?.greeting);
     const stickers = await Promise.all((Array.isArray(sources.stickers) ? sources.stickers : []).slice(0, 2).map(loadQrImage));
     return { hero, stickers: stickers.filter(Boolean) };
+  }
+  function drawQrHeartSeal(context, x, y, size, fill, stroke) {
+    const half = size / 2;
+    context.save(); context.translate(x, y); context.beginPath();
+    context.moveTo(0, half * .82);
+    context.bezierCurveTo(-half * 1.15, half * .14, -half * .94, -half * .72, 0, -half * .16);
+    context.bezierCurveTo(half * .94, -half * .72, half * 1.15, half * .14, 0, half * .82);
+    context.closePath(); context.fillStyle = fill; context.fill(); context.strokeStyle = stroke; context.lineWidth = 7; context.stroke(); context.restore();
   }
   function drawStorybookQrCard(qrCanvas, artwork) {
     const canvas = document.createElement("canvas");
@@ -1152,21 +1163,19 @@
     context.globalAlpha = 1;
     context.fillStyle = palette.paper; roundedCanvasRect(context, 56, 54, 968, 1242, 42); context.fill();
     context.strokeStyle = palette.ink; context.lineWidth = 8; context.stroke();
-    context.fillStyle = palette.accent; roundedCanvasRect(context, 348, 92, 384, 58, 29); context.fill();
-    context.fillStyle = palette.ink; context.font = '900 24px "DM Sans", sans-serif'; context.textAlign = "center"; context.textBaseline = "middle"; context.fillText("FOR YOU, ALWAYS.", 540, 121);
+    context.fillStyle = palette.ink; context.font = '900 28px "DM Sans", sans-serif'; context.textAlign = "center"; context.textBaseline = "middle"; context.fillText(draft.settings.language === "en" ? "A LITTLE STORY FOR" : "CERITA KECIL UNTUK", 540, 142);
+    context.font = '400 72px Bangers, Impact, sans-serif'; context.fillStyle = palette.primary; context.fillText(fitQrText(context, recipient, 760), 540, 218);
+    drawQrSticker(context, artwork?.hero, 860, 190, 204, .08);
 
-    context.fillStyle = palette.ink; context.font = '900 28px "DM Sans", sans-serif'; context.fillText(draft.settings.language === "en" ? "A LITTLE STORY FOR" : "CERITA KECIL UNTUK", 540, 205);
-    context.font = '400 72px Bangers, Impact, sans-serif'; context.fillStyle = palette.primary; context.fillText(fitQrText(context, recipient, 760), 540, 276);
-    drawQrSticker(context, artwork?.hero, 840, 172, 190, .08);
-
-    context.fillStyle = "#fffdf5"; roundedCanvasRect(context, 230, 360, 620, 620, 34); context.fill(); context.strokeStyle = palette.ink; context.lineWidth = 7; context.stroke();
-    context.imageSmoothingEnabled = false; context.drawImage(qrCanvas, 270, 400, 540, 540); context.imageSmoothingEnabled = true;
-    drawQrSticker(context, artwork?.stickers?.[0], 145, 410, 122, -.12);
-    drawQrSticker(context, artwork?.stickers?.[1], 928, 906, 116, .11);
-    context.fillStyle = palette.ink; context.font = '900 25px "DM Sans", sans-serif'; context.letterSpacing = "2px"; context.fillText(scanText, 540, 1050); context.letterSpacing = "0px";
-    context.fillStyle = palette.muted; context.font = '600 33px Caveat, cursive'; context.fillText(fitQrText(context, fromText + sender, 780), 540, 1115);
-    context.fillStyle = palette.accent; context.fillRect(232, 1170, 616, 6);
-    context.fillStyle = palette.ink; context.font = '800 19px "DM Sans", sans-serif'; context.fillText(draft.settings.language === "en" ? "KEEP THIS LITTLE CHAPTER CLOSE" : "SIMPAN BAB KECIL INI DEKATMU", 540, 1218);
+    context.fillStyle = "#fffdf5"; roundedCanvasRect(context, 230, 330, 620, 620, 34); context.fill(); context.strokeStyle = palette.ink; context.lineWidth = 7; context.stroke();
+    context.imageSmoothingEnabled = false; context.drawImage(qrCanvas, 270, 370, 540, 540); context.imageSmoothingEnabled = true;
+    drawQrHeartSeal(context, 540, 640, 54, palette.primary, "#fffdf5");
+    drawQrSticker(context, artwork?.stickers?.[0], 146, 442, 138, -.12);
+    drawQrSticker(context, artwork?.stickers?.[1], 928, 882, 136, .11);
+    context.fillStyle = palette.ink; context.font = '900 25px "DM Sans", sans-serif'; context.letterSpacing = "2px"; context.fillText(scanText, 540, 1022); context.letterSpacing = "0px";
+    context.fillStyle = palette.muted; context.font = '600 33px Caveat, cursive'; context.fillText(fitQrText(context, fromText + sender, 780), 540, 1087);
+    context.fillStyle = palette.accent; context.fillRect(232, 1142, 616, 6);
+    context.fillStyle = palette.ink; context.font = '800 19px "DM Sans", sans-serif'; context.fillText(draft.settings.language === "en" ? "KEEP THIS LITTLE CHAPTER CLOSE" : "SIMPAN BAB KECIL INI DEKATMU", 540, 1190);
     return canvas;
   }
   async function buildQrCard(url, version) {

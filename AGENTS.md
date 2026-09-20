@@ -527,7 +527,8 @@ Penyempurnaan mendalam pada kartu popup komik dan framing tampilan peta Leaflet:
 
 Penyempurnaan kartu QR gift card di Step 09 Studio Editor:
 - **Aset Registrasi**: Di `shared/themes.js`, setiap tema didaftarkan memiliki artwork QR resmi (`theme.assets.qr`):
-  - Spider-Man: hero GIF Tom Holland + 2 stiker chibi (`spiderman-chibi.webp`, `decal-mask.webp`).
+  - Spider-Man: hero resmi `spiderman-character.webp` + 2 stiker chibi (`spiderman-chibi.webp`, `decal-mask.webp`).
   - Batman: hero `finale-friends.webp` + 2 stiker emblem (`menu-hero-left.webp`, `menu-bat-right.webp`).
+- **Penempatan Karakter**: Karakter hero utama (Spider-Man maupun Batman) ditempatkan di sisi kanan atas kartu (`x: 860, y: 190`), menciptakan komposisi diagonal yang seimbang bersama stiker kiri (`x: 146, y: 442`) dan stiker kanan bawah (`x: 928, y: 882`).
 - **Render Canvas**: `studio/app.js` memuat artwork secara asinkron dengan `crossOrigin = "anonymous"`, merender stiker berotasi dinamis dan bayangan komik di sekeliling kode QR tanpa percabangan hardcode `themeId`.
 - **Status Uji**: Seluruh **42 automated test suites** di `npm run check` lulus 100%.

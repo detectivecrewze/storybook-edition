@@ -43,7 +43,8 @@
           mirrorRight: true
         }),
         qr: Object.freeze({
-          hero: "https://media.tenor.com/FbIEm5UJ28sAAAAi/spiderman-tom-holland.gif",
+          hero: "/assets/themes/spiderman/spiderman-character.webp",
+          heroFallback: "/assets/themes/spiderman/spiderman-character.webp",
           stickers: Object.freeze([
             "/assets/themes/spiderman/spiderman-chibi.webp",
             "/assets/themes/spiderman/decal-mask.webp"
