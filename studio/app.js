@@ -673,13 +673,13 @@
     const decorativeLabels = [[".opening-photo-board>header p", "studio.openingPanelsKicker"], [".reasons-list-heading p", "studio.comicNotesKicker"], [".letter-paper-heading span", "studio.letterMailKicker"]];
     decorativeLabels.forEach(([selector, key]) => { const node = $(selector); if (node) node.textContent = I18n.t(key); });
     I18n.apply(); $("#studio-language").value = draft.settings.language; renderThemes(); renderOccasions();
-    $("#recipient").value = draft.identity.recipient; $("#sender").value = draft.identity.sender; $("#event-date").value = draft.identity.eventDate;
+    $("#recipient").value = draft.identity.recipient; $("#sender").value = draft.identity.sender; const eventDateEl = $("#event-date"); if (eventDateEl) eventDateEl.value = draft.identity.eventDate;
     $("#opening-eyebrow").value = draft.opening.eyebrow; $("#opening-title").value = draft.opening.title; $("#opening-message").value = draft.opening.message; renderOpeningPanels();
     renderReasons(); renderGallery(); renderAtlas(); renderMusic(); renderCatalog($("#music-search").value); $("#letter-greeting").value = draft.letter.greeting; $("#letter-body").value = draft.letter.paragraphs.join("\n\n"); $("#letter-signoff").value = draft.letter.signoff;
     renderModules(); $("#finale-title").value = draft.finale.title; $("#finale-message").value = draft.finale.message; $("#finale-signoff").value = draft.finale.signoff; updateGiftResult(); goToStep(currentStep, false); sendPreview();
   }
   function syncAll() {
-    if (!draft) return; draft.identity.recipient = $("#recipient").value; draft.identity.sender = $("#sender").value; draft.identity.eventDate = $("#event-date").value;
+    if (!draft) return; draft.identity.recipient = $("#recipient").value; draft.identity.sender = $("#sender").value; const eventDateEl = $("#event-date"); if (eventDateEl) draft.identity.eventDate = eventDateEl.value;
     draft.opening.eyebrow = $("#opening-eyebrow").value; draft.opening.title = $("#opening-title").value; draft.opening.message = $("#opening-message").value;
     draft.letter.greeting = $("#letter-greeting").value; draft.letter.paragraphs = $("#letter-body").value.split(/\n\s*\n/).map(value => value.trim()).filter(Boolean); draft.letter.signoff = $("#letter-signoff").value;
     draft.finale.title = $("#finale-title").value; draft.finale.message = $("#finale-message").value; draft.finale.signoff = $("#finale-signoff").value;
