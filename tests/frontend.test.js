@@ -227,5 +227,16 @@ test("Studio maintains light neutral workspace background and Themes.applyTheme 
   assert.doesNotMatch(themes, /document\.body\.style\.backgroundColor/);
 });
 
+test("Atlas room only plays cinematic tour on first visit and skips on revisit", () => {
+  const app = read("app.js");
+  const atlas = read("rooms/atlas.js");
+  assert.match(app, /function isFirstAtlasVisit/);
+  assert.match(app, /cinematic:\s*firstVisit/);
+  assert.match(app, /atlasVisited\s*=\s*false/);
+  assert.match(atlas, /const cinematic\s*=/);
+  assert.match(atlas, /cinematic && !reducedMotion && !cinematicCancelled/);
+});
+
+
 
 

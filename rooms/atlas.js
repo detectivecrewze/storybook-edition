@@ -1,6 +1,7 @@
 (function (root) {
   "use strict";
 
+  let standaloneVisited = false;
   const isFiniteCoordinate = (latitude, longitude) => Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude)) && Number(latitude) >= -90 && Number(latitude) <= 90 && Number(longitude) >= -180 && Number(longitude) <= 180;
   const mapsUrl = location => `https://www.google.com/maps/search/?api=1&query=${Number(location.latitude)},${Number(location.longitude)}`;
   function element(tag, className, text) { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; }
@@ -18,6 +19,8 @@
   function mount(host, atlasData, options = {}) {
     const language = options.language === "en" ? "en" : "id";
     const reducedMotion = Boolean(options.reducedMotion);
+    const cinematic = options.cinematic !== undefined ? Boolean(options.cinematic) : !standaloneVisited;
+    standaloneVisited = true;
     const locations = (atlasData?.locations || []).filter(location => location.label && isFiniteCoordinate(location.latitude, location.longitude)).slice(0, 10);
     const timers = new Set(); const listeners = []; let map = null; let tileLayer = null; let activeIndex = 0; let destroyed = false; let tileErrors = 0;
     const on = (target, type, handler, settings) => { target.addEventListener(type, handler, settings); listeners.push(() => target.removeEventListener(type, handler, settings)); };
@@ -207,12 +210,19 @@
       }
     }
 
-    let cancelAnimation = () => {};
+    let cinematicCancelled = false;
+    let cancelAnimation = () => { cinematicCancelled = true; };
 
     function runJourneyAnimation() {
-      if (reducedMotion || locations.length === 0) {
+      if (cinematicCancelled || !cinematic || reducedMotion || locations.length === 0) {
         fitAll(false);
-        updateActiveMarker(0);
+        if (locations.length === 1) {
+          markers[0]?.openPopup();
+          updateActiveMarker(0);
+        } else {
+          updateActiveMarker(-1);
+          map.closePopup();
+        }
         return;
       }
 
@@ -220,6 +230,7 @@
       let moveTimeout = null;
 
       cancelAnimation = () => {
+        cinematicCancelled = true;
         aborted = true;
         if (moveTimeout) { clearTimeout(moveTimeout); moveTimeout = null; }
         if (selectTimeout) { clearTimeout(selectTimeout); selectTimeout = null; }
@@ -311,7 +322,18 @@
       if (startedMap || destroyed) return;
       startedMap = true;
       map.invalidateSize({ pan: false, animate: false });
-      runJourneyAnimation();
+      if (cinematic && !reducedMotion && !cinematicCancelled) {
+        runJourneyAnimation();
+      } else {
+        fitAll(false);
+        if (locations.length === 1) {
+          markers[0]?.openPopup();
+          updateActiveMarker(0);
+        } else {
+          updateActiveMarker(-1);
+          map.closePopup();
+        }
+      }
     };
     tileLayer.once("tileload", onFirstTile);
     // Fallback: if tiles take more than 1.2 s (e.g. offline), start anyway.

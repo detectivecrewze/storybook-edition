@@ -22,6 +22,21 @@
   let panelPrefetchHandle = 0;
   let lastTrigger = null;
   const opened = new Set();
+  let atlasVisited = false;
+  let isCurrentRoomPreview = false;
+  function isFirstAtlasVisit(preview = false) {
+    try {
+      const storageKey = `storybook:atlas-seen:${project?.projectId || "default"}`;
+      if (sessionStorage.getItem(storageKey) === "1" || atlasVisited) return false;
+      if (!preview) sessionStorage.setItem(storageKey, "1");
+      atlasVisited = true;
+      return true;
+    } catch {
+      const first = !atlasVisited;
+      atlasVisited = true;
+      return first;
+    }
+  }
 
   function showState(title, message, retry = false) {
     stateBox.hidden = false; app.hidden = true;
@@ -183,6 +198,7 @@
     $("#finale-launch").disabled = !ready;
   }
   function openRoom(module, trigger, { preview = false } = {}) {
+    isCurrentRoomPreview = Boolean(preview);
     roomCleanup(); roomCleanup = () => {}; roomResize = () => {};
     lastTrigger = trigger || lastTrigger; currentRoom = module.type; if (!preview) opened.add(module.type);
     $("#room-kicker").textContent = `${I18n.t("gift.open")} ${String(module.order + 1).padStart(2, "0")}`;
@@ -233,6 +249,7 @@
   }
   function renderAtlas() {
     let disposed = false; let cleanup = () => {};
+    const firstVisit = isFirstAtlasVisit(isCurrentRoomPreview);
     const loading = document.createElement("div"); loading.className = "atlas-loading"; loading.setAttribute("role", "status"); loading.textContent = project.settings.language === "en" ? "Drawing your map…" : "Menggambar peta kalian…"; roomContent.append(loading);
     Promise.all([
       window.L ? Promise.resolve() : loadResource("/assets/vendor/leaflet/leaflet.js", "script"),
@@ -240,7 +257,7 @@
     ]).then(() => {
       if (disposed) return;
       roomContent.replaceChildren();
-      cleanup = window.StorybookAtlasRoom.mount(roomContent, project.atlas, { language: project.settings.language, reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches });
+      cleanup = window.StorybookAtlasRoom.mount(roomContent, project.atlas, { language: project.settings.language, reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches, cinematic: firstVisit });
     }).catch(() => {
       if (disposed) return;
       roomContent.replaceChildren(); const message = document.createElement("p"); message.className = "room-empty"; message.textContent = project.settings.language === "en" ? "The interactive map could not load. Open a location below." : "Peta interaktif tidak dapat dimuat. Buka lokasi dari daftar berikut."; roomContent.append(message);
@@ -299,7 +316,7 @@
     else setTimeout(idleLoad, 1500);
   }
 
-  function renderAll() { clearOpeningTransition(); if (panelPrefetchHandle) { "cancelIdleCallback" in window ? cancelIdleCallback(panelPrefetchHandle) : clearTimeout(panelPrefetchHandle); panelPrefetchHandle = 0; } roomCleanup(); roomCleanup = () => {}; roomResize = () => {}; storyAudio.pause(); storyAudio.removeAttribute("src"); storyAudio.load(); activeTrackIndex = 0; opened.clear(); $("#open-wrap").classList.remove("is-opening"); $("#greeting-art").removeAttribute("src"); $("#greeting-art").hidden = true; $("#finale-art").removeAttribute("src"); $("#finale-art").hidden = true; $("#finale-skyline").style.backgroundImage = ""; $("#module-grid").replaceChildren(); $("#menu-character-left").replaceChildren(); $("#menu-character-right").replaceChildren(); applyTheme(); renderStaticCopy(); prefetchOpeningPanels(); preloadAtlasScripts(); }
+  function renderAll() { clearOpeningTransition(); if (panelPrefetchHandle) { "cancelIdleCallback" in window ? cancelIdleCallback(panelPrefetchHandle) : clearTimeout(panelPrefetchHandle); panelPrefetchHandle = 0; } roomCleanup(); roomCleanup = () => {}; roomResize = () => {}; storyAudio.pause(); storyAudio.removeAttribute("src"); storyAudio.load(); activeTrackIndex = 0; opened.clear(); atlasVisited = false; $("#open-wrap").classList.remove("is-opening"); $("#greeting-art").removeAttribute("src"); $("#greeting-art").hidden = true; $("#finale-art").removeAttribute("src"); $("#finale-art").hidden = true; $("#finale-skyline").style.backgroundImage = ""; $("#module-grid").replaceChildren(); $("#menu-character-left").replaceChildren(); $("#menu-character-right").replaceChildren(); applyTheme(); renderStaticCopy(); prefetchOpeningPanels(); preloadAtlasScripts(); }
 
   async function loadGift() {
     const projectId = Project.projectIdFromPath(location.pathname, location.search) || "sample-demo";
@@ -315,7 +332,7 @@
   $("#enter-story").addEventListener("click", () => { renderMenu(); showScreen("menu"); });
   $("#room-back").addEventListener("click", returnToMenu);
   $("#finale-launch").addEventListener("click", () => { prepareFinale(); showScreen("finale"); });
-  $("#replay-story").addEventListener("click", () => { clearOpeningTransition(); opened.clear(); $("#open-wrap").classList.remove("is-opening"); renderMenu(); showScreen("gate"); });
+  $("#replay-story").addEventListener("click", () => { clearOpeningTransition(); opened.clear(); atlasVisited = false; try { sessionStorage.removeItem(`storybook:atlas-seen:${project?.projectId || "default"}`); } catch {} $("#open-wrap").classList.remove("is-opening"); renderMenu(); showScreen("gate"); });
   document.addEventListener("keydown", event => { if (event.key !== "Escape") return; if ($("#room").classList.contains("is-active")) returnToMenu(); else if ($("#finale").classList.contains("is-active")) showScreen("menu"); });
   function previewTarget(context) {
     const target = ["gate", "room", "menu", "finale"].includes(context?.target) ? context.target : "gate";
