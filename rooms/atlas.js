@@ -5,39 +5,19 @@
   const mapsUrl = location => `https://www.google.com/maps/search/?api=1&query=${Number(location.latitude)},${Number(location.longitude)}`;
   function element(tag, className, text) { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; }
 
-  function locationCard(location, index, language = "id", themeId = "spiderman") {
-    const isBatman = themeId === "batman";
-    const card = element("article", `atlas-popup-card theme-${themeId}`);
-    if (location.photoUrl) {
-      const photoWrap = element("div", "atlas-popup-photo-wrap");
-      const image = element("img", "atlas-popup-photo");
-      image.alt = location.label;
-      image.loading = "lazy";
-      image.src = location.photoUrl;
-      image.onerror = () => photoWrap.remove();
-      photoWrap.append(image);
-      card.append(photoWrap);
-    }
-    const kickerText = isBatman
-      ? (language === "en" ? `GOTHAM DOSSIER · SECTOR ${String(index + 1).padStart(2, "0")}` : `DOSSIER GOTHAM · SEKTOR ${String(index + 1).padStart(2, "0")}`)
-      : (language === "en" ? `LOCATION LOG · POINT ${String(index + 1).padStart(2, "0")}` : `LOG LOKASI · TITIK ${String(index + 1).padStart(2, "0")}`);
-    const badge = element("span", "atlas-popup-number", kickerText);
-    const title = element("h3", "atlas-popup-title", location.label);
+  function locationCard(location, index) {
+    const card = element("article", "atlas-popup-card");
+    if (location.photoUrl) { const image = element("img", "atlas-popup-photo"); image.alt = location.label; image.loading = "lazy"; image.src = location.photoUrl; image.onerror = () => image.remove(); card.append(image); }
+    const badge = element("span", "atlas-popup-number", String(index + 1).padStart(2, "0"));
+    const title = element("h3", "", location.label);
     card.append(badge, title);
-    if (location.note) card.append(element("p", "atlas-popup-note", location.note));
-    const mapsLink = element("a", "atlas-popup-maps-link", language === "en" ? "Open in Google Maps ↗" : "Buka di Google Maps ↗");
-    mapsLink.href = mapsUrl(location);
-    mapsLink.target = "_blank";
-    mapsLink.rel = "noopener noreferrer";
-    card.append(mapsLink);
+    if (location.note) card.append(element("p", "", location.note));
     return card;
   }
 
   function mount(host, atlasData, options = {}) {
     const language = options.language === "en" ? "en" : "id";
     const reducedMotion = Boolean(options.reducedMotion);
-    const themeId = options.themeId === "batman" || document.documentElement?.dataset?.theme === "batman" ? "batman" : "spiderman";
-    const isBatman = themeId === "batman";
     const locations = (atlasData?.locations || []).filter(location => location.label && isFiniteCoordinate(location.latitude, location.longitude)).slice(0, 10);
     const timers = new Set(); const listeners = []; let map = null; let tileLayer = null; let activeIndex = 0; let destroyed = false; let tileErrors = 0;
     const on = (target, type, handler, settings) => { target.addEventListener(type, handler, settings); listeners.push(() => target.removeEventListener(type, handler, settings)); };
@@ -49,12 +29,10 @@
       return () => { host.replaceChildren(); };
     }
 
-    const shell = element("div", `atlas-room theme-${themeId}`);
+    const shell = element("div", "atlas-room");
     const stats = element("div", "atlas-stats");
-    const placeStat = element("div", `atlas-stat theme-${themeId}`);
-    const radarTitle = isBatman ? "BAT-SONAR" : "WEB RADAR";
+    const placeStat = element("div", "atlas-stat");
     placeStat.append(
-      element("span", "atlas-stat-radar", radarTitle),
       element("strong", "", String(locations.length)),
       element("span", "", language === "en" ? (locations.length === 1 ? "place" : "places") : "tempat")
     );
@@ -110,28 +88,28 @@
     let route = null;
     if (locations.length >= 2) {
       route = root.L.polyline(locations.map(location => [location.latitude, location.longitude]), {
-        color: isBatman ? "#d6a62e" : "#c0392b",
-        weight: isBatman ? 3 : 3.5,
-        opacity: 0.92,
-        dashArray: isBatman ? "8 5" : "6 6",
+        color: "#c0392b",
+        weight: 3,
+        opacity: 0.9,
+        dashArray: "8 6",
         lineCap: "round",
-        className: isBatman ? "atlas-bat-route" : "atlas-web-route"
+        className: "atlas-web-route"
       }).addTo(map);
     }
 
     const markers = locations.map((location, index) => {
       const icon = root.L.divIcon({
-        className: `atlas-pin-shell theme-${themeId}`,
-        html: `<div class="atlas-pin-wrap theme-${themeId}"><div class="atlas-pin-pulse"></div><div class="atlas-pin-head" id="atlas-pin-head-${index}"><span class="atlas-pin-num">${index + 1}</span></div><div class="atlas-pin-shadow"></div></div>`,
-        iconSize: [32, 38],
-        iconAnchor: [16, 36],
-        popupAnchor: [0, -36]
+        className: "atlas-pin-shell",
+        html: `<div class="atlas-pin-wrap"><div class="atlas-pin-head" id="atlas-pin-head-${index}"><span class="atlas-pin-num">${index + 1}</span></div><div class="atlas-pin-shadow"></div></div>`,
+        iconSize: [28, 34],
+        iconAnchor: [14, 34],
+        popupAnchor: [0, -34]
       });
       const marker = root.L.marker([location.latitude, location.longitude], { icon, keyboard: true, opacity: 1 }).addTo(map);
-      marker.bindPopup(locationCard(location, index, language, themeId), {
-        className: `atlas-comic-popup theme-${themeId}`,
-        maxWidth: 300,
-        minWidth: 260,
+      marker.bindPopup(locationCard(location, index, language), {
+        className: "atlas-comic-popup",
+        maxWidth: 290,
+        minWidth: 255,
         autoPan: false
       });
       marker.on("click", (e) => {

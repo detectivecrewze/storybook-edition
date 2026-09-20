@@ -239,7 +239,8 @@
       window.StorybookAtlasRoom ? Promise.resolve() : loadResource("/rooms/atlas.js", "script")
     ]).then(() => {
       if (disposed) return;
-      cleanup = window.StorybookAtlasRoom.mount(roomContent, project.atlas, { language: project.settings.language, reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches, themeId: project.themeId });
+      roomContent.replaceChildren();
+      cleanup = window.StorybookAtlasRoom.mount(roomContent, project.atlas, { language: project.settings.language, reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches });
     }).catch(() => {
       if (disposed) return;
       roomContent.replaceChildren(); const message = document.createElement("p"); message.className = "room-empty"; message.textContent = project.settings.language === "en" ? "The interactive map could not load. Open a location below." : "Peta interaktif tidak dapat dimuat. Buka lokasi dari daftar berikut."; roomContent.append(message);
