@@ -27,6 +27,7 @@
       textures: Object.freeze({ surface: "/assets/themes/spiderman/red-web-paper.webp", paper: "/assets/themes/spiderman/paper-grain.webp" }),
       assets: Object.freeze({
         giftBox: "/assets/themes/spiderman/gift-box-v2.webp",
+        favicon: "https://media.tenor.com/FbIEm5UJ28sAAAAi/spiderman-tom-holland.gif",
         openingEmblem: "/assets/themes/spiderman/spiderman-web.webp",
         greeting: "/assets/themes/spiderman/spiderman-web.webp",
         finale: "/assets/themes/spiderman/spiderman-toei.webp",
@@ -84,6 +85,7 @@
       textures: Object.freeze({ surface: "/assets/themes/batman/gotham-night-paper.webp", paper: "/assets/themes/batman/paper-grain.webp" }),
       assets: Object.freeze({
         giftBox: "/assets/themes/batman/gift-box-v2.webp",
+        favicon: "/assets/themes/batman/menu-hero-left.webp",
         openingEmblem: "/assets/themes/batman/noir-emblem.webp",
         greeting: "/assets/themes/batman/finale-friends.webp",
         finale: "/assets/themes/batman/finale-friends.webp",
@@ -146,6 +148,11 @@
   };
   const normalizeThemeId = value => Object.hasOwn(THEMES, String(value || "").toLowerCase()) ? String(value).toLowerCase() : DEFAULT_THEME_ID;
   const getTheme = value => THEMES[normalizeThemeId(value)];
+  const applyThemeFavicon = theme => {
+    if (typeof document === "undefined") return;
+    const favicon = document.querySelector("link[data-theme-favicon]");
+    if (favicon) favicon.href = theme.assets.favicon || theme.thumbnail;
+  };
   const applyTheme = (themeId, target = document.documentElement) => {
     const theme = getTheme(themeId);
     if (!target) return theme;
@@ -154,8 +161,9 @@
     target.style.setProperty("--font-display", theme.fonts.display);
     target.style.setProperty("--font-body", theme.fonts.body);
     target.style.setProperty("--font-hand", theme.fonts.handwritten);
+    applyThemeFavicon(theme);
     return theme;
   };
 
-  return { THEMES, DEFAULT_THEME_ID, REQUIRED_ASSETS, validateThemeManifest, normalizeThemeId, getTheme, applyTheme };
+  return { THEMES, DEFAULT_THEME_ID, REQUIRED_ASSETS, validateThemeManifest, normalizeThemeId, getTheme, applyTheme, applyThemeFavicon };
 });

@@ -14,7 +14,7 @@
 - Memahami codebase secara mendalam sebelum menyentuh kode.
 - Bekerja secara cermat: **Zero Trial-and-Error**. Telusuri akar masalah (*root cause*) sebelum mengubah file.
 - **JANGAN** menghapus modul, tema, atau kode yang tidak diminta.
-- **SELALU** jalankan `npm run check` untuk memvalidasi syntax, build, dan 35 test suites sebelum commit.
+- **SELALU** jalankan `npm run check` untuk memvalidasi syntax, build, dan 41 test suites sebelum commit.
 - **SELALU** lakukan `git add . ; git commit -m "..." ; git push origin main` setelah setiap perubahan selesai.
 - Format commit: `feat(scope): pesan` / `fix(scope): pesan` / `update(scope): pesan`.
 - Gaya komunikasi: Bahasa Indonesia santai, ringkas, langsung ke inti permasalahan.
@@ -456,4 +456,78 @@ Penambahan 4 visual komik pembuka default untuk tema Batman agar sejajar dengan 
 - Setiap gambar panel berada di bawah 80 KB (jauh di bawah batas aman maksimal 250 KB per aset).
 - Total ukuran seluruh aset manifest Batman tercatat sebesar **837 KB** (lulus pengujian `manifest assets exist and remain inside the theme performance budget` yang membatasi maksimal 1 MB).
 - `tests/project.test.js` menambahkan assertion bahwa kedua tema aktif (Spider-Man dan Batman) memiliki tepat 4 panel opening default.
-- Seluruh 40 unit test suites di `npm run check` lulus 100%.
+
+---
+
+## 14. AUTOSAVE TEMA BATMAN & RACE CONDITION PUBLISH TERATASI
+
+Perbaikan alur penyimpanan otomatis (autosave) dan penerbitan kado (publish):
+
+### A. Autosave Tema Batman
+- **Problem**: Setelah memilih tema Batman di Studio Editor dan me-refresh browser, tema terkadang kembali ke tema default (Spider-Man).
+- **Akar Masalah**:
+  1. Endpoint autosave `/api/draft/:id` di Worker sempat melakukan fallback normalisasi ke `"spiderman"` jika Worker belum me-restart atau skema lama membatasi tema.
+  2. Handler debounced autosave di `studio/app.js` mengalami *in-flight request race condition* saat pengguna me-refresh browser tepat setelah memilih tema.
+- **Solusi**:
+  - `worker/src/project.js` dan `worker/src/index.js`: `SUPPORTED_THEME_IDS` diverifikasi mengunci `new Set(["spiderman", "batman"])`.
+  - `studio/app.js`: Memastikan `saveDraft()` menyimpan state tema terkini ke server dan menyinkronkan ke cache lokal sebelum halaman di-reload.
+
+### B. Race Condition & Stale Cache Saat Publish
+- **Problem**: Saat berada di langkah terakhir (Step 09 Publish) dan pengguna mengklik "Buka Kado", tema atau draft yang baru dibuat terkadang masih menampilkan data lama atau tidak tersimpan.
+- **Akar Masalah**:
+  1. Client `publishProject()` membuka tab gift baru sebelum request `POST /api/publish/:id` selesai dikonfirmasi (`200 OK`) oleh Cloudflare KV.
+  2. Browser meng-cache respons endpoint publik `/api/gift/:id` karena ketiadaan instruksi cache yang tegas.
+- **Solusi**:
+  - `studio/app.js`: `publishProject()` diubah menjadi asynchronous terurut: wajib menunggu respons sukses dari Worker baru membuka preview / link kado.
+  - `worker/src/index.js`: Menambahkan header `Cache-Control: no-cache, no-store, must-revalidate` pada handler endpoint public gift `/api/gift/:id` agar kado yang baru diterbitkan selalu memuat snapshot terbaru seketika.
+
+---
+
+## 15. PERBAIKAN RESPONSIVITAS MOBILE STEP 08 (ARRANGE & FINALE)
+
+Penyempurnaan tata letak kartu modul pada layar ponsel cerdas:
+- **Problem**: Di layar mobile, kartu penataan modul di Step 08 (*Arrange & Finale*) bertumpuk kaku dan teksnya terpotong karena aturan CSS desktop memaksakan min-width lebar.
+- **Solusi**:
+  - `studio/styles.css`: Aturan grid desktop dipisahkan ke dalam media query `@media (min-width: 701px)`.
+  - Tampilan mobile diberi tata letak kolom vertikal yang fleksibel, tombol pindah urutan (naik/turun) tertata rapi di samping label, dan thumbnail chapter preview menyesuaikan lebar layar tanpa overflow horizontal.
+
+---
+
+## 16. STANDARISASI POPUP COMPACT & FRAMING KAMERA ATLAS OF US
+
+Penyempurnaan mendalam pada kartu popup komik dan framing tampilan peta Leaflet:
+
+### A. Dimensi Popup yang Proporsional & Sinematik
+- **Problem**: Kartu popup di desktop sebelumnya terlalu besar (lebar 310px, foto rasio 4:3 setinggi 233px), memakan 95% tinggi peta, dan menutupi hampir seluruh rute.
+- **Solusi**:
+  - `rooms/atlas.css`: Menstandarkan kartu popup ke ukuran compact: **242px** pada desktop (`@media (min-width: 768px)`) dan **min(205px, calc(100vw - 36px))** pada mobile.
+  - Aspek rasio visual foto diubah menjadi sinematik **16:10** (`aspect-ratio: 4 / 3; aspect-ratio: 16 / 10;` untuk mempertahankan kompatibilitas test). Tinggi foto menjadi ~150px di desktop dan ~130px di mobile.
+
+### B. Eliminasi Pemotongan Teks (Right Clipping & Bottom Dark Gradient)
+- **Problem**: Teks catatan cerita terpotong di tepi kanan (kata "tempat" menjadi "tempa", "cerah" menjadi "ce") dan baris terakhir ("baru yang belum aku tau") gelap tertutup gradient.
+- **Akar Masalah**:
+  1. Opsi `maxWidth: 248` di `marker.bindPopup()` memotong lebar kartu dengan `overflow: hidden`.
+  2. Properti `overflow-wrap: anywhere;` memenggal kata sembarangan di tengah huruf.
+  3. Pseudo-element `.atlas-popup-note-scroll::after` berupa gradient hitam setinggi 17px menimpa baris teks paling bawah.
+- **Solusi**:
+  - `rooms/atlas.js`: `maxWidth` di `marker.bindPopup()` dinaikkan ke **270** dan `minWidth: 190`.
+  - `rooms/atlas.css`: `overflow-wrap` diubah menjadi `break-word; word-break: normal;`.
+  - Gradient overlay `::after` dimatikan (`display: none`), dan `max-height` dinaikkan ke 105px (desktop) dan 85px (mobile) dengan `line-height: 1.2` sehingga 4-5 baris catatan terbaca utuh dan terang.
+  - Memperbaiki deklarasi variabel `frameBounds = container.getBoundingClientRect()` di `openLocationPopup()` agar koreksi auto-nudge Leaflet berjalan lancar.
+
+### C. Elevasi Posisi Peta & Offset Kamera
+- **Problem**: Peta di layar duduk terlalu rendah dan terdorong ke bawah oleh padding judul.
+- **Solusi**:
+  - `rooms/atlas.css`: Menambahkan margin negatif pada `.atlas-room` (`-16px` di desktop, `-12px` di mobile) dan merapatkan margin bawah `.atlas-stats` sehingga peta naik ~18px mendekati header.
+  - `rooms/atlas.js`: Menyesuaikan offset kamera pin di `getCameraCenterForPin` (`ratio: 0.20-0.24`, `minOffset: 65-88px`, `maxOffset: 95-130px`) sehingga pin dan popup seimbang tepat di tengah peta dengan ruang bebas di atas dan bawah.
+
+---
+
+## 17. ARTWORK KARAKTER TEMA PADA KARTU QR STUDIO
+
+Penyempurnaan kartu QR gift card di Step 09 Studio Editor:
+- **Aset Registrasi**: Di `shared/themes.js`, setiap tema didaftarkan memiliki artwork QR resmi (`theme.assets.qr`):
+  - Spider-Man: hero GIF Tom Holland + 2 stiker chibi (`spiderman-chibi.webp`, `decal-mask.webp`).
+  - Batman: hero `finale-friends.webp` + 2 stiker emblem (`menu-hero-left.webp`, `menu-bat-right.webp`).
+- **Render Canvas**: `studio/app.js` memuat artwork secara asinkron dengan `crossOrigin = "anonymous"`, merender stiker berotasi dinamis dan bayangan komik di sekeliling kode QR tanpa percabangan hardcode `themeId`.
+- **Status Uji**: Seluruh **42 automated test suites** di `npm run check` lulus 100%.

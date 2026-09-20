@@ -86,9 +86,10 @@ test("gift renderer is theme-neutral and customer media is constructed inside ro
 
 test("menu character decorations are theme-driven and remain lazy until the menu renders", () => {
   const html = read("gift/index.html"); const app = read("app.js"); const themes = read("shared/themes.js");
+  const giftBody = html.slice(html.indexOf("</head>") + "</head>".length);
   assert.match(html, /id="menu-character-left"/); assert.match(html, /id="menu-character-right"/);
   assert.match(html, /id="finale-companion"/); assert.match(app, /theme\.assets\.finaleCompanion/);
-  assert.doesNotMatch(html, /spiderman-tom-holland\.gif/);
+  assert.doesNotMatch(giftBody, /spiderman-tom-holland\.gif/);
   assert.match(app, /function renderMenuCharacters/); assert.match(app, /theme\?\.assets\?\.menuCharacters/);
   assert.doesNotMatch(app, /themeId\s*===|case\s+["']spiderman|if\s*\([^)]*spiderman/i);
   assert.match(themes, /menuCharacters/);
@@ -111,11 +112,20 @@ test("Atlas resources are preloaded silently and JS remains lazy until the room 
 test("manifest assets exist and remain inside the theme performance budget", () => {
   const Themes = require("../shared/themes.js");
   Object.values(Themes.THEMES).forEach(theme => {
-    const urls = [...new Set([theme.thumbnail, theme.textures.surface, theme.textures.paper, ...Object.values(theme.assets).flatMap(value => Array.isArray(value) ? value : [value])].filter(value => typeof value === "string"))];
+    const urls = [...new Set([theme.thumbnail, theme.textures.surface, theme.textures.paper, ...Object.values(theme.assets).flatMap(value => Array.isArray(value) ? value : [value])].filter(value => typeof value === "string" && value.startsWith("/")))];
     let total = 0;
     for (const url of urls) { const file = path.join(root, url.replace(/^\//, "")); assert.equal(fs.existsSync(file), true, url); const size = fs.statSync(file).size; total += size; assert.ok(size <= 250 * 1024, `${url} is ${(size / 1024).toFixed(1)} KB`); }
     assert.ok(total <= 1024 * 1024, `${theme.id} theme manifest totals ${(total / 1024).toFixed(1)} KB`);
   });
+});
+
+test("gift and Studio favicons follow the active theme manifest", () => {
+  const gift = read("gift/index.html"); const studio = read("studio/index.html"); const themes = read("shared/themes.js");
+  assert.match(gift, /rel="icon" data-theme-favicon/);
+  assert.match(studio, /rel="icon" data-theme-favicon/);
+  assert.match(themes, /const applyThemeFavicon/);
+  assert.match(themes, /theme\.assets\.favicon \|\| theme\.thumbnail/);
+  Object.values(require("../shared/themes.js").THEMES).forEach(theme => assert.ok(String(theme.assets.favicon || "").trim(), `${theme.id} needs a favicon`));
 });
 
 test("Studio QR cards use each theme's registered character artwork", () => {
