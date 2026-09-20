@@ -80,7 +80,7 @@
 
     const bounds = root.L.latLngBounds(locations.map(location => [location.latitude, location.longitude]));
     const center = bounds.getCenter();
-    const initialZoom = locations.length === 1 ? 13 : 11;
+    const initialZoom = locations.length === 1 ? 12 : 11;
 
     map = root.L.map(mapNode, {
       center: center,
@@ -170,8 +170,8 @@
         const container = map.getContainer?.();
         if (!popup || !container) return;
         const popupBounds = popup.getBoundingClientRect();
-        const frameBounds = container.getBoundingClientRect();
-        const topOverflow = frameBounds.top + 14 - popupBounds.top;
+        const minHeadroom = 26;
+        const topOverflow = frameBounds.top + minHeadroom - popupBounds.top;
         const bottomOverflow = popupBounds.bottom - (frameBounds.bottom - 12);
         // Leaflet autoPan remains disabled. This is a measured, one-time
         // correction after our comic card has its final rendered height.
@@ -184,9 +184,9 @@
       if (!map) return [location.latitude, location.longitude];
       const size = map.getSize();
       const targetPoint = map.project([location.latitude, location.longitude], zoom);
-      // Start with a generous top margin; openLocationPopup makes the final
-      // correction from the actual rendered card dimensions.
-      const offsetY = Math.min(200, Math.max(145, Math.round(size.y * 0.38)));
+      // Place the pin in the lower portion of the map so the comic popup
+      // has ample headroom above it and never touches or clips the top edge.
+      const offsetY = Math.min(170, Math.max(115, Math.round(size.y * 0.34)));
       const cameraPoint = targetPoint.subtract([0, offsetY]);
       return map.unproject(cameraPoint, zoom);
     }
@@ -194,15 +194,15 @@
     function fitAll(animate = false) {
       if (locations.length === 1) {
         if (animate && !reducedMotion) {
-          map.flyTo([locations[0].latitude, locations[0].longitude], 13, { duration: 0.65 });
+          map.flyTo([locations[0].latitude, locations[0].longitude], 12, { duration: 0.65 });
         } else {
-          map.setView([locations[0].latitude, locations[0].longitude], 13);
+          map.setView([locations[0].latitude, locations[0].longitude], 12);
         }
       } else {
         if (animate && !reducedMotion) {
-          map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 14, duration: 0.85 });
+          map.flyToBounds(bounds, { padding: [40, 40], maxZoom: 13, duration: 0.85 });
         } else {
-          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 });
+          map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
         }
       }
     }
@@ -216,7 +216,7 @@
       const location = locations[activeIndex];
       current.textContent = `${activeIndex + 1} / ${locations.length}`;
       updateActiveMarker(activeIndex);
-      const targetZoom = 13;
+      const targetZoom = 12;
       const cameraCenter = getCameraCenterForPin(location, targetZoom);
 
       if (selectTimeout) {
@@ -328,7 +328,7 @@
 
         for (let i = 0; i < locations.length; i++) {
           if (aborted || destroyed) return;
-          await flyToPin(i, 13, 1.4);
+          await flyToPin(i, 12, 1.4);
           if (aborted || destroyed) return;
           if (i < locations.length - 1 || locations.length === 1) {
             await delay(1600);

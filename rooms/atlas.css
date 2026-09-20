@@ -37,7 +37,7 @@
 .atlas-popup-card { width:242px; max-width:calc(100vw - 48px); box-sizing:border-box; overflow:hidden; background:var(--atlas-popup-surface); color:var(--atlas-popup-ink); }
 .atlas-popup-visual { position:relative; display:grid; place-items:center; width:100%; aspect-ratio:4 / 3; margin:0; overflow:hidden; border-bottom:3px solid var(--atlas-popup-edge); background:linear-gradient(135deg,color-mix(in srgb,var(--atlas-popup-secondary) 78%,var(--atlas-popup-surface)),var(--atlas-popup-surface)); }
 .atlas-popup-visual::after { content:""; position:absolute; inset:0; background-image:var(--atlas-popup-decal); background-position:105% 115%; background-size:140px; background-repeat:no-repeat; opacity:.16; pointer-events:none; }
-.atlas-popup-photo { position:relative; z-index:1; width:100%; height:100%; object-fit:cover; display:block; }
+.atlas-popup-photo { position:relative; z-index:1; width:100%; height:100%; object-fit:cover; object-position:center 20%; display:block; }
 .atlas-popup-placeholder { position:relative; z-index:1; padding:7px 10px; border:2px solid var(--atlas-popup-edge); background:var(--atlas-popup-surface); color:var(--atlas-popup-accent); font-family:var(--font-display); font-size:1.1rem; letter-spacing:.08em; text-transform:uppercase; box-shadow:3px 3px 0 var(--atlas-popup-shadow); transform:rotate(-3deg); }
 .atlas-popup-visual:not(.is-placeholder) .atlas-popup-placeholder { display:none; }
 .atlas-popup-copy { position:relative; padding:9px 11px 10px; background-color:var(--atlas-popup-surface); background-image:linear-gradient(90deg,color-mix(in srgb,var(--atlas-popup-accent) 70%,transparent) 0 3px,transparent 3px),linear-gradient(110deg,rgba(255,255,255,.06),transparent 38%); }

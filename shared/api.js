@@ -22,7 +22,7 @@
   const tokenHeaders = token => token ? { Authorization: `Bearer ${token}` } : {};
   class StorybookApi {
     constructor(projectId, token = "") { this.projectId = projectId; this.token = token; this.mock = mockEnabled(projectId) && root.StorybookMockApi; if (this.mock) console.warn("[Storybook Studio] Sample demo mode is active. Uploads are preview-only and are not sent to Worker/R2.", { projectId }); }
-    getPublicGift() { return this.mock ? this.mock.getPublicGift(this.projectId) : jsonRequest(`/api/gift/${encodeURIComponent(this.projectId)}`); }
+    getPublicGift() { return this.mock ? this.mock.getPublicGift(this.projectId) : jsonRequest(`/api/gift/${encodeURIComponent(this.projectId)}?_t=${Date.now()}`); }
     getHealth() { return this.mock ? Promise.resolve({ ok: true, schemaVersion: root.StorybookProject?.SCHEMA_VERSION || 1, themeIds: Object.keys(root.StorybookThemes?.THEMES || {}) }) : jsonRequest("/api/health"); }
     getStudio() { return this.mock ? this.mock.getStudio(this.projectId, this.token) : jsonRequest(`/api/studio/${encodeURIComponent(this.projectId)}`, { headers: tokenHeaders(this.token) }); }
     saveStudio(project, status = "draft") { return this.mock ? this.mock.saveStudio(this.projectId, this.token, project, status) : jsonRequest(`/api/studio/${encodeURIComponent(this.projectId)}`, { method: "PUT", headers: tokenHeaders(this.token), body: JSON.stringify({ project, status }) }); }

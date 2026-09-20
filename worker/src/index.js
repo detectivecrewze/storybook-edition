@@ -241,7 +241,7 @@ async function handleAdminCreateProject(request, env) {
 async function handleGetGift(request, env, projectId) {
   const record = await requireProject(env, projectId);
   if (record.status !== "published") throw new HttpError(404, "Kado belum dipublikasikan.");
-  return json(request, env, { project: publicProject(record) }, 200, { "Cache-Control": "public, max-age=30, stale-while-revalidate=60" });
+  return json(request, env, { project: publicProject(record) }, 200, { "Cache-Control": "no-cache, no-store, must-revalidate" });
 }
 
 async function handleGetStudio(request, env, projectId) {
