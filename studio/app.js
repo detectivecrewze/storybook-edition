@@ -1090,6 +1090,7 @@
     const promise = new Promise(resolve => {
       const image = new Image();
       image.decoding = "async";
+      image.crossOrigin = "anonymous";
       image.onload = () => resolve(image);
       image.onerror = () => resolve(null);
       image.src = source;
@@ -1109,7 +1110,26 @@
     const drawHeight = image.naturalHeight * ratio;
     context.drawImage(image, x + (width - drawWidth) / 2, y + (height - drawHeight) / 2, drawWidth, drawHeight);
   }
-  function drawStorybookQrCard(qrCanvas, illustration) {
+  function drawQrSticker(context, image, x, y, size, rotation = 0) {
+    if (!image) return;
+    context.save();
+    context.translate(x, y);
+    context.rotate(rotation);
+    context.shadowColor = "rgba(23, 25, 31, .24)";
+    context.shadowBlur = 12;
+    context.shadowOffsetY = 7;
+    drawQrIllustration(context, image, -size / 2, -size / 2, size, size);
+    context.restore();
+  }
+  async function loadQrArtwork(theme) {
+    const sources = theme.assets?.qr || {};
+    const heroSource = sources.hero || theme.assets?.greeting;
+    let hero = await loadQrImage(heroSource);
+    if (!hero && heroSource !== theme.assets?.greeting) hero = await loadQrImage(theme.assets?.greeting);
+    const stickers = await Promise.all((Array.isArray(sources.stickers) ? sources.stickers : []).slice(0, 2).map(loadQrImage));
+    return { hero, stickers: stickers.filter(Boolean) };
+  }
+  function drawStorybookQrCard(qrCanvas, artwork) {
     const canvas = document.createElement("canvas");
     canvas.className = "qr-gift-card-canvas";
     canvas.width = 1080; canvas.height = 1350;
@@ -1137,10 +1157,12 @@
 
     context.fillStyle = palette.ink; context.font = '900 28px "DM Sans", sans-serif'; context.fillText(draft.settings.language === "en" ? "A LITTLE STORY FOR" : "CERITA KECIL UNTUK", 540, 205);
     context.font = '400 72px Bangers, Impact, sans-serif'; context.fillStyle = palette.primary; context.fillText(fitQrText(context, recipient, 760), 540, 276);
-    context.save(); context.translate(810, 165); context.rotate(.08); drawQrIllustration(context, illustration, -100, -90, 200, 200); context.restore();
+    drawQrSticker(context, artwork?.hero, 840, 172, 190, .08);
 
     context.fillStyle = "#fffdf5"; roundedCanvasRect(context, 230, 360, 620, 620, 34); context.fill(); context.strokeStyle = palette.ink; context.lineWidth = 7; context.stroke();
     context.imageSmoothingEnabled = false; context.drawImage(qrCanvas, 270, 400, 540, 540); context.imageSmoothingEnabled = true;
+    drawQrSticker(context, artwork?.stickers?.[0], 145, 410, 122, -.12);
+    drawQrSticker(context, artwork?.stickers?.[1], 928, 906, 116, .11);
     context.fillStyle = palette.ink; context.font = '900 25px "DM Sans", sans-serif'; context.letterSpacing = "2px"; context.fillText(scanText, 540, 1050); context.letterSpacing = "0px";
     context.fillStyle = palette.muted; context.font = '600 33px Caveat, cursive'; context.fillText(fitQrText(context, fromText + sender, 780), 540, 1115);
     context.fillStyle = palette.accent; context.fillRect(232, 1170, 616, 6);
@@ -1155,8 +1177,8 @@
     if (!model?.getModuleCount || !model?.isDark) throw new Error(I18n.t("studio.qrUnavailable"));
     if (document.fonts?.ready) await document.fonts.ready;
     const theme = Themes.getTheme(draft.themeId);
-    const illustration = await loadQrImage(theme.assets.greeting);
-    const canvas = drawStorybookQrCard(drawStorybookQr(model, theme.palette.ink), illustration);
+    const artwork = await loadQrArtwork(theme);
+    const canvas = drawStorybookQrCard(drawStorybookQr(model, theme.palette.ink), artwork);
     if (version === qrRenderVersion) $("#qr-code")?.replaceChildren(canvas);
     return canvas;
   }

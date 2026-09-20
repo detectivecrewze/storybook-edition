@@ -41,6 +41,13 @@
           right: "https://media.tenor.com/FbIEm5UJ28sAAAAi/spiderman-tom-holland.gif",
           mirrorRight: true
         }),
+        qr: Object.freeze({
+          hero: "https://media.tenor.com/FbIEm5UJ28sAAAAi/spiderman-tom-holland.gif",
+          stickers: Object.freeze([
+            "/assets/themes/spiderman/spiderman-chibi.webp",
+            "/assets/themes/spiderman/decal-mask.webp"
+          ])
+        }),
         decals: Object.freeze([
           "/assets/themes/spiderman/decal-web.webp",
           "/assets/themes/spiderman/decal-mask.webp",
@@ -91,6 +98,13 @@
           right: "/assets/themes/batman/menu-bat-right.webp",
           mirrorRight: false
         }),
+        qr: Object.freeze({
+          hero: "/assets/themes/batman/finale-friends.webp",
+          stickers: Object.freeze([
+            "/assets/themes/batman/menu-hero-left.webp",
+            "/assets/themes/batman/menu-bat-right.webp"
+          ])
+        }),
         decals: Object.freeze([
           "/assets/themes/batman/noir-emblem.webp",
           "/assets/themes/batman/icon-gallery.webp",
@@ -121,6 +135,10 @@
     for (const key of REQUIRED_ASSETS) if (!String(manifest.assets?.[key] || "").trim()) errors.push(`Missing assets.${key}.`);
     if (manifest.assets?.menuCharacters) {
       for (const side of ["left", "right"]) if (!String(manifest.assets.menuCharacters[side] || "").trim()) errors.push(`Missing assets.menuCharacters.${side}.`);
+    }
+    if (manifest.assets?.qr) {
+      if (!String(manifest.assets.qr.hero || "").trim()) errors.push("Missing assets.qr.hero.");
+      if (!Array.isArray(manifest.assets.qr.stickers)) errors.push("Missing assets.qr.stickers.");
     }
     if (!Array.isArray(manifest.assets?.decals)) errors.push("Missing assets.decals.");
     if (!Number.isFinite(Number(manifest.motion?.duration))) errors.push("Missing motion.duration.");

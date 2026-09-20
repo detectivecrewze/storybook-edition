@@ -118,6 +118,20 @@ test("manifest assets exist and remain inside the theme performance budget", () 
   });
 });
 
+test("Studio QR cards use each theme's registered character artwork", () => {
+  const studio = read("studio/app.js"); const Themes = require("../shared/themes.js");
+  const qrRenderer = studio.slice(studio.indexOf("function loadQrImage"), studio.indexOf("function renderQrCard"));
+  assert.match(studio, /function loadQrArtwork/);
+  assert.match(studio, /theme\.assets\?\.qr/);
+  assert.match(studio, /function drawQrSticker/);
+  assert.match(studio, /image\.crossOrigin = "anonymous"/);
+  assert.doesNotMatch(qrRenderer, /themeId\s*===|case\s+["']spiderman|if\s*\([^)]*spiderman/i);
+  Object.values(Themes.THEMES).forEach(theme => {
+    assert.ok(String(theme.assets.qr?.hero || "").trim(), `${theme.id} needs a QR hero`);
+    assert.equal(theme.assets.qr?.stickers?.length, 2, `${theme.id} needs two QR stickers`);
+  });
+});
+
 test("production allowlist excludes source masters and secrets", () => {
   const build = read("build.mjs"); const ignore = read(".vercelignore"); const wrangler = read("worker/wrangler.toml");
   assert.doesNotMatch(build, /design-source|tools/); assert.match(ignore, /worker\//);
