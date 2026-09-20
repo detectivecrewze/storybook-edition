@@ -1,205 +1,121 @@
-# 📋 DIREKTIF OPERASIONAL: PERSIAPAN LIVE PRODUCTION & FULL BUG AUDIT
-### Platform: **For you, Always.** — Digital Atelier
-### Produk: **Storybook Edition** (`storybook-edition`)
-### Target Agent: **Lead Production Auditor & QA Specialist**
+# PERSIAPAN LIVE PRODUCTION & AUDIT BUG — STORYBOOK EDITION
+### Platform: For you, Always. (`storybook-edition`)
 
 ---
 
-## 1. MISI & TANGGUNG JAWAB AGENT
+## 1. MANDAT & TUJUAN
 
-Dokumen ini adalah **mandat instruksi resmi** untuk kamu sebagai AI Agent yang ditugaskan menyiapkan **Storybook Edition** menuju tahap **Live Production**. 
+Dokumen ini berisi ruang lingkup dan checklist pengujian menyeluruh (*full bug audit*) untuk memastikan Storybook Edition 100% siap dirilis ke live production.
 
-Tugas utamamu adalah melakukan **audit menyeluruh (*deep comprehensive audit*)** tanpa kompromi, memburu bug tersembunyi, menguji skenario ekstrem (*edge cases*), dan memastikan seluruh alur dari **Admin Dashboard**, **Studio Editor (Step 01–09)**, hingga **Gift Pages** berjalan 100% mulus, stabil, dan bebas cacat visual maupun fungsional.
-
-### Prinsip Eksekusi Wajib
-1. **Zero Assumption**: Uji setiap asumsi langsung pada kode, logika skema, dan alur interaksi.
-2. **Zero Regression**: Setiap perbaikan tidak boleh merusak 42 test suites yang sudah ada (`npm run check` wajib selalu 42/42 passing).
-3. **No Trial-and-Error**: Selalu cari akar masalah (*root cause*) sebelum menyentuh kode.
-4. **Commit Hygiene**: Lakukan commit terstruktur dengan format konvensional (`fix(...)`, `feat(...)`, `refactor(...)`) dan selalu push ke branch `main`.
+Fokus pengujian:
+- Memastikan tidak ada bug visual maupun fungsional di semua alur (Admin, Studio, dan Gift Pages).
+- Memastikan pengalaman pengguna mulus di mobile (terutama iOS Safari dan Android Chrome) serta desktop.
+- Memastikan integritas data antara editor pembeli dan tampilan penerima kado.
 
 ---
 
-## 2. PANDUAN AUDIT LENGKAP PER LAPISAN APLIKASI
+## 2. RUANG LINGKUP AUDIT
 
-Lakukan audit dan pengujian mendalam pada setiap komponen berikut:
-
-```
-+-----------------------------------------------------------------------------------+
-| 1. ADMIN DASHBOARD (/admin)                                                       |
-|    - Secret Auth Gate, Project Generator, Link Formatter, KV Storage Management   |
-+-----------------------------------------------------------------------------------+
-                                         |
-                                         v
-+-----------------------------------------------------------------------------------+
-| 2. STUDIO EDITOR (/studio) — 9 STEPS WIZARD                                       |
-|    - Autosave Debounce, Dynamic Theming, Previews, Presets, Validation, Publishing|
-+-----------------------------------------------------------------------------------+
-                                         |
-                                         v
-+-----------------------------------------------------------------------------------+
-| 3. GIFT VIEWER (/gift/:id) — PUBLIC RECIPIENT EXPERIENCE                          |
-|    - Gate Box, 3D Transition, Greeting, Chapters Menu, 5 Modular Rooms, Finale    |
-+-----------------------------------------------------------------------------------+
-                                         ^
-                                         |
-+-----------------------------------------------------------------------------------+
-| 4. BACKEND & INFRASTRUKTUR (Cloudflare Worker + KV + R2 + Vercel Static)          |
-|    - Schema Validation, Cache Invalidation, CORS, Error Handling, Asset Budgets  |
-+-----------------------------------------------------------------------------------+
-```
+### A. Admin Dashboard (`/admin`)
+Audit fungsionalitas dan keamanan internal:
+- **Authentication Gate**: Keamanan akses admin dan penanganan sesi.
+- **Link & Project Generator**: Pembuatan slug/ID kado baru, format tautan studio pembeli, dan keabsahan URL domain produksi.
+- **Manajemen Proyek**: Pencarian proyek, filter status (draft vs published), fungsi arsip, pemulihan (restore), dan penghapusan permanen.
+- **Storage Cleanup**: Penghapusan media kustom pembeli saat proyek dihapus permanen.
 
 ---
 
-### AREA 1: ADMIN DASHBOARD (`/admin`)
+### B. Studio Editor (`/studio`) — Alur Pembuatan Kado (Step 01 - 09)
+Audit menyeluruh dari perspektif pembeli yang sedang menyusun kado:
 
-Periksa file `admin/app.js`, `admin/index.html`:
+1. **Step 01: Occasion & Theme**
+   - Pemilihan tema visual dan peralihan styling workspace.
+   - Ketahanan tema saat halaman di-refresh (persistensi autosave).
+   - Penggantian bahasa antarmuka (ID / EN) tanpa merusak input kustom pembeli.
 
-| No | Komponen Uji | Hal yang Harus Di-audit & Dipastikan | Status Target |
-|---|---|---|---|
-| 1.1 | **Authentication Gate** | Pastikan akses admin membutuhkan `ADMIN_SECRET` yang aman, dan penolakan kredensial salah memberikan pesan ramah tanpa membocorkan log server. | [ ] PASS |
-| 1.2 | **Project Link Generator** | Generator membuat slug acak aman (`/studio?id=...`), ID tersimpan rapi di KV, dan link studio yang di-copy ke clipboard formatnya sudah mengarah ke domain produksi yang benar. | [ ] PASS |
-| 1.3 | **Daftar & Pencarian Proyek** | Tabel list membedakan status `draft` vs `published`, fitur search berfungsi mencari nama penerima/pengirim, dan fungsi restore/delete tidak menimbulkan *orphaned files* di storage. | [ ] PASS |
-| 1.4 | **Batch Cleanup R2 Media** | Saat proyek dihapus permanen oleh admin, pastikan file gambar/audio kustom pembeli ikut terhapus dari R2 untuk menghemat kuota. | [ ] PASS |
+2. **Step 02: Opening Panels (Cover Story)**
+   - Tampilan visual panel default per tema saat pembeli belum mengunggah foto.
+   - Alur unggah foto kustom, cropping, dan penggantian/penghapusan gambar.
 
----
+3. **Step 03: Reasons Why**
+   - Proteksi konfirmasi saat mengganti preset/template agar tulisan kustom tidak tertimpa tanpa sengaja.
+   - Penambahan, pengeditan, dan penghapusan kartu alasan.
+   - Batas minimum dan maksimum kartu yang diizinkan.
 
-### AREA 2: STUDIO EDITOR (`/studio`) — AUDIT PER LANGKAH (STEP 01 - 09)
+4. **Step 04: Memory Archive (Galeri & Video)**
+   - Pengunggahan foto dan video polaroid serta rendering preview.
+   - Pengeditan judul bab dan subtitle.
+   - Dukungan pemformatan baris baru pada caption media.
 
-Periksa file `studio/app.js`, `studio/index.html`, `studio/styles.css`, `shared/project.js`, `shared/themes.js`:
+5. **Step 05: Atlas of us (Peta Kenangan)**
+   - Input lokasi via link Google Maps maupun koordinat manual.
+   - Validasi data lokasi dan catatan personal pada tiap pin.
+   - Penambahan multi-lokasi tanpa ada data yang saling menimpa.
+   - Penanganan status aktif/nonaktif bab peta.
 
-#### Step 01: Occasion & Theme
-- [ ] **Seleksi Tema**: Pilihan tema (Spider-Man vs Batman) mengubah seluruh CSS variabel workspace secara instan (`applyStudioTheme()`) tanpa menimpa background form secara agresif.
-- [ ] **Persistensi Autosave**: Setelah tema diubah dan browser langsung di-refresh (`F5`), tema yang dipilih TIDAK boleh kembali ke default.
-- [ ] **Aksesibilitas**: Atribut `aria-pressed="true"` terpasang akurat pada tombol tema aktif.
-- [ ] **Bilingual Switcher**: Dropdown bahasa (ID/EN) default ke English (`en`) untuk pengguna baru, dan mengubah bahasa tidak merusak teks kustom pengguna.
+6. **Step 06: Our Soundtrack (Koleksi Lagu & Kutipan)**
+   - Pemilihan lagu dari katalog dan pemutaran preview audio.
+   - Pengunggahan MP3 kustom dan cover art kustom.
+   - Pengeditan pesan/kutipan personal per lagu.
 
-#### Step 02: Opening Panels (Cover Story)
-- [ ] **Default Fallback**: Saat belum mengunggah foto, 4 panel default komik (baik Spider-Man maupun Batman) tampil proporsional di pratinjau thumbnail.
-- [ ] **Upload & Crop**: Pengunggahan foto kustom (file picker, batas ukuran 8 MB) otomatis membuka modal crop rasio komik dan menghasilkan URL tersimpan di `draft.opening.panels[]`.
-- [ ] **Hapus & Ganti**: Tombol ganti/hapus foto mengembalikan slot ke status default tanpa memicu error null pointer.
+7. **Step 07: Letter (Surat Digital)**
+   - Input penerima, pesan surat, dan nama pengirim.
+   - Proteksi konfirmasi pergantian template surat.
 
-#### Step 03: Reasons Why
-- [ ] **Preset Overwrite Protection**: Mengganti preset momen memunculkan dialog konfirmasi (*"Ganti alasan dengan template ini?"*) agar tulisan personal pembeli tidak terhapus tanpa sengaja.
-- [ ] **Batas Minimum & Maksimum**: Pembeli dapat menambah kartu hingga batas wajar (min 3, max 10) dengan tombol hapus yang responsif di mobile.
-- [ ] **Autosave Realtime**: Input teks di setiap kartu tersinkronisasi realtime ke `draft.reasons.items[]` melalui dynamic lookup `dataset.id`.
+8. **Step 08: Arrange & Finale**
+   - Pengaturan urutan bab (reorder) dan toggle aktif/nonaktif bab.
+   - Validasi batas minimal bab aktif sebelum diizinkan terbit.
+   - Responsivitas tata letak kartu susunan bab pada layar mobile.
+   - Preview kartu sambutan (Greeting) dan penutup (Finale).
 
-#### Step 04: Memory Archive (Galeri Polaroid & Video)
-- [ ] **Sinkronisasi Judul Modul**: Judul modul (`#gallery-module-title`) dan subtitle tersinkronisasi dua arah (*two-way binding*) dengan Step 08 (*Arrange*).
-- [ ] **Multi-line Caption**: Caption foto mendukung format baris baru (enter/break) dan tersimpan dengan format `white-space: pre-line`.
-- [ ] **Media Responsiveness**: Pratinjau media polaroid tidak meluap keluar layar pada viewport ponsel cerdas (iPhone SE s/d 15 Pro Max).
-
-#### Step 05: Atlas of us (Peta Kenangan)
-- [ ] **Input Koordinat**: Parser Google Maps (`shared/maps.js`) mampu membaca link pencarian, link place, dan koordinat bertanda kurung. Input koordinat manual memvalidasi rentang lintang (-90 s/d 90) dan bujur (-180 s/d 180).
-- [ ] **Tanpa Kalkulasi KM**: Pastikan sama sekali tidak ada teks atau formula kilometer (KM) yang muncul.
-- [ ] **Pencegahan Overwrite Antar Lokasi**: Mengedit lokasi ke-2 tidak boleh menimpa koordinat lokasi ke-1.
-- [ ] **Batas Karakter Catatan**: Catatan lokasi dibatasi proporsional dan tidak merusak layout popup.
-
-#### Step 06: Our Soundtrack (Katalog & Quotes)
-- [ ] **Katalog Bawaan**: 37 lagu terdaftar dapat diputar di pratinjau audio Studio.
-- [ ] **Default Quotes**: 28 lagu dengan quote bawaan menyalin kutipan otomatis ke textarea quote, dan pengguna bebas mengedit/menghapusnya.
-- [ ] **Custom Artwork Upload**: Unggah cover custom (crop 1:1, max 8 MB) menghasilkan preview instan dan tersimpan pada `track.coverUrl`.
-- [ ] **Custom MP3 Upload**: Pembeli dapat mengunggah file MP3 sendiri dengan player yang tetap dapat membaca durasi audio.
-
-#### Step 07: Letter (Surat Fisik Digital)
-- [ ] **Konfirmasi Template**: Sama seperti Reasons, mengganti template surat memicu modal konfirmasi.
-- [ ] **Form Fields**: Field `Penerima (Recipient)`, `Isi Surat (Body)`, dan `Pengirim (Sender)` tervalidasi rapi.
-- [ ] **Typewriter Alignment**: Pengirim surat disiapkan untuk styling rata kanan (*right-aligned*) di Gift Viewer.
-
-#### Step 08: Arrange & Finale
-- [ ] **Reordering**: Tombol naik/turun (`data-move`) mengubah urutan array `draft.modules` tanpa error console.
-- [ ] **Validasi Minimum Modul**: Sistem menolak penerbitan jika modul aktif kurang dari 2.
-- [ ] **Mobile Wrapping**: Kartu susunan bab tidak boleh berantakan atau terpotong teksnya di viewport mobile (`min-width: 701px` separation).
-- [ ] **Toggle Preview**: Tombol toggle antara kartu Greeting dan kartu Finale di panel preview kanan berfungsi mulus.
-
-#### Step 09: Publish & Review
-- [ ] **Pre-publish Validation**: Checklist menampilkan modul apa saja yang sudah lengkap dan belum lengkap.
-- [ ] **Anti-Double Click**: Saat tombol "Terbitkan Kado" ditekan, tombol langsung disabled + menampilkan state loading spinner untuk mencegah duplikasi entri KV.
-- [ ] **Async KV Confirmation**: Client WAJIB menunggu status `200 OK` dari Worker sebelum menampilkan link kado dan kartu QR.
-- [ ] **QR Gift Card Canvas**: Kartu QR resolusi tinggi (1080x1350) ter-generate lengkap dengan artwork hero dan 2 stiker tema, dapat di-download sebagai gambar PNG jernih.
+9. **Step 09: Publish & Review**
+   - Validasi pra-penerbitan (kelengkapan data kado).
+   - Pencegahan klik ganda saat proses penerbitan.
+   - Pembuatan tautan publik kado dan kartu QR resolusi tinggi untuk dicetak/dibagikan.
 
 ---
 
-### AREA 3: GIFT VIEWER (`/gift/:id`) — AUDIT PENGALAMAN PENERIMA
-
-Periksa file `app.js`, `index.html`, `styles.css`, `rooms/atlas.js`, `rooms/atlas.css`:
-
-#### A. Gate Screen & Transisi Pembuka
-- [ ] **Single Click Target**: Kotak kado adalah satu-satunya elemen klik pembuka (bebas tombol cue pengganggu).
-- [ ] **3D Comic Fold-out**: 4 panel pembuka melipat keluar dengan mulus (durasi ~1.2 detik), menampilkan foto kustom pembeli atau 4 panel default tema yang proporsional.
-- [ ] **Impact Burst**: Teks sambutan meletup di tengah layar (*comic explosion*) dan bertransisi bersih ke layar Greeting.
-
-#### B. Greeting & Menu Bab Cerita
-- [ ] **Zero Outline Glitch**: Teks headline tidak memunculkan kotak border/focus outline biru pada browser Safari iOS.
-- [ ] **Menu Layout**: Karakter tema (Spider-Man / Batman) mengapit judul menu secara proporsional. Jika tema netral, layout otomatis memusat (*center*).
-- [ ] **Progress Tracking**: Setiap bab yang selesai dikunjungi diberi badge centang hijau (`is-opened`).
-- [ ] **Finale Unlock**: Tombol menuju layar penutup (Finale) terkunci sampai semua bab terbuka, atau dapat diakses jika semua modul selesai.
-
-#### C. Modular Rooms Audit
-- [ ] **Reasons Room**: Kartu alasan muncul dengan animasi berurutan (*staggered animation*), font tulisan tangan (`Caveat`) terbaca kontras di atas latar kertas.
-- [ ] **Memory Archive Room**: Swipe polaroid di layar sentuh mobile responsif, transisi foto tidak berbayang, video ter-loop otomatis tanpa audio bentrok.
-- [ ] **Atlas of us Room**:
-  - Peta Leaflet termuat mulus tanpa jeda putih.
-  - Kartu popup komik berukuran compact (242px desktop, 205px mobile, aspek rasio foto 16:10).
-  - Teks catatan tidak terpotong di tepi kanan (`overflow-wrap: break-word`) dan baris terakhir terbaca utuh tanpa tertutup gradient gelap.
-  - Kamera peta memposisikan pin dan popup di tengah frame dengan ruang bebas di atas dan bawah.
-  - Cinematic Tour berjalan tepat 1x saat kado pertama dibuka, dan tidak berulang saat masuk kembali (*revisit*).
-- [ ] **Our Soundtrack Room**:
-  - Audio play/pause sinkron dengan animasi piringan hitam vinyl.
-  - Piringan vinyl berputar saat lagu berputar, dan berhenti saat di-pause.
-  - Quote personal per lagu muncul di kotak kutipan tema tanpa teks meluap ke luar kartu.
-  - Berpindah lagu di playlist otomatis mengganti cover dan quote secara instan.
-- [ ] **Letter Room**:
-  - Amplop retro terbuka saat di-tap/klik.
-  - Efek mesin tik (*typewriter*) mengetik teks isi surat terlebih dahulu.
-  - Tanda tangan pengirim diketik sekuensial setelah jeda sejenak di pojok kanan bawah surat.
-  - Tombol "Tampilkan seluruh surat" langsung merender semua teks seketika jika pengguna tidak ingin menunggu.
-- [ ] **Finale Room**:
-  - Ilustrasi utama dan pendamping (`finale-companion`) tampil presisi dengan latar siluet kota bertema.
-  - Tombol "Replay Story" me-reset seluruh status kunjungan bab dan mengizinkan Cinematic Tour Atlas diputar ulang.
+### C. Gift Viewer (`/gift/:id`) — Pengalaman Penerima Kado
+Audit visual dan interaksi langsung penerima kado:
+- **Gate Screen**: Animasi pembuka kotak kado, interaksi sentuh, dan transisi komik menuju layar sambutan.
+- **Greeting Screen**: Tampilan nama penerima, judul momen, dan pesan pembuka.
+- **Chapters Menu**: Navigasi bab cerita, artwork karakter pendamping tema, pelacakan status bab yang sudah dibaca, dan status buka-kunci penutup (*Finale*).
+- **Modular Chapters**:
+  - *Reasons*: Animasi kemunculan kartu alasan dan keterbacaan teks.
+  - *Memory Archive*: Swipe/navigasi galeri, pemutaran video, dan tampilan caption.
+  - *Atlas of us*: Rendering peta, tur kamera awal (cinematic tour), marker lokasi, framing popup, keterbacaan catatan, dan perilaku saat bab dikunjungi ulang.
+  - *Our Soundtrack*: Pemutar audio, visualisasi animasi pemutar musik, kutipan personal, dan pergantian track playlist.
+  - *Letter*: Interaksi buka amplop, efek pengetikan surat (*typewriter*), penempatan tanda tangan pengirim, dan opsi lewati animasi.
+  - *Finale*: Layar penutup, artwork penutup, pesan perpisahan, dan tombol putar ulang kado (*Replay Story*).
 
 ---
 
-### AREA 4: BACKEND CLOUDFLARE WORKER, STORAGE & DEPLOYMENT
-
-Periksa file `worker/src/index.js`, `worker/src/project.js`, `worker/wrangler.toml`, `build.mjs`:
-
-- [ ] **KV Key Separation**: Key tersimpan rapi: `draft:{id}` untuk mode studio editor, `gift:{id}` untuk publik, dan `order:{id}` untuk metadata.
-- [ ] **Cache Header**: Endpoint `GET /api/gift/:id` mengirimkan header `Cache-Control: no-cache, no-store, must-revalidate` untuk mencegah browser menyajikan kado versi lama.
-- [ ] **CORS & Origin Security**: Endpoint hanya mengizinkan origin platform terdaftar dan menolak request mencurigakan.
-- [ ] **Asset Local Bundling**: Seluruh aset vendor (Leaflet JS/CSS, font DM Sans, Caveat, Bangers) ter-bundle lokal di folder `dist/` tanpa ketergantungan CDN luar yang berisiko blokir atau latensi tinggi.
-- [ ] **Performance Budget**: Ukuran total aset per tema berada di bawah 1 MB, dan ukuran individual gambar WebP tidak melebihi 250 KB.
+### D. Infrastruktur & Backend
+- **Endpoint API**: Keandalan endpoint pembuatan draft, autosave, penerbitan, dan pengambilan data publik.
+- **Cache Policy**: Pencegahan penyajian data basi (*stale cache*) pada kado yang baru diperbarui.
+- **Keamanan & CORS**: Pembatasan akses origin dan validasi skema data masuk.
+- **Aset & Performa**: Kelengkapan seluruh aset lokal tanpa dependensi eksternal yang rentan diblokir, serta optimalisasi waktu muat di jaringan seluler.
 
 ---
 
-## 3. MATRIKS UJI KASUS EKSTREM (EDGE CASES MATRIX)
+## 3. SKENARIO PENGUJIAN EKSTREM (EDGE CASES)
 
-Agent wajib menguji skenario-skenario kritis ini:
-
-| Skenario | Langkah Pengujian | Perilaku yang Diharapkan |
-|---|---|---|
-| **E1. Catatan Sangat Panjang** | Isi alasan/catatan Atlas dengan 300+ karakter. | Teks membungkus rapi, kontainer scrollbar aktif dengan smooth scrolling, tidak ada teks yang menembus kontainer (*no overflow*). |
-| **E2. Format Gambar Aneh** | Upload foto potret vertikal tinggi (9:16) dan ultra-wide (21:9). | Foto di-crop dengan `object-fit: cover` dan `object-position: center 20%`, kepala subjek tidak terpenggal. |
-| **E3. Jaringan Offline/Lemah** | Buka kado dalam mode koneksi lambat (*Slow 3G*). | Loading spinner komik muncul, resource esensial di-preload, peta menampilkan tile fallback gracefully jika tile server lambat. |
-| **E4. Autoplay Policy Safari iOS** | Buka room Soundtrack di iPhone tanpa interaksi sebelumnya. | Player tidak melempar uncaught promise error; tombol play menampilkan ikon play siap sentuh. |
-| **E5. Refresh Cepat Pasca Simpan** | Ubah data di Step 05, lalu tekan `Ctrl+R` / `Cmd+R` seketika. | Autosave melakukan synchronous flush / draft tersimpan di KV tanpa ada input yang hilang. |
+Pengujian skenario batas yang wajib diverifikasi:
+1. **Input Teks Sangat Panjang**: Teks alasan, catatan peta, atau isi surat yang sangat panjang tidak merusak tata letak atau meluap keluar layar.
+2. **Karakter Khusus**: Input berisi simbol, tanda petik, karakter non-Latin, atau pemformatan baris baru.
+3. **Media Ekstrem**: Foto dengan rasio sangat tinggi/lebar atau resolusi besar tetap ter-crop proporsional tanpa membebani browser.
+4. **Koneksi Tidak Stabil / Lambat**: Interaksi tetap responsif, state loading tampil jelas, dan tidak terjadi crash saat request tertunda.
+5. **Aksi Cepat Pengguna**: Me-refresh halaman tepat setelah mengedit data, navigasi cepat antar-halaman, atau klik berulang pada tombol aksi.
+6. **Autoplay & Audio Policy**: Pemutaran audio kado berjalan mulus sesuai aturan autoplay pada perangkat mobile (iOS Safari & Android).
 
 ---
 
-## 4. PROTOKOL PENYELESAIAN & CHECKLIST GO-LIVE
+## 4. CHECKLIST KELULUSAN GO-LIVE
 
-Sebelum mendeklarasikan sistem siap 100% untuk Live Production, Agent wajib menyelesaikan verifikasi berikut:
-
-1. [ ] Jalankan `npm run check` di direktori `storybook-edition`:
-   - 41 test suites wajib **PASS (100% green)**.
-   - Build statis `node build.mjs` menghasilkan folder `dist/` yang bersih tanpa file rahasia (`.env`, `wrangler.toml`).
-2. [ ] Validasi tampilan di 3 ukuran viewport utama:
-   - **Mobile**: 375x667 (iPhone SE) dan 390x844 (iPhone 14/15)
-   - **Tablet**: 768x1024 (iPad mini/Air)
-   - **Desktop**: 1440x900 dan 1920x1080
-3. [ ] Pastikan tidak ada karakter emoji di kode UI teks antarmuka Studio maupun dialog panduan.
-4. [ ] Lakukan `git status` untuk memastikan tidak ada file terlantar (*untracked files*).
-5. [ ] Lakukan push ke remote: `git add . ; git commit -m "audit: complete live-production readiness check" ; git push origin main`.
-
----
-
-*Dokumen ini disusun sebagai panduan audit produksi tertinggi (SSOT) untuk Storybook Edition.*
+Kado Storybook Edition dinyatakan siap rilis ke live production apabila:
+- [ ] Seluruh alur pembuatan kado dari Step 01 sampai Step 09 dapat diselesaikan tanpa hambatan.
+- [ ] Kado yang diterbitkan tampil presisi dan identik antara preview editor dan link penerima kado.
+- [ ] Pengujian visual dan interaksi lulus pada perangkat nyata (iPhone, Android, dan Desktop).
+- [ ] Tidak ada error console atau unhandled promise rejection pada browser.
+- [ ] Seluruh automated tests proyek lulus 100%.
+- [ ] Konfigurasi domain dan environment production sudah terpasang dan terverifikasi.
