@@ -50,7 +50,7 @@ function serveStatic(response, pathname) {
       "Cache-Control": [".html", ".js", ".css"].includes(extension) ? "no-cache" : "public, max-age=604800",
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "same-origin",
-      "X-Frame-Options": "SAMEORIGIN"
+      "Content-Security-Policy": "frame-ancestors 'self' https://for-you-always.my.id"
     });
     fs.createReadStream(filePath).pipe(response);
   });

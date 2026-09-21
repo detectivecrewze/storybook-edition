@@ -28,8 +28,8 @@
       assets: Object.freeze({
         giftBox: "/assets/themes/spiderman/gift-box-v2.webp",
         favicon: "/assets/themes/spiderman/spiderman-character.gif",
-        openingEmblem: "/assets/themes/spiderman/spiderman-web.webp",
-        greeting: "/assets/themes/spiderman/spiderman-web.webp",
+        openingEmblem: "/assets/themes/spiderman/spiderman-character.gif",
+        greeting: "/assets/themes/spiderman/spiderman-character.gif",
         finale: "/assets/themes/spiderman/spiderman-toei.webp",
         skyline: "/assets/themes/spiderman/city-silhouette.webp",
         reasons: "/assets/themes/spiderman/icon-reasons.webp",
@@ -38,8 +38,8 @@
         music: "/assets/themes/spiderman/icon-music.webp",
         letter: "/assets/themes/spiderman/icon-letter.webp",
         menuCharacters: Object.freeze({
-          left: "/assets/themes/spiderman/spiderman-character.gif",
-          right: "/assets/themes/spiderman/spiderman-character.gif",
+          left: "/assets/themes/spiderman/spiderman-tom-holland.webp",
+          right: "/assets/themes/spiderman/spiderman-tom-holland.webp",
           mirrorRight: true
         }),
         qr: Object.freeze({

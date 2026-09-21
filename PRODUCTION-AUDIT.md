@@ -128,7 +128,7 @@ Kado Storybook Edition dinyatakan siap rilis ke live production apabila:
 
 - Pretty URL Vercel sekarang meneruskan project ID secara eksplisit ke `/gift?project=:id` dan `/studio?project=:id`, sehingga tidak bergantung pada perilaku rewrite menuju `index.html` saat `cleanUrls` aktif.
 - Gift dan Studio mendapat cache policy yang mencegah shell HTML lama tetap tersaji setelah update.
-- Header production ditambah dengan CSP, `X-Frame-Options: SAMEORIGIN`, dan Permissions Policy. Preview iframe Studio tetap diperbolehkan karena memakai origin yang sama.
+- Header production memakai CSP dan Permissions Policy. `frame-ancestors` membatasi embed ke origin sendiri serta `https://for-you-always.my.id` untuk modal demo storefront; allowlist tidak memakai wildcard.
 - GIF Spider-Man tidak lagi bergantung pada Tenor. Aset transparan disimpan lokal dan dioptimasi dari 199 KB menjadi sekitar 54 KB tanpa menghilangkan animasinya.
 - CORS Worker production tidak lagi menerima seluruh domain `*.vercel.app`; preview harus memakai environment Worker terpisah.
 - Payload JSON Worker dibatasi maksimal 1 MB dan mengembalikan HTTP 413 jika melampaui batas.
@@ -151,7 +151,7 @@ Kado Storybook Edition dinyatakan siap rilis ke live production apabila:
 
 ### Blocker sebelum status go-live
 
-- Deployment frontend yang sedang live belum memuat konfigurasi terbaru: pretty URL `/gift/gift-2cf4f3ec9cf1eb9b` masih HTTP 404, sedangkan fallback query `/gift?project=gift-2cf4f3ec9cf1eb9b` HTTP 200. Header CSP dan `X-Frame-Options` baru juga belum terlihat. Keduanya baru dapat diverifikasi setelah frontend di-deploy ulang.
+- Deployment frontend yang sedang live belum memuat konfigurasi terbaru: pretty URL `/gift/gift-2cf4f3ec9cf1eb9b` masih HTTP 404, sedangkan fallback query `/gift?project=gift-2cf4f3ec9cf1eb9b` HTTP 200. Header CSP allowlist storefront terbaru juga belum terlihat. Keduanya baru dapat diverifikasi setelah frontend di-deploy ulang.
 - Worker perlu di-deploy ulang agar pembatasan payload, pagination Admin, dan allowlist CORS production aktif.
 - Secret Cloudflare (`PROJECT_SIGNING_SECRET`, `ADMIN_SECRET`, dan `INTERNAL_GENERATOR_SECRET`) tidak dapat diverifikasi dari repository dan harus dicek langsung di environment Worker sebelum release.
 - QA perangkat nyata iPhone Safari dan Android Chrome masih wajib. Browser emulation sudah lulus, tetapi autoplay, safe area, keyboard virtual, cropper, kamera Atlas, upload foto/video/MP3, serta download QR perlu satu pass pada perangkat fisik.

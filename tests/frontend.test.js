@@ -149,8 +149,8 @@ test("production routes and response headers support stable public links", () =>
   ]);
   const globalHeaders = config.headers.find(rule => rule.source === "/(.*)")?.headers || [];
   const byName = Object.fromEntries(globalHeaders.map(header => [header.key, header.value]));
-  assert.equal(byName["X-Frame-Options"], "SAMEORIGIN");
-  assert.match(byName["Content-Security-Policy"], /frame-ancestors 'self'/);
+  assert.equal(byName["X-Frame-Options"], undefined);
+  assert.match(byName["Content-Security-Policy"], /frame-ancestors 'self' https:\/\/for-you-always\.my\.id/);
   assert.match(byName["Permissions-Policy"], /camera=\(\)/);
   assert.doesNotMatch(read("gift/index.html"), /\sonload=/i);
 });
