@@ -12,6 +12,7 @@ import {
 const encoder = new TextEncoder();
 const PROJECT_PREFIX = "project:";
 const STUDIO_DRAFT_PREFIX = "studio-draft:";
+const MAX_JSON_BYTES = 1024 * 1024;
 
 class HttpError extends Error {
   constructor(status, message, details) {
@@ -132,9 +133,14 @@ async function deriveEditToken(env, projectId) {
 async function readJson(request) {
   const contentType = request.headers.get("Content-Type") || "";
   if (!contentType.toLowerCase().includes("application/json")) throw new HttpError(415, "Gunakan Content-Type application/json.");
+  const declaredLength = Number(request.headers.get("Content-Length"));
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_JSON_BYTES) throw new HttpError(413, "Payload JSON maksimal 1 MB.");
   try {
-    return await request.json();
-  } catch {
+    const raw = await request.text();
+    if (encoder.encode(raw).byteLength > MAX_JSON_BYTES) throw new HttpError(413, "Payload JSON maksimal 1 MB.");
+    return JSON.parse(raw);
+  } catch (error) {
+    if (error instanceof HttpError) throw error;
     throw new HttpError(400, "Payload JSON tidak valid.");
   }
 }
@@ -402,8 +408,8 @@ async function handleAdminListProjects(request, env) {
   const limitParam = url.searchParams.get("limit");
   const requestedLimit = limitParam === null ? NaN : Number(limitParam);
   const limit = Number.isFinite(requestedLimit) ? Math.max(1, Math.min(100, Math.floor(requestedLimit))) : 50;
-  const listed = await env.GIFT_KV.list({ prefix: PROJECT_PREFIX, limit: 1000 });
-  const records = (await Promise.all(listed.keys.map(key => env.GIFT_KV.get(key.name, "json")))).filter(Boolean);
+  const projectKeys = await collectKvKeys(env, PROJECT_PREFIX);
+  const records = (await Promise.all(projectKeys.map(key => env.GIFT_KV.get(key, "json")))).filter(Boolean);
   const stats = records.reduce((result, record) => {
     const status = ["draft", "published", "archived"].includes(record.status) ? record.status : "draft";
     result.total += 1;

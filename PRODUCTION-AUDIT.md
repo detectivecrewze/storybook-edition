@@ -119,3 +119,44 @@ Kado Storybook Edition dinyatakan siap rilis ke live production apabila:
 - [ ] Tidak ada error console atau unhandled promise rejection pada browser.
 - [ ] Seluruh automated tests proyek lulus 100%.
 - [ ] Konfigurasi domain dan environment production sudah terpasang dan terverifikasi.
+
+---
+
+## 5. HASIL PELAKSANAAN AUDIT — 21 SEPTEMBER 2026
+
+### Perbaikan yang sudah diterapkan
+
+- Pretty URL Vercel sekarang meneruskan project ID secara eksplisit ke `/gift?project=:id` dan `/studio?project=:id`, sehingga tidak bergantung pada perilaku rewrite menuju `index.html` saat `cleanUrls` aktif.
+- Gift dan Studio mendapat cache policy yang mencegah shell HTML lama tetap tersaji setelah update.
+- Header production ditambah dengan CSP, `X-Frame-Options: SAMEORIGIN`, dan Permissions Policy. Preview iframe Studio tetap diperbolehkan karena memakai origin yang sama.
+- GIF Spider-Man tidak lagi bergantung pada Tenor. Aset transparan disimpan lokal dan dioptimasi dari 199 KB menjadi sekitar 54 KB tanpa menghilangkan animasinya.
+- CORS Worker production tidak lagi menerima seluruh domain `*.vercel.app`; preview harus memakai environment Worker terpisah.
+- Payload JSON Worker dibatasi maksimal 1 MB dan mengembalikan HTTP 413 jika melampaui batas.
+- Daftar dan statistik Admin sekarang membaca seluruh halaman KV, termasuk saat proyek melebihi 1.000 record.
+- Fallback Atlas tidak lagi membuat link eksternal Google Maps. Saat Leaflet atau tile gagal, nama dan catatan tempat tetap tersedia sebagai daftar statis bertema.
+- Pemutar musik menampilkan status yang jelas bila file audio gagal dimuat, tanpa merusak navigasi track.
+- README root dan Worker sudah diselaraskan dengan schema 2, sembilan langkah Studio, lima room, Atlas, Batman, dan batas produksi saat ini.
+
+### Verifikasi yang sudah lulus
+
+- `npm run check`: build production dan seluruh automated test lulus.
+- Katalog musik: 37 track dan seluruh 74 URL cover/audio merespons sukses pada audit.
+- Studio mock: Step 01–09 hanya menampilkan satu panel aktif, tombol preview tersedia pada Step 02–08, dan preview Atlas membuka target room yang benar.
+- Modal preview: Escape menutup dialog, menghapus iframe, dan melepas scroll lock.
+- Autosave tema: Batman tetap terpilih setelah reload; pengujian dikembalikan ke Spider-Man setelah selesai.
+- Gift mock: gate, greeting, menu, pembukaan room Reasons, dan kembali ke menu berfungsi tanpa horizontal overflow.
+- Responsive smoke test: Studio dan Gift tidak mengalami horizontal overflow pada 320×700, 390×844, 428×926, dan 1280×800.
+- Console QA lokal tidak menampilkan error; warning yang ada hanya penanda bahwa mock upload tidak dikirim ke Worker/R2.
+- Endpoint root production dan Worker health merespons HTTP 200. Endpoint data gift pada Worker juga sudah terverifikasi dengan cache `no-store` dan CORS domain produksi.
+
+### Blocker sebelum status go-live
+
+- Deployment frontend yang sedang live belum memuat konfigurasi terbaru: pretty URL `/gift/gift-2cf4f3ec9cf1eb9b` masih HTTP 404, sedangkan fallback query `/gift?project=gift-2cf4f3ec9cf1eb9b` HTTP 200. Header CSP dan `X-Frame-Options` baru juga belum terlihat. Keduanya baru dapat diverifikasi setelah frontend di-deploy ulang.
+- Worker perlu di-deploy ulang agar pembatasan payload, pagination Admin, dan allowlist CORS production aktif.
+- Secret Cloudflare (`PROJECT_SIGNING_SECRET`, `ADMIN_SECRET`, dan `INTERNAL_GENERATOR_SECRET`) tidak dapat diverifikasi dari repository dan harus dicek langsung di environment Worker sebelum release.
+- QA perangkat nyata iPhone Safari dan Android Chrome masih wajib. Browser emulation sudah lulus, tetapi autoplay, safe area, keyboard virtual, cropper, kamera Atlas, upload foto/video/MP3, serta download QR perlu satu pass pada perangkat fisik.
+- Katalog musik masih dilayani oleh Worker `arcade-edition`. Seluruh URL hidup saat audit, tetapi ini tetap menjadi dependensi lintas produk. Sebelum trafik penjualan dibuka, putuskan apakah dependensi ini diterima sementara atau medianya dipindah ke storage yang dikelola Storybook.
+
+### Status kelulusan saat ini
+
+Repository Gift sudah lulus build, automated test, lintasan UI lokal, dan hardening yang bisa dilakukan tanpa deployment. Status production masih **belum final** sampai frontend dan Worker terbaru di-deploy, pretty URL serta header diuji ulang pada domain live, dan QA perangkat fisik selesai. Integrasi storefront sebaiknya dimulai setelah seluruh verifikasi di atas ditutup.

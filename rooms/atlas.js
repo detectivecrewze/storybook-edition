@@ -3,7 +3,6 @@
 
   let standaloneVisited = false;
   const isFiniteCoordinate = (latitude, longitude) => Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude)) && Number(latitude) >= -90 && Number(latitude) <= 90 && Number(longitude) >= -180 && Number(longitude) <= 180;
-  const mapsUrl = location => `https://www.google.com/maps/search/?api=1&query=${Number(location.latitude)},${Number(location.longitude)}`;
   function element(tag, className, text) { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; }
 
   function locationCard(location, index, language) {
@@ -107,9 +106,11 @@
       }
       if (tileErrors < 5 || !notice.hidden) return;
       notice.hidden = false;
-      notice.replaceChildren(element("strong", "", language === "en" ? "Map tiles are unavailable" : "Peta sedang tidak tersedia"), element("span", "", language === "en" ? "The location pins and Google Maps links still work." : "Pin lokasi dan tautan Google Maps tetap bisa digunakan."));
-      const fallback = element("div", "atlas-tile-fallback"); fallback.append(element("h3", "", language === "en" ? "Open a place" : "Buka lokasi"));
-      locations.forEach((location, index) => { const link = element("a", "", `${index + 1}. ${location.label} ↗`); link.href = mapsUrl(location); link.target = "_blank"; link.rel = "noopener noreferrer"; fallback.append(link); });
+      notice.replaceChildren(element("strong", "", language === "en" ? "Map tiles are unavailable" : "Peta sedang tidak tersedia"), element("span", "", language === "en" ? "Every saved place remains available in the list." : "Semua tempat yang tersimpan tetap tersedia di daftar."));
+      const fallback = element("div", "atlas-tile-fallback"); fallback.append(element("h3", "", language === "en" ? "Saved places" : "Tempat tersimpan"));
+      const list = element("ol", "atlas-fallback-list");
+      locations.forEach((location, index) => { const item = element("li", "atlas-fallback-place"); item.append(element("strong", "", `${String(index + 1).padStart(2, "0")} · ${location.label}`)); if (location.note) item.append(element("span", "", location.note)); list.append(item); });
+      fallback.append(list);
       mapFrame.append(fallback);
     });
     tileLayer.addTo(map);

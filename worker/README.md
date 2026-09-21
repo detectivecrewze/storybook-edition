@@ -73,13 +73,15 @@ Content-Type: application/json
 
 Semua endpoint Studio memakai magic bearer token. Seluruh endpoint Admin memakai `ADMIN_SECRET`. Internal generator memakai `INTERNAL_GENERATOR_SECRET`.
 
+Payload JSON dibatasi maksimal 1 MB. Upload media memiliki batas terpisah sesuai jenis file. Origin production dibatasi ke domain Storybook dan subdomain `for-you-always.my.id`; preview deployment harus memakai Worker/environment preview terpisah.
+
 ## Urutan release nanti
 
 1. Jalankan test root project.
 2. Isi KV namespace dan origin production.
 3. Tambahkan secrets.
 4. Deploy Worker.
-5. Periksa `/api/health` mengembalikan schema `1` dan theme `spiderman`.
+5. Periksa `/api/health` mengembalikan schema `2` dan theme `spiderman` serta `batman`.
 6. Deploy frontend setelah Worker lolos smoke test.
 
 Tidak ada perintah deploy yang dijalankan otomatis oleh project ini.

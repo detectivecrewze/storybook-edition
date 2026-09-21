@@ -128,6 +128,51 @@ test("gift and Studio favicons follow the active theme manifest", () => {
   Object.values(require("../shared/themes.js").THEMES).forEach(theme => assert.ok(String(theme.assets.favicon || "").trim(), `${theme.id} needs a favicon`));
 });
 
+test("theme runtime artwork stays local and does not depend on Tenor", () => {
+  const studio = read("studio/index.html"); const themesSource = read("shared/themes.js");
+  const Themes = require("../shared/themes.js");
+  assert.doesNotMatch(studio + themesSource, /media\.tenor\.com/i);
+  Object.values(Themes.THEMES).forEach(theme => {
+    const runtimeImages = [theme.assets.favicon, ...Object.values(theme.assets.menuCharacters || {})].filter(value => typeof value === "string");
+    runtimeImages.forEach(url => {
+      assert.match(url, /^\//, `${theme.id} runtime artwork must be local: ${url}`);
+      assert.equal(fs.existsSync(path.join(root, url.slice(1))), true, url);
+    });
+  });
+});
+
+test("production routes and response headers support stable public links", () => {
+  const config = JSON.parse(read("vercel.json"));
+  assert.deepEqual(config.rewrites, [
+    { source: "/gift/:id", destination: "/gift?project=:id" },
+    { source: "/studio/:id", destination: "/studio?project=:id" }
+  ]);
+  const globalHeaders = config.headers.find(rule => rule.source === "/(.*)")?.headers || [];
+  const byName = Object.fromEntries(globalHeaders.map(header => [header.key, header.value]));
+  assert.equal(byName["X-Frame-Options"], "SAMEORIGIN");
+  assert.match(byName["Content-Security-Policy"], /frame-ancestors 'self'/);
+  assert.match(byName["Permissions-Policy"], /camera=\(\)/);
+  assert.doesNotMatch(read("gift/index.html"), /\sonload=/i);
+});
+
+test("Atlas failure states preserve saved stories without external map links", () => {
+  const app = read("app.js"); const atlas = read("rooms/atlas.js"); const css = read("rooms/atlas.css");
+  assert.doesNotMatch(app + atlas, /google\.com\/maps\/search/i);
+  assert.match(app, /atlas-static-fallback/);
+  assert.match(atlas, /atlas-fallback-list/);
+  assert.match(css, /\.atlas-static-fallback/);
+  assert.match(css, /\.atlas-fallback-place/);
+});
+
+test("gift music reports delivery failures without breaking the player", () => {
+  const app = read("app.js"); const css = read("styles.css"); const i18n = read("shared/i18n.js");
+  assert.match(app, /class="music-error" role="status" hidden/);
+  assert.match(app, /storyAudio\.addEventListener\("error", showAudioError\)/);
+  assert.match(app, /storyAudio\.removeEventListener\("error", showAudioError\)/);
+  assert.match(css, /\.music-error/);
+  assert.match(i18n, /"gift\.audioError"/);
+});
+
 test("Studio QR cards use each theme's registered character artwork", () => {
   const studio = read("studio/app.js"); const Themes = require("../shared/themes.js");
   const qrRenderer = studio.slice(studio.indexOf("function loadQrImage"), studio.indexOf("function renderQrCard"));

@@ -27,7 +27,7 @@
       textures: Object.freeze({ surface: "/assets/themes/spiderman/red-web-paper.webp", paper: "/assets/themes/spiderman/paper-grain.webp" }),
       assets: Object.freeze({
         giftBox: "/assets/themes/spiderman/gift-box-v2.webp",
-        favicon: "https://media.tenor.com/FbIEm5UJ28sAAAAi/spiderman-tom-holland.gif",
+        favicon: "/assets/themes/spiderman/spiderman-character.gif",
         openingEmblem: "/assets/themes/spiderman/spiderman-web.webp",
         greeting: "/assets/themes/spiderman/spiderman-web.webp",
         finale: "/assets/themes/spiderman/spiderman-toei.webp",
@@ -38,8 +38,8 @@
         music: "/assets/themes/spiderman/icon-music.webp",
         letter: "/assets/themes/spiderman/icon-letter.webp",
         menuCharacters: Object.freeze({
-          left: "https://media.tenor.com/FbIEm5UJ28sAAAAi/spiderman-tom-holland.gif",
-          right: "https://media.tenor.com/FbIEm5UJ28sAAAAi/spiderman-tom-holland.gif",
+          left: "/assets/themes/spiderman/spiderman-character.gif",
+          right: "/assets/themes/spiderman/spiderman-character.gif",
           mirrorRight: true
         }),
         qr: Object.freeze({

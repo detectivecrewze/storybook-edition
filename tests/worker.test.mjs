@@ -62,3 +62,31 @@ test("upload, archive, restore, admin search, and permanent delete work", async 
 test("health exposes the Storybook contract and CORS rejects unknown origins", async () => {
   const environment = env(); const health = await call(environment, "/api/health"); assert.equal(health.payload.service, "storybook-gift-api"); assert.equal(health.payload.schemaVersion, 2); assert.deepEqual(health.payload.languages, ["id", "en"]); assert.deepEqual(health.payload.themeIds, ["spiderman", "batman"]); assert.equal((await call(environment, "/api/health", { origin: "https://evil.test" })).response.status, 403);
 });
+
+test("JSON endpoints reject payloads larger than one megabyte", async () => {
+  const environment = env();
+  const oversized = await call(environment, "/api/admin/projects", { method: "POST", token: environment.ADMIN_SECRET, body: { idempotencyKey: "large-payload", padding: "x".repeat(1024 * 1024) } });
+  assert.equal(oversized.response.status, 413);
+  assert.match(oversized.payload.error, /1 MB/);
+});
+
+test("admin project totals paginate beyond one thousand KV records", async () => {
+  const environment = env();
+  for (let index = 0; index < 1001; index += 1) {
+    const projectId = `gift-${index.toString(16).padStart(16, "0")}`;
+    await environment.GIFT_KV.put(`project:${projectId}`, JSON.stringify({
+      projectId,
+      status: index % 2 ? "published" : "draft",
+      identity: { recipient: `Recipient ${index}`, sender: "Sender" },
+      gallery: { items: [] },
+      createdAt: new Date(index * 1000).toISOString(),
+      updatedAt: new Date(index * 1000).toISOString(),
+      auth: {}
+    }));
+  }
+  const list = await call(environment, "/api/admin/projects?limit=1", { token: environment.ADMIN_SECRET });
+  assert.equal(list.response.status, 200);
+  assert.equal(list.payload.stats.total, 1001);
+  assert.equal(list.payload.totalMatched, 1001);
+  assert.equal(list.payload.projects.length, 1);
+});
