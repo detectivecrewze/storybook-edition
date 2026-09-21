@@ -40,6 +40,8 @@
   let fullPreviewLoaded = false;
   let pendingPreset = null;
   let presetRestoreFocus = null;
+  let pendingDelete = null;
+  let deleteRestoreFocus = null;
   let atlasHelpRestoreFocus = null;
   let studioGuideRestoreFocus = null;
   let qrRenderVersion = 0;
@@ -255,7 +257,21 @@
   }
   function renderOccasions() { const select = $("#occasion-preset"); select.replaceChildren(...Object.values(Project.OCCASION_PRESETS).map(preset => { const option = document.createElement("option"); option.value = preset.id; option.textContent = preset.label[draft.settings.language]; return option; })); select.value = draft.occasionPreset; }
   function renderReasons() {
-    const host = $("#reasons-list"); host.replaceChildren(); draft.reasons.items.forEach((value, index) => { const fragment = $("#reason-template").content.cloneNode(true); const card = $("article", fragment); $(".reason-index", card).textContent = String(index + 1).padStart(2, "0"); $(".reason-card-identity small", card).textContent = I18n.t("studio.reasonCardKicker"); const input = $("textarea", card); input.value = value; input.addEventListener("input", () => { draft.reasons.items[index] = input.value; queueSave(); }); $("[data-remove]", card).addEventListener("click", () => { if (draft.reasons.items.length <= Project.MIN_REASONS) return; syncAll(); draft.reasons.items.splice(index, 1); renderReasons(); queueSave(); }); const moveButtons = $$("[data-move]", card); moveButtons.forEach(button => { button.disabled = button.dataset.move === "up" ? index === 0 : index === draft.reasons.items.length - 1; button.addEventListener("click", () => { syncAll(); swap(draft.reasons.items, index, button.dataset.move === "up" ? -1 : 1); renderReasons(); queueSave(); }); }); I18n.apply(card); host.append(fragment); }); dragSort(host, draft.reasons.items, () => { syncAll(); renderReasons(); });
+    const host = $("#reasons-list"); host.replaceChildren(); draft.reasons.items.forEach((value, index) => { const fragment = $("#reason-template").content.cloneNode(true); const card = $("article", fragment); $(".reason-index", card).textContent = String(index + 1).padStart(2, "0"); $(".reason-card-identity small", card).textContent = I18n.t("studio.reasonCardKicker"); const input = $("textarea", card); input.value = value; input.addEventListener("input", () => { draft.reasons.items[index] = input.value; queueSave(); }); $("[data-remove]", card).addEventListener("click", event => {
+      if (draft.reasons.items.length <= Project.MIN_REASONS) return;
+      syncAll();
+      requestDelete({
+        trigger: event.currentTarget,
+        titleKey: "studio.deleteReasonTitle",
+        descriptionKey: "studio.deleteReasonDescription",
+        action: () => {
+          if (draft.reasons.items.length <= Project.MIN_REASONS || index >= draft.reasons.items.length) return;
+          draft.reasons.items.splice(index, 1);
+          renderReasons();
+          queueSave();
+        }
+      });
+    }); const moveButtons = $$("[data-move]", card); moveButtons.forEach(button => { button.disabled = button.dataset.move === "up" ? index === 0 : index === draft.reasons.items.length - 1; button.addEventListener("click", () => { syncAll(); swap(draft.reasons.items, index, button.dataset.move === "up" ? -1 : 1); renderReasons(); queueSave(); }); }); I18n.apply(card); host.append(fragment); }); dragSort(host, draft.reasons.items, () => { syncAll(); renderReasons(); });
   }
   function renderOpeningPanels() {
     const host = $("#opening-panel-grid"); host.replaceChildren();
@@ -266,7 +282,18 @@
       const effectiveSource = source || defaultPanels[index] || "";
       const preview = $(".opening-panel-preview", card); if (effectiveSource) { const image = document.createElement("img"); image.src = effectiveSource; image.alt = `Opening panel ${index + 1}`; image.onerror = () => preview.replaceChildren(document.createTextNode("PHOTO")); preview.replaceChildren(image); }
       $(".opening-panel-file", card).addEventListener("change", event => { const file = event.target.files[0]; event.target.value = ""; uploadOpeningPanel(file, index); });
-      $(".remove-opening-photo", card).hidden = !source; $(".remove-opening-photo", card).addEventListener("click", () => { draft.opening.panelImages[index] = ""; renderOpeningPanels(); queueSave(); });
+      $(".remove-opening-photo", card).hidden = !source; $(".remove-opening-photo", card).addEventListener("click", event => {
+        requestDelete({
+          trigger: event.currentTarget,
+          titleKey: "studio.deleteOpeningPhotoTitle",
+          descriptionKey: "studio.deleteOpeningPhotoDescription",
+          action: () => {
+            draft.opening.panelImages[index] = "";
+            renderOpeningPanels();
+            queueSave({ immediatePreview: true });
+          }
+        });
+      });
       I18n.apply(card); host.append(fragment);
     });
   }
@@ -324,12 +351,22 @@
         syncGalleryCard(item, card);
         uploadGallery(file, item, card);
       });
-      $("[data-remove]", card).addEventListener("click", () => {
+      $("[data-remove]", card).addEventListener("click", event => {
         syncAll();
-        draft.gallery.items.splice(index, 1);
-        if (!draft.gallery.items.length) draft.gallery.items.push({ id: Project.makeId("media"), mediaType: "image", mediaUrl: "", title: "", caption: "" });
-        renderGallery();
-        queueSave();
+        const itemId = item.id;
+        requestDelete({
+          trigger: event.currentTarget,
+          titleKey: "studio.deleteGalleryTitle",
+          descriptionKey: "studio.deleteGalleryDescription",
+          action: () => {
+            const currentIndex = draft.gallery.items.findIndex(entry => entry.id === itemId);
+            if (currentIndex < 0) return;
+            draft.gallery.items.splice(currentIndex, 1);
+            if (!draft.gallery.items.length) draft.gallery.items.push({ id: Project.makeId("media"), mediaType: "image", mediaUrl: "", title: "", caption: "" });
+            renderGallery();
+            queueSave({ immediatePreview: true });
+          }
+        });
       });
       $$("[data-move]", card).forEach(button => button.addEventListener("click", () => {
         syncAll();
@@ -480,22 +517,38 @@
         uploadAtlasPhoto(file, loc, card);
       });
       if (removePhotoBtn) {
-        removePhotoBtn.addEventListener("click", () => {
-          const loc = getActiveLocation();
-          location.photoUrl = "";
-          if (loc) loc.photoUrl = "";
-          removePhotoBtn.hidden = true;
-          setImagePreview(preview, { mediaType: "image", mediaUrl: "" });
-          atlasUploadStatus(card, "");
-          queueSave({ immediatePreview: true });
+        removePhotoBtn.addEventListener("click", event => {
+          syncAll();
+          const locationId = location.id;
+          requestDelete({
+            trigger: event.currentTarget,
+            titleKey: "studio.deleteAtlasPhotoTitle",
+            descriptionKey: "studio.deleteAtlasPhotoDescription",
+            action: () => {
+              const loc = draft.atlas.locations.find(entry => entry.id === locationId);
+              if (!loc) return;
+              loc.photoUrl = "";
+              renderAtlas();
+              queueSave({ immediatePreview: true });
+            }
+          });
         });
       }
-      $("[data-remove]", card).addEventListener("click", () => {
+      $("[data-remove]", card).addEventListener("click", event => {
         syncAll();
-        const currentIndex = draft.atlas.locations.findIndex(entry => entry.id === location.id);
-        const targetIndex = currentIndex >= 0 ? currentIndex : index;
-        draft.atlas.locations.splice(targetIndex, 1);
-        renderAtlas(); queueSave();
+        const locationId = location.id;
+        requestDelete({
+          trigger: event.currentTarget,
+          titleKey: "studio.deleteAtlasLocationTitle",
+          descriptionKey: "studio.deleteAtlasLocationDescription",
+          action: () => {
+            const currentIndex = draft.atlas.locations.findIndex(entry => entry.id === locationId);
+            if (currentIndex < 0) return;
+            draft.atlas.locations.splice(currentIndex, 1);
+            renderAtlas();
+            queueSave({ immediatePreview: true });
+          }
+        });
       });
       $$("[data-move]", card).forEach(button => button.addEventListener("click", () => {
         syncAll();
@@ -571,8 +624,38 @@
       artistInput.addEventListener("input", event => { const current = getActiveTrack(); track.artist = event.target.value; if (current) current.artist = event.target.value; syncSummary(); queueSave(); });
       quoteInput.addEventListener("input", event => { const current = getActiveTrack(); track.quote = event.target.value; if (current) current.quote = event.target.value; quoteCount.textContent = String(event.target.value.length); queueSave(); });
       coverInput.addEventListener("change", event => { const file = event.target.files[0]; event.target.value = ""; const current = getActiveTrack(); if (current) uploadTrackCover(file, current, card); });
-      removeCover.addEventListener("click", () => { const current = getActiveTrack(); if (!current) return; current.coverUrl = ""; track.coverUrl = ""; removeCover.hidden = true; setTrackCoverPreview(card, ""); trackCoverStatus(card, ""); queueSave({ immediatePreview: true }); });
-      $("[data-remove]", card).addEventListener("click", () => { syncAll(); const currentIndex = draft.music.tracks.findIndex(entry => entry.id === track.id); if (currentIndex < 0) return; draft.music.tracks.splice(currentIndex, 1); renderMusic(); queueSave({ immediatePreview: true }); });
+      removeCover.addEventListener("click", event => {
+        syncAll();
+        const trackId = track.id;
+        requestDelete({
+          trigger: event.currentTarget,
+          titleKey: "studio.deleteTrackCoverTitle",
+          descriptionKey: "studio.deleteTrackCoverDescription",
+          action: () => {
+            const current = draft.music.tracks.find(entry => entry.id === trackId);
+            if (!current) return;
+            current.coverUrl = "";
+            renderMusic();
+            queueSave({ immediatePreview: true });
+          }
+        });
+      });
+      $("[data-remove]", card).addEventListener("click", event => {
+        syncAll();
+        const trackId = track.id;
+        requestDelete({
+          trigger: event.currentTarget,
+          titleKey: "studio.deleteTrackTitle",
+          descriptionKey: "studio.deleteTrackDescription",
+          action: () => {
+            const currentIndex = draft.music.tracks.findIndex(entry => entry.id === trackId);
+            if (currentIndex < 0) return;
+            draft.music.tracks.splice(currentIndex, 1);
+            renderMusic();
+            queueSave({ immediatePreview: true });
+          }
+        });
+      });
       I18n.apply(card); host.append(fragment);
     });
   }  function renderCatalog(filter = "") { const host = $("#music-catalog"); host.replaceChildren(); const query = filter.trim().toLowerCase(); catalog.filter(track => !query || `${track.title} ${track.artist}`.toLowerCase().includes(query)).slice(0, 30).forEach(track => { const button = document.createElement("button"); button.type = "button"; button.className = "catalog-track"; button.innerHTML = `<img alt=""><span><strong></strong><small></small></span>`; $("img", button).src = track.coverUrl; $("strong", button).textContent = track.title; $("small", button).textContent = track.artist; button.addEventListener("click", () => { if (draft.music.tracks.length >= Project.MAX_MUSIC_TRACKS || draft.music.tracks.some(item => item.audioUrl === track.audioUrl)) return; draft.music.tracks.push({ id: track.id || Project.makeId("track"), sourceType: "catalog", catalogId: track.id || "", audioUrl: track.audioUrl, coverUrl: track.coverUrl || "", title: track.title, artist: track.artist || "", quote: catalogQuote(track) }); renderMusic(); queueSave(); }); host.append(button); }); }
@@ -771,6 +854,29 @@
     else if (preset.kind === "letter") applyLetterPreset(preset.key);
     else applyOccasionPreset(preset.key);
     closePresetConfirmation();
+  }
+  function closeDeleteConfirmation({ restoreFocus = true } = {}) {
+    const dialog = $("#delete-confirm-dialog");
+    if (dialog?.open) dialog.close();
+    const returnFocus = deleteRestoreFocus;
+    pendingDelete = null;
+    deleteRestoreFocus = null;
+    if (restoreFocus) requestAnimationFrame(() => returnFocus?.focus?.({ preventScroll: true }));
+  }
+  function requestDelete({ titleKey, descriptionKey, trigger, action }) {
+    const dialog = $("#delete-confirm-dialog");
+    if (!dialog || typeof action !== "function") return;
+    pendingDelete = { action };
+    deleteRestoreFocus = trigger || document.activeElement;
+    $("#delete-confirm-title").textContent = I18n.t(titleKey);
+    $("#delete-confirm-description").textContent = I18n.t(descriptionKey);
+    dialog.showModal();
+    $("#cancel-delete-confirm")?.focus({ preventScroll: true });
+  }
+  function confirmDelete() {
+    const action = pendingDelete?.action;
+    closeDeleteConfirmation({ restoreFocus: false });
+    action?.();
   }
   function reportUploadError(label, error) {
     console.error("[Storybook Studio] Upload flow failed", { projectId, label, status: error?.status, message: error?.message }, error);
@@ -1298,6 +1404,13 @@
     if (presetDialog) {
       presetDialog.addEventListener("cancel", event => { event.preventDefault(); closePresetConfirmation(); });
       presetDialog.addEventListener("click", event => { if (event.target === presetDialog) closePresetConfirmation(); });
+    }
+    $("#cancel-delete-confirm")?.addEventListener("click", () => closeDeleteConfirmation());
+    $("#confirm-delete")?.addEventListener("click", confirmDelete);
+    const deleteDialog = $("#delete-confirm-dialog");
+    if (deleteDialog) {
+      deleteDialog.addEventListener("cancel", event => { event.preventDefault(); closeDeleteConfirmation(); });
+      deleteDialog.addEventListener("click", event => { if (event.target === deleteDialog) closeDeleteConfirmation(); });
     }
     $("#close-atlas-help")?.addEventListener("click", () => closeAtlasHelp());
     $("#understand-atlas-help")?.addEventListener("click", () => closeAtlasHelp());

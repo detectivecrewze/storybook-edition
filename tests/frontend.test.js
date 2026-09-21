@@ -232,6 +232,23 @@ test("Studio confirms before a preset overwrites existing personal writing", () 
   assert.doesNotMatch(studio, /confirm\(I18n\.t\("studio\.presetWarning"\)\)/);
 });
 
+test("Studio asks for a second confirmation before destructive removals", () => {
+  const html = read("studio/index.html"); const studio = read("studio/app.js"); const i18n = read("shared/i18n.js");
+  assert.match(html, /id="delete-confirm-dialog"/);
+  assert.match(html, /id="confirm-delete"/);
+  assert.match(studio, /function requestDelete/);
+  assert.match(studio, /function confirmDelete/);
+  assert.match(studio, /studio\.deleteGalleryTitle/);
+  assert.match(studio, /studio\.deleteOpeningPhotoTitle/);
+  assert.match(studio, /studio\.deleteAtlasLocationTitle/);
+  assert.match(studio, /studio\.deleteAtlasPhotoTitle/);
+  assert.match(studio, /studio\.deleteTrackTitle/);
+  assert.match(studio, /studio\.deleteTrackCoverTitle/);
+  assert.match(studio, /studio\.deleteReasonTitle/);
+  assert.match(i18n, /"studio\.deleteConfirmAction": "Ya, hapus"/);
+  assert.match(i18n, /"studio\.deleteConfirmAction": "Yes, delete"/);
+});
+
 test("Studio keeps a selected supported theme when an older Worker normalizes it away", () => {
   const studio = read("studio/app.js");
   assert.match(studio, /savedProject\.themeId !== snapshot\.themeId/);

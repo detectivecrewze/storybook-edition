@@ -68,7 +68,7 @@
 .preset-confirm-card .kicker{margin:0 0 7px;color:var(--red);font-size:.72rem;font-weight:900;letter-spacing:.14em}
 .preset-confirm-card h2{margin:0;font:400 clamp(1.75rem,6vw,2.3rem)/.98 Bangers,sans-serif;letter-spacing:.03em}
 .preset-confirm-card p:not(.kicker){margin:14px 0 0;color:var(--muted);font-size:.94rem;line-height:1.55}
-.preset-confirm-card footer{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}
+.preset-confirm-card footer{display:flex;justify-content:flex-end;gap:10px;margin-top:24px}.delete-confirm-card{box-shadow:8px 9px 0 var(--red-dark)}.delete-confirm-card .delete-confirm-action{background:var(--red-dark)}
 
 /* Downloadable Storybook QR card */
 .qr-card{display:grid;place-items:center;max-width:360px;margin-top:18px;padding:10px;border:3px solid var(--ink);border-radius:12px;background:linear-gradient(135deg,var(--red),var(--red-dark));box-shadow:6px 7px 0 var(--ink)}
