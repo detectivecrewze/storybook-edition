@@ -160,3 +160,37 @@ Kado Storybook Edition dinyatakan siap rilis ke live production apabila:
 ### Status kelulusan saat ini
 
 Repository Gift sudah lulus build, automated test, lintasan UI lokal, dan hardening yang bisa dilakukan tanpa deployment. Status production masih **belum final** sampai frontend dan Worker terbaru di-deploy, pretty URL serta header diuji ulang pada domain live, dan QA perangkat fisik selesai. Integrasi storefront sebaiknya dimulai setelah seluruh verifikasi di atas ditutup.
+
+---
+
+## 6. AUDIT PAYMENT, FULFILLMENT, DAN EMAIL — 21 SEPTEMBER 2026
+
+### Yang sudah tersedia di source lokal
+
+- Storefront mengirim `product_type: storybook`, `gross_amount`, data pembeli, dan `item_details` ke Pakasir Gateway. Cart mencegah Storybook ditambahkan dua kali.
+- Gateway memiliki validasi satu Storybook per checkout, harga item Rp25.000, quantity satu, serta larangan paket tiga kuota.
+- Setelah webhook Pakasir berstatus `completed` dan diverifikasi kembali ke API Pakasir, gateway menyiapkan proyek melalui binding `STORYBOOK_WORKER`.
+- Generator memakai `source: pakasir` dan idempotency key stabil `<order_id>:storybook`, lalu mengembalikan `studioUrl` dan `giftUrl`.
+- Template email Storybook dan kartu Order Status sudah tersedia. Email berisi link Studio Storybook dan link dashboard pesanan.
+- Test gateway lulus 16/16 dan build `wrangler deploy --dry-run` berhasil membaca binding `STORYBOOK_WORKER`.
+
+### Status production yang terverifikasi
+
+- Worker Storybook production sehat dan endpoint health merespons HTTP 200.
+- Pakasir Gateway production aktif, tetapi deployment terakhir tercatat 28 Agustus 2026; integrasi Storybook baru berada pada working tree lokal tanggal 21 September 2026.
+- Storefront production belum memiliki `/catalog/storybook` dan masih merespons HTTP 404.
+- Database production belum memiliki order Storybook.
+- Gateway production belum memiliki secret `STORYBOOK_GENERATOR_SECRET`, sedangkan Worker Storybook sudah memiliki `INTERNAL_GENERATOR_SECRET`.
+
+### Blocker kritis sebelum checkout dibuka
+
+- `gross_amount` belum dicocokkan dengan jumlah `price × quantity` dari item. Validasi item Storybook dapat lolos sementara total pembayaran dimanipulasi lebih rendah.
+- Webhook memverifikasi transaksi memakai `amount` dari payload webhook, tetapi belum mencocokkannya dengan `gross_amount` order yang tersimpan.
+- Respons Resend tidak diperiksa dengan `response.ok`. Respons 4xx/5xx dapat dianggap selesai, lalu order tetap ditandai `success`.
+- Tidak ada status pengiriman email, retry email, atau idempotency email di database. Webhook berikutnya berhenti pada `Already processed`, sehingga email yang gagal tidak otomatis dikirim ulang.
+- Jika generator Storybook gagal, gateway tetap dapat menandai order `success` dengan link error. Endpoint retry admin tersedia, tetapi tidak mengirim ulang email setelah fulfillment pulih.
+- Secret payment, email, dan generator masih tersimpan sebagai plaintext di file yang dilacak Git. Seluruh credential terkait wajib dirotasi, dipindahkan ke Cloudflare Secrets, dan dihapus dari riwayat Git sebelum production.
+
+### Kesimpulan payment
+
+Alur otomatis sudah dirancang di source lokal, tetapi **belum terintegrasi di production dan belum aman untuk menerima pembayaran Storybook**. Email memang dijadwalkan otomatis setelah payment terverifikasi dan proyek berhasil dibuat, tetapi belum memiliki jaminan delivery atau retry. Jangan membuka checkout Storybook sebelum validasi total, verifikasi amount, failure state fulfillment, email delivery tracking/retry, rotasi secret, deployment gateway/storefront, dan satu transaksi sandbox end-to-end lulus.
