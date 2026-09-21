@@ -5,16 +5,21 @@
   const isFiniteCoordinate = (latitude, longitude) => Number.isFinite(Number(latitude)) && Number.isFinite(Number(longitude)) && Number(latitude) >= -90 && Number(latitude) <= 90 && Number(longitude) >= -180 && Number(longitude) <= 180;
   function element(tag, className, text) { const node = document.createElement(tag); if (className) node.className = className; if (text !== undefined) node.textContent = text; return node; }
 
-  function locationCard(location, index, language) {
+  function locationHeading(location) {
+    return location?.title || location?.label || "";
+  }
+
+  function locationCard(location, index, language, { compact = false } = {}) {
     const order = String(index + 1).padStart(2, "0");
-    const card = element("article", "atlas-popup-card");
+    const heading = locationHeading(location);
+    const card = element("article", `atlas-popup-card${compact ? " is-cinematic" : ""}`);
     const visual = element("figure", "atlas-popup-visual is-placeholder");
     const placeholder = element("span", "atlas-popup-placeholder", language === "en" ? "Memory point" : "Titik kenangan");
     visual.append(placeholder);
 
     if (location.photoUrl) {
       const image = element("img", "atlas-popup-photo");
-      image.alt = location.label;
+      image.alt = heading;
       image.loading = "lazy";
       image.src = location.photoUrl;
       image.addEventListener("load", () => visual.classList.remove("is-placeholder"), { once: true });
@@ -24,10 +29,25 @@
 
     const copy = element("div", "atlas-popup-copy");
     const kicker = element("span", "atlas-popup-kicker", order);
-    const title = element("h3", "atlas-popup-title", location.label);
+    const title = element("h3", "atlas-popup-title", heading);
     copy.append(kicker, title);
 
-    if (location.note) {
+    if (compact) {
+      const reveal = element("p", "atlas-popup-reveal");
+      reveal.append(
+        element("span", "", language === "en" ? "Next · reveal the story" : "Next · buka ceritanya"),
+        element("b", "atlas-popup-reveal-arrow", "→")
+      );
+      copy.append(reveal);
+    }
+
+    if (!compact && location.label && location.label !== heading) {
+      const place = element("p", "atlas-popup-place", location.label);
+      place.setAttribute("aria-label", language === "en" ? "Place" : "Tempat");
+      copy.append(place);
+    }
+
+    if (!compact && location.note) {
       const noteScroll = element("div", "atlas-popup-note-scroll");
       noteScroll.tabIndex = 0;
       noteScroll.setAttribute("aria-label", language === "en" ? "Location story" : "Cerita lokasi");
@@ -46,8 +66,8 @@
     const reducedMotion = Boolean(options.reducedMotion);
     const cinematic = options.cinematic !== undefined ? Boolean(options.cinematic) : !standaloneVisited;
     standaloneVisited = true;
-    const locations = (atlasData?.locations || []).filter(location => location.label && isFiniteCoordinate(location.latitude, location.longitude)).slice(0, 10);
-    const timers = new Set(); const listeners = []; let map = null; let tileLayer = null; let activeIndex = 0; let destroyed = false; let tileErrors = 0;
+    const locations = (atlasData?.locations || []).filter(location => locationHeading(location) && isFiniteCoordinate(location.latitude, location.longitude)).slice(0, 10);
+    const timers = new Set(); const listeners = []; let map = null; let tileLayer = null; let activeIndex = 0; let popupCompact = false; let destroyed = false; let tileErrors = 0;
     const on = (target, type, handler, settings) => { target.addEventListener(type, handler, settings); listeners.push(() => target.removeEventListener(type, handler, settings)); };
     const later = (handler, delay) => { const timer = setTimeout(() => { timers.delete(timer); if (!destroyed) handler(); }, delay); timers.add(timer); };
     host.replaceChildren();
@@ -109,7 +129,7 @@
       notice.replaceChildren(element("strong", "", language === "en" ? "Map tiles are unavailable" : "Peta sedang tidak tersedia"), element("span", "", language === "en" ? "Every saved place remains available in the list." : "Semua tempat yang tersimpan tetap tersedia di daftar."));
       const fallback = element("div", "atlas-tile-fallback"); fallback.append(element("h3", "", language === "en" ? "Saved places" : "Tempat tersimpan"));
       const list = element("ol", "atlas-fallback-list");
-      locations.forEach((location, index) => { const item = element("li", "atlas-fallback-place"); item.append(element("strong", "", `${String(index + 1).padStart(2, "0")} · ${location.label}`)); if (location.note) item.append(element("span", "", location.note)); list.append(item); });
+      locations.forEach((location, index) => { const item = element("li", "atlas-fallback-place"); item.append(element("strong", "", `${String(index + 1).padStart(2, "0")} · ${locationHeading(location)}`)); if (location.note) item.append(element("span", "", location.note)); list.append(item); });
       fallback.append(list);
       mapFrame.append(fallback);
     });
@@ -136,7 +156,7 @@
         popupAnchor: [0, -42]
       });
       const marker = root.L.marker([location.latitude, location.longitude], { icon, keyboard: true, opacity: 1 }).addTo(map);
-      marker.bindPopup(locationCard(location, index, language), {
+      marker.bindPopup(locationCard(location, index, language, { compact: false }), {
         className: "atlas-comic-popup",
         maxWidth: 270,
         minWidth: 190,
@@ -146,8 +166,10 @@
         if (e?.originalEvent) {
           root.L?.DomEvent?.stopPropagation?.(e);
         }
+        const popupWasOpen = activeIndex === index && markers[index]?.isPopupOpen?.();
         cancelAnimation();
-        if (activeIndex === index && markers[index]?.isPopupOpen?.()) {
+        if (popupWasOpen) {
+          openLocationPopup(index, { compact: false });
           return;
         }
         select(index);
@@ -162,8 +184,10 @@
       });
     }
 
-    function openLocationPopup(index) {
+    function openLocationPopup(index, { compact = false } = {}) {
+      popupCompact = compact;
       const marker = markers[index];
+      marker?.setPopupContent(locationCard(locations[index], index, language, { compact }));
       marker?.openPopup();
       later(() => {
         if (destroyed || !map || !marker?.isPopupOpen?.()) return;
@@ -313,7 +337,7 @@
         const onMoveEnd = () => {
           map.off("moveend", onMoveEnd);
           if (!aborted && !destroyed && map) {
-            openLocationPopup(index);
+            openLocationPopup(index, { compact: true });
           }
           resolve();
         };
@@ -321,7 +345,7 @@
         moveTimeout = setTimeout(() => {
           map.off("moveend", onMoveEnd);
           if (!aborted && !destroyed && map) {
-            openLocationPopup(index);
+            openLocationPopup(index, { compact: true });
           }
           resolve();
         }, Math.round(duration * 1000) + 300);
@@ -358,8 +382,13 @@
       })();
     }
 
-    on(previous, "click", () => { cancelAnimation(); select(activeIndex - 1); });
-    on(next, "click", () => { cancelAnimation(); select(activeIndex + 1); });
+    const revealActiveStory = () => {
+      if (!popupCompact || !markers[activeIndex]?.isPopupOpen?.()) return false;
+      openLocationPopup(activeIndex, { compact: false });
+      return true;
+    };
+    on(previous, "click", () => { cancelAnimation(); if (!revealActiveStory()) select(activeIndex - 1); });
+    on(next, "click", () => { cancelAnimation(); if (!revealActiveStory()) select(activeIndex + 1); });
     on(fit, "click", () => { cancelAnimation(); fitAll(true); updateActiveMarker(-1); map.closePopup(); });
     on(shell, "keydown", event => {
       cancelAnimation();

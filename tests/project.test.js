@@ -68,11 +68,16 @@ test("schema v1 projects gain an empty disabled Atlas without changing the origi
   assert.equal(normalized.modules.at(-1).title, "Atlas of us");
 });
 
-test("Atlas validation requires a named in-range location only when enabled", () => {
+test("Atlas uses one title-or-place field and preserves the temporary title alias", () => {
   const draft = Project.emptyProject("gift-atlas"); draft.identity = { recipient: "Nadia", sender: "Aldo", eventDate: "" };
   draft.modules.find(module => module.type === "atlas").enabled = true;
   assert.ok(Project.validateProject(draft, { forPublish: true }).errors.atlas);
-  draft.atlas.locations = [{ id: "location-1", label: "First date", latitude: -6.2, longitude: 106.8, mapsUrl: "", photoUrl: "", note: "" }];
+  draft.atlas.locations = [{ id: "location-1", title: "When you confessed", label: "", latitude: -6.2, longitude: 106.8, mapsUrl: "", photoUrl: "", note: "" }];
+  const normalized = Project.normalizeProject(draft, draft.projectId);
+  assert.equal(normalized.atlas.locations[0].label, "When you confessed");
+  assert.equal(Object.hasOwn(normalized.atlas.locations[0], "title"), false);
+  assert.equal(Project.validateProject(draft, { forPublish: true }).errors.atlas, undefined);
+  draft.atlas.locations[0] = { ...draft.atlas.locations[0], title: "", label: "First date" };
   assert.equal(Project.validateProject(draft, { forPublish: true }).errors.atlas, undefined);
 });
 

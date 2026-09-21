@@ -383,7 +383,7 @@
     if (state === "short") return { kind: "invalid", text: I18n.t("studio.locationShortLink") };
     if (state === "invalid") return { kind: "invalid", text: I18n.t("studio.locationInvalid") };
     if (!Maps.validCoordinates(location.latitude, location.longitude)) return { kind: "idle", text: I18n.t("studio.locationEmpty") };
-    if (!location.label) return { kind: "idle", text: draft.settings.language === "en" ? "Add the place name, then this location is ready." : "Isi nama tempat, lalu lokasi ini siap." };
+    if (!location.label) return { kind: "idle", text: I18n.t("studio.locationHeadingEmpty") };
     return { kind: "valid", text: `${I18n.t("studio.locationReady")}: ${Maps.formatCoordinates(location.latitude, location.longitude)}` };
   }
   function openAtlasHelp(trigger) {

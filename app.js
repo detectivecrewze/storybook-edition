@@ -256,7 +256,7 @@
       const title = document.createElement("h3"); title.textContent = project.settings.language === "en" ? "Your places are still safe" : "Tempat kalian tetap tersimpan";
       const message = document.createElement("p"); message.textContent = project.settings.language === "en" ? "The interactive map could not load. You can still read every saved place below." : "Peta interaktif belum dapat dimuat. Semua lokasi yang tersimpan tetap bisa dibaca di bawah ini.";
       const list = document.createElement("ol");
-      (project.atlas?.locations || []).filter(location => location?.label).forEach(location => { const item = document.createElement("li"); const label = document.createElement("strong"); label.textContent = location.label; item.append(label); if (location.note) { const note = document.createElement("span"); note.textContent = location.note; item.append(note); } list.append(item); });
+      (project.atlas?.locations || []).filter(location => location?.title || location?.label).forEach(location => { const item = document.createElement("li"); const label = document.createElement("strong"); label.textContent = location.title || location.label; item.append(label); if (location.note) { const note = document.createElement("span"); note.textContent = location.note; item.append(note); } list.append(item); });
       fallback.append(title, message, list); roomContent.replaceChildren(fallback);
     });
     const dispose = () => { disposed = true; cleanup?.(); };
@@ -320,8 +320,12 @@
   async function loadGift() {
     const projectId = Project.projectIdFromPath(location.pathname, location.search) || "sample-demo";
     try {
-      const payload = await new window.StorybookApi(projectId).getPublicGift(); project = Project.normalizeProject(payload.project || payload, projectId); renderAll(); stateBox.hidden = true; app.hidden = false;
       const params = new URLSearchParams(location.search);
+      const payload = await new window.StorybookApi(projectId).getPublicGift();
+      project = Project.normalizeProject(payload.project || payload, projectId);
+      const demoTheme = String(params.get("demoTheme") || "").trim().toLowerCase();
+      if (demoTheme && Object.hasOwn(Themes.THEMES, demoTheme)) project = { ...project, themeId: demoTheme };
+      renderAll(); stateBox.hidden = true; app.hidden = false;
       if (params.get("example") === "1") previewTarget({ target: params.get("target") || "gate", roomType: params.get("roomType") || "" });
       else showScreen("gate", { focus: false });
     } catch (error) { showState("Gift belum bisa dibuka", error.status === 404 ? "Link tidak ditemukan atau gift belum dipublish." : error.message, true); }

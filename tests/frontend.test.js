@@ -220,6 +220,8 @@ test("Studio room previews are lazy while the final review remains always visibl
   assert.match(gift, /storybook-preview-target/);
   assert.match(studio, /storybook-preview-target/);
   assert.match(gift, /roomResize/);
+  assert.match(gift, /params\.get\("demoTheme"\)/);
+  assert.match(gift, /Object\.hasOwn\(Themes\.THEMES, demoTheme\)/);
 });
 
 test("Studio confirms before a preset overwrites existing personal writing", () => {
@@ -340,9 +342,12 @@ test("Atlas opens its cinematic tour on each fresh gift load and skips in-page r
 });
 
 test("Atlas location popups are a theme-neutral comic dossier with protected personal notes", () => {
-  const atlas = read("rooms/atlas.js"); const css = read("rooms/atlas.css");
+  const atlas = read("rooms/atlas.js"); const css = read("rooms/atlas.css"); const html = read("studio/index.html");
   const spiderTheme = read("assets/themes/spiderman/theme.css"); const batmanTheme = read("assets/themes/batman/theme.css");
   assert.match(atlas, /atlas-popup-kicker/); assert.match(atlas, /const order = String\(index \+ 1\)\.padStart\(2, "0"\)/);
+  assert.match(atlas, /location\?\.title \|\| location\?\.label/); assert.match(atlas, /compact: true/);
+  assert.match(atlas, /Next · buka ceritanya/); assert.match(atlas, /revealActiveStory/);
+  assert.match(atlas, /if \(!compact && location\.note\)/); assert.match(atlas, /openLocationPopup\(index, \{ compact: false \}\)/);
   assert.doesNotMatch(atlas, /TITIK KENANGAN|MEMORY POINT/);
   assert.match(atlas, /atlas-popup-visual is-placeholder/); assert.match(atlas, /disableScrollPropagation/);
   assert.match(atlas, /function openLocationPopup/); assert.match(atlas, /getBoundingClientRect/);
@@ -351,6 +356,7 @@ test("Atlas location popups are a theme-neutral comic dossier with protected per
   assert.match(css, /atlas-pin-ring/); assert.match(css, /atlas-pin-tail/);
   assert.doesNotMatch(atlas, /atlas-popup-maps-link/);
   assert.match(spiderTheme, /--atlas-popup-decal/); assert.match(batmanTheme, /--atlas-popup-decal/);
+  assert.doesNotMatch(html, /class="atlas-title"/); assert.match(html, /class="atlas-label"/); assert.match(css, /atlas-popup-card\.is-cinematic/); assert.match(css, /atlas-popup-reveal-arrow/);
 });
 
 
