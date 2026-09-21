@@ -174,23 +174,26 @@ Repository Gift sudah lulus build, automated test, lintasan UI lokal, dan harden
 - Template email Storybook dan kartu Order Status sudah tersedia. Email berisi link Studio Storybook dan link dashboard pesanan.
 - Test gateway lulus 16/16 dan build `wrangler deploy --dry-run` berhasil membaca binding `STORYBOOK_WORKER`.
 
-### Status production yang terverifikasi
+### Status production yang terverifikasi (Update 21 September 2026, 19:30 WIB)
 
-- Worker Storybook production sehat dan endpoint health merespons HTTP 200.
-- Pakasir Gateway production aktif, tetapi deployment terakhir tercatat 28 Agustus 2026; integrasi Storybook baru berada pada working tree lokal tanggal 21 September 2026.
-- Storefront production belum memiliki `/catalog/storybook` dan masih merespons HTTP 404.
-- Database production belum memiliki order Storybook.
-- Gateway production belum memiliki secret `STORYBOOK_GENERATOR_SECRET`, sedangkan Worker Storybook sudah memiliki `INTERNAL_GENERATOR_SECRET`.
+- Worker Storybook (`storybook-gift-api`) production aktif dan sehat.
+- Secret `INTERNAL_GENERATOR_SECRET` pada `storybook-gift-api` sudah disinkronkan ke Cloudflare via secret put.
+- Pakasir Gateway Sandbox (`pakasir-gateway-sandbox`) sudah dideploy dengan binding `STORYBOOK_WORKER` dan `STORYBOOK_GENERATOR_SECRET`.
+- Pakasir Gateway Production (`pakasir-gateway`) sudah dideploy ke Cloudflare Workers (Version ID: `f451c4ec-2950-4e15-aa04-bf1f2aa54c4a`) dengan binding `STORYBOOK_WORKER`, `STORYBOOK_GENERATOR_SECRET`, dan `ADMIN_SECRET`.
+- Bug fallback `storybook-order.mjs` yang memicu Cloudflare Error 1042 saat memanggil `*.workers.dev` sudah diperbaiki; gateway mengutamakan Service Binding response langsung.
+- Uji coba sandbox checkout & simulasi fulfillment end-to-end Storybook sudah lulus: project otomatis terbentuk, `studioUrl` dan `giftUrl` valid tersimpan ke D1, dan email akses terkirim via Resend.
+- Order error terdahulu di database D1 (`ORDER-STORYBOOK-1789992609052`) sudah diperbaiki dengan link studio yang valid.
+- Storefront lokal (`Valentine-Platform`) sudah memiliki halaman `/catalog/storybook` lengkap beserta aset fitur, konfigurasi demo preview, tracking, dan cart, namun deployment live storefront ke Vercel belum dilakukan.
 
-### Blocker kritis sebelum checkout dibuka
+### Catatan audit & blocker tersisa sebelum checkout publik dibuka
 
-- `gross_amount` belum dicocokkan dengan jumlah `price × quantity` dari item. Validasi item Storybook dapat lolos sementara total pembayaran dimanipulasi lebih rendah.
-- Webhook memverifikasi transaksi memakai `amount` dari payload webhook, tetapi belum mencocokkannya dengan `gross_amount` order yang tersimpan.
-- Respons Resend tidak diperiksa dengan `response.ok`. Respons 4xx/5xx dapat dianggap selesai, lalu order tetap ditandai `success`.
-- Tidak ada status pengiriman email, retry email, atau idempotency email di database. Webhook berikutnya berhenti pada `Already processed`, sehingga email yang gagal tidak otomatis dikirim ulang.
-- Jika generator Storybook gagal, gateway tetap dapat menandai order `success` dengan link error. Endpoint retry admin tersedia, tetapi tidak mengirim ulang email setelah fulfillment pulih.
-- Secret payment, email, dan generator masih tersimpan sebagai plaintext di file yang dilacak Git. Seluruh credential terkait wajib dirotasi, dipindahkan ke Cloudflare Secrets, dan dihapus dari riwayat Git sebelum production.
+- Storefront `Valentine-Platform` perlu dideploy ke production agar rute `/catalog/storybook` aktif di `for-you-always.my.id`.
+- `gross_amount` di gateway belum dicocokkan secara ketat dengan akumulasi `price × quantity` dari `item_details`.
+- Webhook gateway memverifikasi transaksi memakai `amount` dari payload webhook, tetapi belum mencocokkannya dengan `gross_amount` order yang tersimpan di DB.
+- Respons Resend belum diverifikasi dengan `response.ok` dan belum ada mekanisme antrean / retry jika pengiriman email gagal.
+- QA perangkat fisik (iPhone Safari dan Android Chrome) untuk kado dan Studio Storybook masih perlu dilakukan (safe area, autoplay audio/video, cropper, kamera Atlas, dan download QR).
 
-### Kesimpulan payment
+### Kesimpulan
 
-Alur otomatis sudah dirancang di source lokal, tetapi **belum terintegrasi di production dan belum aman untuk menerima pembayaran Storybook**. Email memang dijadwalkan otomatis setelah payment terverifikasi dan proyek berhasil dibuat, tetapi belum memiliki jaminan delivery atau retry. Jangan membuka checkout Storybook sebelum validasi total, verifikasi amount, failure state fulfillment, email delivery tracking/retry, rotasi secret, deployment gateway/storefront, dan satu transaksi sandbox end-to-end lulus.
+Pipeline pembayaran dan fulfillment otomatis Storybook sudah terhubung, dideploy di production, dan diverifikasi lulus pada tahap sandbox. Tahap berikutnya adalah deployment storefront, pengujian live transaction, penutupan sisa validasi amount/email retry, dan pass QA pada perangkat fisik.
+
