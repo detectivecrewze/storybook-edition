@@ -26,7 +26,7 @@
       fonts: Object.freeze({ display: "Bangers, Impact, sans-serif", body: "DM Sans, Arial, sans-serif", handwritten: "Caveat, cursive" }),
       textures: Object.freeze({ surface: "/assets/themes/spiderman/red-web-paper.webp", paper: "/assets/themes/spiderman/paper-grain.webp" }),
       assets: Object.freeze({
-        giftBox: "/assets/themes/spiderman/gift-box-v2.webp",
+        giftBox: "/assets/themes/spiderman/spiderman-box.webp",
         favicon: "/assets/themes/spiderman/spiderman-character.gif",
         openingEmblem: "/assets/themes/spiderman/spiderman-character.gif",
         greeting: "/assets/themes/spiderman/spiderman-character.gif",
@@ -85,7 +85,7 @@
       fonts: Object.freeze({ display: "Bangers, Impact, sans-serif", body: "DM Sans, Arial, sans-serif", handwritten: "Caveat, cursive" }),
       textures: Object.freeze({ surface: "/assets/themes/batman/gotham-night-paper.webp", paper: "/assets/themes/batman/paper-grain.webp" }),
       assets: Object.freeze({
-        giftBox: "/assets/themes/batman/gift-box-v2.webp",
+        giftBox: "/assets/themes/batman/batman-box.webp",
         favicon: "/assets/themes/batman/menu-hero-left.webp",
         openingEmblem: "/assets/themes/batman/noir-emblem.webp",
         greeting: "/assets/themes/batman/finale-friends.webp",
