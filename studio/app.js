@@ -19,8 +19,6 @@
   let draftRevision = 0;
   let dragging = null;
   let catalog = [];
-  let musicLibrarySelection = new Set();
-  let musicLibraryRestoreFocus = null;
   let musicPreviewTrackId = "";
   let giftUrl = "";
   let published = false;
@@ -615,22 +613,14 @@
   function updateMusicSlotSummary() {
     const count = draft?.music?.tracks?.length || 0;
     const summary = $("#music-slot-summary");
+    const playlistCount = $("#music-list-count");
     if (summary) summary.textContent = I18n.t("studio.musicSlots", { count, max: Project.MAX_MUSIC_TRACKS });
+    if (playlistCount) playlistCount.textContent = `${count} / ${Project.MAX_MUSIC_TRACKS}`;
     const upload = $("#music-upload");
     const uploadLabel = upload?.closest("label");
-    const reserved = $("#music-library-dialog")?.open ? musicLibrarySelection.size : 0;
-    const isFull = count + reserved >= Project.MAX_MUSIC_TRACKS;
+    const isFull = count >= Project.MAX_MUSIC_TRACKS;
     if (upload) upload.disabled = isFull;
     if (uploadLabel) uploadLabel.classList.toggle("is-disabled", isFull);
-  }
-  function updateMusicLibraryStatus() {
-    const selected = musicLibrarySelection.size;
-    const remaining = Math.max(0, Project.MAX_MUSIC_TRACKS - draft.music.tracks.length - selected);
-    const status = $("#music-library-selection-status");
-    const confirm = $("#confirm-music-library");
-    if (status) status.textContent = I18n.t("studio.musicSelectionStatus", { selected, available: remaining });
-    if (confirm) { confirm.textContent = I18n.t("studio.musicConfirm", { count: selected }); confirm.disabled = selected === 0; }
-    updateMusicSlotSummary();
   }
   function clearMusicCatalogPreviewState() {
     musicPreviewTrackId = "";
@@ -656,42 +646,26 @@
     catch { musicPreviewTrackId = ""; if (status) status.textContent = I18n.t("studio.musicPreviewError"); }
     syncMusicPreviewButtons();
   }
-  function toggleMusicLibrarySelection(track) {
-    const id = musicCatalogId(track);
-    if (!id || draft.music.tracks.some(item => item.audioUrl === track.audioUrl)) return;
-    if (musicLibrarySelection.has(id)) musicLibrarySelection.delete(id);
-    else {
-      const available = Math.max(0, Project.MAX_MUSIC_TRACKS - draft.music.tracks.length);
-      if (musicLibrarySelection.size >= available) return;
-      musicLibrarySelection.add(id);
-    }
-    renderCatalog(currentMusicFilter());
-    updateMusicLibraryStatus();
-  }
-  function openMusicLibrary(trigger) {
-    const dialog = $("#music-library-dialog");
-    if (!dialog || !draft) return;
-    syncAll(); musicLibrarySelection = new Set(); musicLibraryRestoreFocus = trigger || document.activeElement;
-    const search = $("#music-search"); if (search) search.value = "";
-    musicUploadStatus("", ""); renderCatalog(); updateMusicLibraryStatus();
-    dialog.showModal(); document.documentElement.classList.add("is-music-library-open"); document.body.classList.add("is-music-library-open");
-    requestAnimationFrame(() => search?.focus({ preventScroll: true }));
-  }
-  function closeMusicLibrary({ restoreFocus = true } = {}) {
-    const dialog = $("#music-library-dialog"); if (!dialog?.open) return;
-    stopMusicCatalogPreview(); dialog.close(); musicLibrarySelection = new Set();
-    document.documentElement.classList.remove("is-music-library-open"); document.body.classList.remove("is-music-library-open");
-    const returnFocus = musicLibraryRestoreFocus; musicLibraryRestoreFocus = null;
-    if (restoreFocus) requestAnimationFrame(() => returnFocus?.focus?.({ preventScroll: true }));
-  }
-  function confirmMusicLibrarySelection() {
-    const slots = Math.max(0, Project.MAX_MUSIC_TRACKS - draft.music.tracks.length);
-    [...musicLibrarySelection].slice(0, slots).forEach(id => {
-      const track = catalog.find(item => musicCatalogId(item) === id);
-      if (!track || draft.music.tracks.some(item => item.audioUrl === track.audioUrl)) return;
-      draft.music.tracks.push({ id: track.id || Project.makeId("track"), sourceType: "catalog", catalogId: track.id || "", audioUrl: track.audioUrl, coverUrl: track.coverUrl || "", title: track.title, artist: track.artist || "", quote: catalogQuote(track) });
+  function selectMusicSource(source) {
+    const nextSource = source === "upload" ? "upload" : "catalog";
+    $$('[data-music-source]').forEach(button => {
+      const active = button.dataset.musicSource === nextSource;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-selected", String(active));
     });
-    renderMusic(); queueSave({ immediatePreview: true }); closeMusicLibrary();
+    $$('[data-source-panel]').forEach(panel => {
+      const active = panel.dataset.sourcePanel === nextSource;
+      panel.hidden = !active;
+      panel.classList.toggle("is-active", active);
+    });
+    if (nextSource !== "catalog") stopMusicCatalogPreview();
+  }
+  function addCatalogTrack(track) {
+    if (!track?.audioUrl || draft.music.tracks.some(item => item.audioUrl === track.audioUrl)) return;
+    if (draft.music.tracks.length >= Project.MAX_MUSIC_TRACKS) return;
+    draft.music.tracks.push({ id: track.id || Project.makeId("track"), sourceType: "catalog", catalogId: track.id || "", audioUrl: track.audioUrl, coverUrl: track.coverUrl || "", title: track.title, artist: track.artist || "", quote: catalogQuote(track) });
+    renderMusic();
+    queueSave({ immediatePreview: true });
   }
   function renderMusic() {
     const host = $("#music-list"); host.replaceChildren(); draft.music.tracks.forEach((track, index) => {
@@ -729,25 +703,26 @@
       I18n.apply(card); host.append(fragment);
     });
     updateMusicSlotSummary();
+    renderCatalog(currentMusicFilter());
   }
   function renderCatalog(filter = "") {
     const host = $("#music-catalog"); if (!host) return;
     host.replaceChildren();
     const query = filter.trim().toLowerCase();
     const existingAudio = selectedCatalogAudioUrls();
-    const available = Math.max(0, Project.MAX_MUSIC_TRACKS - draft.music.tracks.length);
+    const isFull = draft.music.tracks.length >= Project.MAX_MUSIC_TRACKS;
     const matches = catalog.filter(track => !query || (String(track.title || "") + " " + String(track.artist || "")).toLowerCase().includes(query)).slice(0, 60);
     matches.forEach(track => {
-      const id = musicCatalogId(track); const alreadyAdded = existingAudio.has(track.audioUrl); const selected = musicLibrarySelection.has(id); const selectionFull = !selected && musicLibrarySelection.size >= available;
-      const row = document.createElement("article"); row.className = "catalog-track" + (selected ? " is-selected" : "") + (alreadyAdded ? " is-added" : "");
-      const cover = document.createElement("img"); cover.alt = ""; cover.src = track.coverUrl || "";
+      const id = musicCatalogId(track); const alreadyAdded = existingAudio.has(track.audioUrl);
+      const row = document.createElement("article"); row.className = "catalog-track" + (alreadyAdded ? " is-added" : ""); row.setAttribute("role", "option"); row.setAttribute("aria-selected", String(alreadyAdded));
+      const cover = document.createElement("img"); cover.alt = ""; cover.src = track.coverUrl || ""; cover.loading = "lazy";
       const copy = document.createElement("span"); const title = document.createElement("strong"); const artist = document.createElement("small"); title.textContent = track.title; artist.textContent = track.artist || ""; copy.append(title, artist);
       const preview = document.createElement("button"); preview.type = "button"; preview.className = "catalog-preview-button"; const isPlaying = musicPreviewTrackId === id && !$("#music-catalog-preview")?.paused; preview.classList.toggle("is-playing", isPlaying); preview.setAttribute("aria-label", I18n.t(isPlaying ? "studio.musicPauseTrack" : "studio.musicPreviewTrack", { title: track.title })); preview.innerHTML = '<span class="catalog-audio-icon" aria-hidden="true"><i></i></span><b></b>'; $("b", preview).textContent = I18n.t(isPlaying ? "studio.musicPause" : "studio.musicPreview"); preview.addEventListener("click", () => toggleMusicCatalogPreview(track));
-      const select = document.createElement("button"); select.type = "button"; select.className = "catalog-select-button"; select.disabled = alreadyAdded || selectionFull; select.setAttribute("aria-pressed", String(selected)); select.textContent = I18n.t(alreadyAdded ? "studio.musicAlreadyAdded" : selected ? "studio.musicSelected" : "studio.musicSelect"); select.addEventListener("click", () => toggleMusicLibrarySelection(track));
+      const select = document.createElement("button"); select.type = "button"; select.className = "catalog-select-button"; select.disabled = alreadyAdded || isFull; select.textContent = I18n.t(alreadyAdded ? "studio.musicAlreadyAdded" : "studio.musicSelect"); select.addEventListener("click", () => addCatalogTrack(track));
       row.append(cover, copy, preview, select); host.append(row);
     });
     if (!matches.length) { const empty = document.createElement("p"); empty.className = "music-catalog-empty"; empty.textContent = I18n.t("studio.musicNoResults"); host.append(empty); }
-    updateMusicLibraryStatus();
+    updateMusicSlotSummary();
   }
   function updateChapterCount() {
     const count = $("#chapter-count");
@@ -973,7 +948,7 @@
     const message = error?.message || "Terjadi kesalahan yang tidak diketahui.";
     alert(`${label} gagal diupload. ${message}\n\nBuka Console browser untuk detail error.`);
   }
-  function goToStep(step, scroll = true) { currentStep = Math.max(1, Math.min(9, step)); $$(".wizard-step").forEach(node => node.classList.toggle("is-active", Number(node.dataset.step) === currentStep)); $$("#step-list li").forEach(node => node.classList.toggle("is-active", Number($("button", node).dataset.stepTarget) === currentStep)); $("#previous-step").disabled = currentStep === 1; $("#next-step").hidden = currentStep === 9; $("#step-progress").textContent = `${currentStep} / 9`; $("#progress-fill").style.width = `${currentStep / 9 * 100}%`; if (scroll) scrollTo({ top: 0, behavior: "smooth" }); }
+  function goToStep(step, scroll = true) { const previousStep = currentStep; currentStep = Math.max(1, Math.min(9, step)); if (previousStep === 6 && currentStep !== 6) stopMusicCatalogPreview(); $$(".wizard-step").forEach(node => node.classList.toggle("is-active", Number(node.dataset.step) === currentStep)); $$("#step-list li").forEach(node => node.classList.toggle("is-active", Number($("button", node).dataset.stepTarget) === currentStep)); $("#previous-step").disabled = currentStep === 1; $("#next-step").hidden = currentStep === 9; $("#step-progress").textContent = `${currentStep} / 9`; $("#progress-fill").style.width = `${currentStep / 9 * 100}%`; if (scroll) scrollTo({ top: 0, behavior: "smooth" }); }
   function clearErrors() { $$('[data-error]').forEach(node => node.textContent = ""); }
   function showErrors(errors) { clearErrors(); Object.entries(errors).forEach(([key, value]) => { const node = $(`[data-error='${key}']`); if (node) node.textContent = value; }); const stepMap = { recipient: 1, sender: 1, reasons: 3, gallery: 4, atlas: 5, music: 6, letter: 7, modules: 8 }; const first = Object.keys(errors)[0]; if (first) goToStep(stepMap[first] || 1); }
   function webpFile(canvas, file, quality) { return new Promise((resolve, reject) => canvas.toBlob(blob => blob ? resolve(new File([blob], `${file.name.replace(/\.[^.]+$/, "") || "photo"}.webp`, { type: "image/webp" })) : reject(new Error("Foto tidak dapat dikonversi. Coba gunakan JPG, PNG, atau WEBP lain.")), "image/webp", quality)); }
@@ -1260,14 +1235,14 @@
     const input = $("#music-upload");
     const label = input?.closest("label");
     if (status) { status.className = state ? "is-" + state : ""; status.textContent = message; }
-    const usedSlots = (draft?.music?.tracks?.length || 0) + musicLibrarySelection.size;
+    const usedSlots = draft?.music?.tracks?.length || 0;
     const disabled = state === "uploading" || usedSlots >= Project.MAX_MUSIC_TRACKS;
     if (input) input.disabled = disabled;
     if (label) { label.classList.toggle("is-uploading", state === "uploading"); label.classList.toggle("is-disabled", disabled); }
   }
   async function uploadAudio(file) {
     if (!file) return;
-    const usedSlots = draft.music.tracks.length + musicLibrarySelection.size;
+    const usedSlots = draft.music.tracks.length;
     if (usedSlots >= Project.MAX_MUSIC_TRACKS) { musicUploadStatus("error", I18n.t("studio.maxTracks")); return; }
     if (file.size > 20 * 1024 * 1024) { musicUploadStatus("error", I18n.t("studio.maxAudio")); return; }
     musicUploadStatus("uploading", I18n.t("studio.musicUploading"));
@@ -1277,7 +1252,7 @@
       if (!result?.url) throw new Error(I18n.t("studio.uploadFailed"));
       draft.music.tracks.push({ id: Project.makeId("track"), sourceType: "upload", catalogId: "", audioUrl: result.url, coverUrl: "", title: file.name.replace(/\.[^.]+$/, ""), artist: "", quote: "" });
       musicUploadStatus("ready", I18n.t("studio.musicUploaded"));
-      renderMusic(); renderCatalog(currentMusicFilter()); queueSave({ immediatePreview: true });
+      renderMusic(); queueSave({ immediatePreview: true });
     } catch (error) {
       musicUploadStatus("error", error?.message || I18n.t("studio.uploadFailed"));
       reportUploadError("Audio", error);
@@ -1489,14 +1464,9 @@
       renderAtlas();
       queueSave();
     });
-    $("#open-music-library")?.addEventListener("click", event => openMusicLibrary(event.currentTarget));
+    $$('[data-music-source]').forEach(button => button.addEventListener("click", () => selectMusicSource(button.dataset.musicSource)));
     $("#music-search")?.addEventListener("input", event => renderCatalog(event.target.value));
     $("#music-upload")?.addEventListener("change", event => { const file = event.target.files[0]; event.target.value = ""; uploadAudio(file); });
-    $("#close-music-library")?.addEventListener("click", () => closeMusicLibrary());
-    $("#cancel-music-library")?.addEventListener("click", () => closeMusicLibrary());
-    $("#confirm-music-library")?.addEventListener("click", confirmMusicLibrarySelection);
-    const musicDialog = $("#music-library-dialog");
-    if (musicDialog) { musicDialog.addEventListener("cancel", event => { event.preventDefault(); closeMusicLibrary(); }); musicDialog.addEventListener("click", event => { if (event.target === musicDialog) closeMusicLibrary(); }); }
     const musicPreview = $("#music-catalog-preview");
     if (musicPreview) { musicPreview.addEventListener("play", syncMusicPreviewButtons); musicPreview.addEventListener("pause", syncMusicPreviewButtons); musicPreview.addEventListener("ended", () => { clearMusicCatalogPreviewState(); syncMusicPreviewButtons(); }); musicPreview.addEventListener("error", () => { musicPreviewTrackId = ""; const status = $("#music-preview-status"); if (status) status.textContent = I18n.t("studio.musicPreviewError"); syncMusicPreviewButtons(); }); }
     $("#previous-step").addEventListener("click", () => goToStep(currentStep - 1)); $("#next-step").addEventListener("click", () => { syncAll(); goToStep(currentStep + 1); }); $$("[data-step-target]").forEach(button => button.addEventListener("click", () => { syncAll(); goToStep(Number(button.dataset.stepTarget)); }));

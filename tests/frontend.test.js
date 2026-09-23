@@ -364,25 +364,31 @@ test("Atlas location popups are a theme-neutral comic dossier with protected per
 
 
 
-test("Studio soundtrack previews catalog audio, batch-selects up to three songs, and controls play order", () => {
+test("Studio soundtrack uses an inline Snoopy-style picker with preview, upload, and play order", () => {
   const html = read("studio/index.html"); const app = read("studio/app.js"); const css = read("studio/styles.css");
-  assert.match(html, /id="music-library-dialog"/);
+  assert.doesNotMatch(html, /id="music-library-dialog"/);
+  assert.match(html, /data-music-source="catalog"/);
+  assert.match(html, /data-music-source="upload"/);
+  assert.match(html, /data-source-panel="catalog"/);
+  assert.match(html, /data-source-panel="upload"/);
   assert.match(html, /id="music-catalog-preview"/);
-  const libraryDialog = html.slice(html.indexOf('id="music-library-dialog"'), html.indexOf('id="preset-confirm-dialog"'));
-  assert.match(libraryDialog, /id="music-upload"/);
-  assert.match(libraryDialog, /id="music-upload-status"/);
+  assert.match(html, /id="music-upload"/);
+  assert.match(html, /id="music-upload-status"/);
   assert.equal((html.match(/id="music-upload"/g) || []).length, 1);
   assert.match(html, /data-track-move="up"/);
   assert.match(html, /data-track-move="down"/);
-  assert.match(app, /function toggleMusicCatalogPreview/);
-  assert.match(app, /audio\.pause\(\); clearMusicCatalogPreviewState\(\); syncMusicPreviewButtons/);
-  assert.match(app, /addEventListener\("ended", \(\) => \{ clearMusicCatalogPreviewState\(\)/);
-  assert.match(app, /function confirmMusicLibrarySelection/);
-  assert.match(app, /Project.MAX_MUSIC_TRACKS - draft.music.tracks.length/);
-  assert.match(app, /draft.music.tracks.length \+ musicLibrarySelection.size/);
-  assert.match(css, /@media\(max-width:760px\).*?music-library-dialog\{inset:0;width:100%;max-width:none;height:100dvh/s);
-  assert.match(app, /swap\(draft\.music\.tracks/);
-  assert.match(css, /.music-library-dialog/);
+  assert.ok(app.includes("function toggleMusicCatalogPreview"));
+  assert.ok(app.includes("function selectMusicSource"));
+  assert.ok(app.includes("$$" + "('[data-music-source]').forEach"));
+  assert.ok(app.includes("function addCatalogTrack"));
+  assert.ok(app.includes("audio.pause(); clearMusicCatalogPreviewState(); syncMusicPreviewButtons();"));
+  assert.ok(app.includes('addEventListener("ended", () => { clearMusicCatalogPreviewState();'));
+  assert.ok(app.includes("draft.music.tracks.length >= Project.MAX_MUSIC_TRACKS"));
+  assert.doesNotMatch(app, /musicLibrarySelection|confirmMusicLibrarySelection|openMusicLibrary/);
+  assert.ok(app.includes("swap(draft.music.tracks"));
+  assert.ok(css.includes(".music-source-tabs"));
+  assert.ok(css.includes(".music-inline-grid"));
+  assert.ok(!css.includes(".music-library-dialog"));
   const soundtrack = html.slice(html.indexOf('class="wizard-step soundtrack-step"'), html.indexOf('data-step="7"'));
   assert.doesNotMatch(soundtrack, /♫|🎵|🎶/u);
 });
