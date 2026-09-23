@@ -362,3 +362,19 @@ test("Atlas location popups are a theme-neutral comic dossier with protected per
 
 
 
+
+
+test("Studio soundtrack previews catalog audio, batch-selects up to three songs, and controls play order", () => {
+  const html = read("studio/index.html"); const app = read("studio/app.js"); const css = read("studio/styles.css");
+  assert.match(html, /id="music-library-dialog"/);
+  assert.match(html, /id="music-catalog-preview"/);
+  assert.match(html, /data-track-move="up"/);
+  assert.match(html, /data-track-move="down"/);
+  assert.match(app, /function toggleMusicCatalogPreview/);
+  assert.match(app, /function confirmMusicLibrarySelection/);
+  assert.match(app, /Project.MAX_MUSIC_TRACKS - draft.music.tracks.length/);
+  assert.match(app, /swap\(draft\.music\.tracks/);
+  assert.match(css, /.music-library-dialog/);
+  const soundtrack = html.slice(html.indexOf('class="wizard-step soundtrack-step"'), html.indexOf('data-step="7"'));
+  assert.doesNotMatch(soundtrack, /♫|🎵|🎶/u);
+});
