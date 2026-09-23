@@ -44,23 +44,28 @@
             <div><p class="soundtrack-kicker" data-i18n="studio.soundtrackKicker">IRINGAN CERITA</p><h2 id="soundtrack-intro-title" data-i18n="studio.soundtrackTitle">Pilih lagu untuk setiap kenangan</h2><p data-i18n="studio.soundtrackHelp">Pilih sampai tiga lagu, lalu atur judul, artis, cover, dan catatan personalnya.</p></div>
             <span class="soundtrack-vinyl-mark" aria-hidden="true"><i></i></span>
           </section>
-          <div class="music-source-tabs" role="tablist" data-i18n-aria-label="studio.musicSourceLabel" aria-label="Sumber musik">
-            <button class="is-active" id="music-catalog-tab" type="button" role="tab" aria-selected="true" aria-controls="music-catalog-panel" data-music-source="catalog" data-i18n="studio.musicCatalogTab">Pilih dari katalog</button>
-            <button id="music-upload-tab" type="button" role="tab" aria-selected="false" aria-controls="music-upload-panel" data-music-source="upload" data-i18n="studio.musicUploadTab">Upload MP3</button>
+          <button class="music-picker-toggle" id="music-picker-toggle" type="button" aria-expanded="true" aria-controls="music-picker-content">
+            <span><b id="music-picker-toggle-label" data-i18n="studio.musicPickerMinimize">Minimize pilihan musik</b><small id="music-picker-toggle-summary"></small></span><i aria-hidden="true"></i>
+          </button>
+          <div class="music-picker-content" id="music-picker-content">
+            <div class="music-source-tabs" role="tablist" data-i18n-aria-label="studio.musicSourceLabel" aria-label="Sumber musik">
+              <button class="is-active" id="music-catalog-tab" type="button" role="tab" aria-selected="true" aria-controls="music-catalog-panel" data-music-source="catalog" data-i18n="studio.musicCatalogTab">Pilih dari katalog</button>
+              <button id="music-upload-tab" type="button" role="tab" aria-selected="false" aria-controls="music-upload-panel" data-music-source="upload" data-i18n="studio.musicUploadTab">Upload MP3</button>
+            </div>
+            <section class="music-source-panel is-active" id="music-catalog-panel" role="tabpanel" aria-labelledby="music-catalog-tab" data-source-panel="catalog">
+              <header class="music-source-heading"><div><p data-i18n="studio.musicLibraryKicker">KATALOG SOUNDTRACK</p><h2 data-i18n="studio.musicLibraryTitle">Dengarkan sebelum memilih</h2><span data-i18n="studio.musicCatalogInlineHelp">Preview lagu, lalu tambahkan langsung ke playlist. Kamu bisa memilih hingga tiga lagu.</span></div><strong id="music-slot-summary"></strong></header>
+              <label class="field music-library-search"><span data-i18n="studio.searchCatalog">Cari katalog</span><input id="music-search" type="search" data-i18n-placeholder="studio.searchPlaceholder" placeholder="Cari judul atau artis..." autocomplete="off"></label>
+              <div class="catalog-grid music-inline-grid" id="music-catalog" role="listbox" data-i18n-aria-label="studio.musicCatalogTab" aria-label="Katalog musik"></div>
+            </section>
+            <section class="music-source-panel music-upload-source" id="music-upload-panel" role="tabpanel" aria-labelledby="music-upload-tab" data-source-panel="upload" hidden>
+              <span class="music-upload-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v4.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V14"/></svg></span>
+              <div><p data-i18n="studio.musicUpload">Upload MP3 sendiri</p><h2 data-i18n="studio.musicUploadTitle">Tambahkan lagu milikmu</h2><span data-i18n="studio.musicUploadHint">MP3 maksimal 20 MB. Lagu langsung masuk ke daftar setelah upload selesai.</span></div>
+              <label class="upload-button music-inline-upload"><span data-i18n="studio.uploadMp3">Upload MP3</span><input id="music-upload" type="file" accept="audio/mpeg,.mp3" hidden></label>
+              <p id="music-upload-status" role="status" aria-live="polite"></p>
+            </section>
+            <audio id="music-catalog-preview" preload="metadata"></audio>
+            <p class="music-preview-status" id="music-preview-status" role="status" aria-live="polite"></p>
           </div>
-          <section class="music-source-panel is-active" id="music-catalog-panel" role="tabpanel" aria-labelledby="music-catalog-tab" data-source-panel="catalog">
-            <header class="music-source-heading"><div><p data-i18n="studio.musicLibraryKicker">KATALOG SOUNDTRACK</p><h2 data-i18n="studio.musicLibraryTitle">Dengarkan sebelum memilih</h2><span data-i18n="studio.musicCatalogInlineHelp">Preview lagu, lalu tambahkan langsung ke playlist. Kamu bisa memilih hingga tiga lagu.</span></div><strong id="music-slot-summary"></strong></header>
-            <label class="field music-library-search"><span data-i18n="studio.searchCatalog">Cari katalog</span><input id="music-search" type="search" data-i18n-placeholder="studio.searchPlaceholder" placeholder="Cari judul atau artis..." autocomplete="off"></label>
-            <div class="catalog-grid music-inline-grid" id="music-catalog" role="listbox" data-i18n-aria-label="studio.musicCatalogTab" aria-label="Katalog musik"></div>
-          </section>
-          <section class="music-source-panel music-upload-source" id="music-upload-panel" role="tabpanel" aria-labelledby="music-upload-tab" data-source-panel="upload" hidden>
-            <span class="music-upload-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 16V4m0 0L7.5 8.5M12 4l4.5 4.5M5 14v4.5A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5V14"/></svg></span>
-            <div><p data-i18n="studio.musicUpload">Upload MP3 sendiri</p><h2 data-i18n="studio.musicUploadTitle">Tambahkan lagu milikmu</h2><span data-i18n="studio.musicUploadHint">MP3 maksimal 20 MB. Lagu langsung masuk ke daftar setelah upload selesai.</span></div>
-            <label class="upload-button music-inline-upload"><span data-i18n="studio.uploadMp3">Upload MP3</span><input id="music-upload" type="file" accept="audio/mpeg,.mp3" hidden></label>
-            <p id="music-upload-status" role="status" aria-live="polite"></p>
-          </section>
-          <audio id="music-catalog-preview" preload="metadata"></audio>
-          <p class="music-preview-status" id="music-preview-status" role="status" aria-live="polite"></p>
           <header class="music-playlist-heading"><div><p data-i18n="studio.musicPlaylistKicker">PLAYLIST KADO</p><h2 data-i18n="studio.musicPlaylistTitle">Lagu yang sudah dipilih</h2><span data-i18n="studio.musicOrderHelp">Gunakan panah di setiap kartu untuk menentukan lagu yang diputar lebih dulu.</span></div><strong id="music-list-count">0 / 3</strong></header>
           <div class="repeat-list" id="music-list"></div>
           <p class="section-error" data-error="music"></p>

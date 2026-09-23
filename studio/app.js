@@ -20,6 +20,8 @@
   let dragging = null;
   let catalog = [];
   let musicPreviewTrackId = "";
+  let musicPickerExpanded = true;
+  let musicPickerInitialized = false;
   let giftUrl = "";
   let published = false;
   const mediaDeliveryErrors = new Set();
@@ -621,6 +623,31 @@
     const isFull = count >= Project.MAX_MUSIC_TRACKS;
     if (upload) upload.disabled = isFull;
     if (uploadLabel) uploadLabel.classList.toggle("is-disabled", isFull);
+    const toggleSummary = $("#music-picker-toggle-summary");
+    if (toggleSummary) toggleSummary.textContent = I18n.t("studio.musicSlots", { count, max: Project.MAX_MUSIC_TRACKS });
+  }
+  function setMusicPickerExpanded(expanded, { remember = true } = {}) {
+    const content = $("#music-picker-content");
+    const button = $("#music-picker-toggle");
+    if (!content || !button) return;
+    musicPickerExpanded = Boolean(expanded);
+    if (remember) musicPickerInitialized = true;
+    content.hidden = !musicPickerExpanded;
+    button.classList.toggle("is-collapsed", !musicPickerExpanded);
+    button.setAttribute("aria-expanded", String(musicPickerExpanded));
+    const label = $("#music-picker-toggle-label");
+    const summary = $("#music-picker-toggle-summary");
+    const count = draft?.music?.tracks?.length || 0;
+    if (label) label.textContent = I18n.t(musicPickerExpanded ? "studio.musicPickerMinimize" : "studio.musicPickerOpen");
+    if (summary) summary.textContent = I18n.t("studio.musicSlots", { count, max: Project.MAX_MUSIC_TRACKS });
+    if (!musicPickerExpanded) stopMusicCatalogPreview();
+  }
+  function initializeMusicPicker() {
+    if (!musicPickerInitialized) {
+      musicPickerExpanded = (draft?.music?.tracks?.length || 0) < Project.MAX_MUSIC_TRACKS;
+      musicPickerInitialized = true;
+    }
+    setMusicPickerExpanded(musicPickerExpanded, { remember: false });
   }
   function clearMusicCatalogPreviewState() {
     musicPreviewTrackId = "";
@@ -665,6 +692,7 @@
     if (draft.music.tracks.length >= Project.MAX_MUSIC_TRACKS) return;
     draft.music.tracks.push({ id: track.id || Project.makeId("track"), sourceType: "catalog", catalogId: track.id || "", audioUrl: track.audioUrl, coverUrl: track.coverUrl || "", title: track.title, artist: track.artist || "", quote: catalogQuote(track) });
     renderMusic();
+    if (draft.music.tracks.length >= Project.MAX_MUSIC_TRACKS) setMusicPickerExpanded(false);
     queueSave({ immediatePreview: true });
   }
   function renderMusic() {
@@ -825,7 +853,7 @@
     I18n.apply(); $("#studio-language").value = draft.settings.language; renderThemes(); renderOccasions();
     $("#recipient").value = draft.identity.recipient; $("#sender").value = draft.identity.sender; const eventDateEl = $("#event-date"); if (eventDateEl) eventDateEl.value = draft.identity.eventDate;
     $("#opening-eyebrow").value = draft.opening.eyebrow; $("#opening-title").value = draft.opening.title; $("#opening-message").value = draft.opening.message; renderOpeningPanels();
-    renderReasons(); renderGallery(); renderAtlas(); renderMusic(); $("#letter-greeting").value = draft.letter.greeting; $("#letter-body").value = draft.letter.paragraphs.join("\n\n"); $("#letter-signoff").value = draft.letter.signoff;
+    renderReasons(); renderGallery(); renderAtlas(); renderMusic(); initializeMusicPicker(); $("#letter-greeting").value = draft.letter.greeting; $("#letter-body").value = draft.letter.paragraphs.join("\n\n"); $("#letter-signoff").value = draft.letter.signoff;
     renderModules(); $("#finale-title").value = draft.finale.title; $("#finale-message").value = draft.finale.message; $("#finale-signoff").value = draft.finale.signoff; updateGiftResult(); goToStep(currentStep, false); sendPreview();
   }
   function syncAll() {
@@ -1252,7 +1280,9 @@
       if (!result?.url) throw new Error(I18n.t("studio.uploadFailed"));
       draft.music.tracks.push({ id: Project.makeId("track"), sourceType: "upload", catalogId: "", audioUrl: result.url, coverUrl: "", title: file.name.replace(/\.[^.]+$/, ""), artist: "", quote: "" });
       musicUploadStatus("ready", I18n.t("studio.musicUploaded"));
-      renderMusic(); queueSave({ immediatePreview: true });
+      renderMusic();
+      if (draft.music.tracks.length >= Project.MAX_MUSIC_TRACKS) setMusicPickerExpanded(false);
+      queueSave({ immediatePreview: true });
     } catch (error) {
       musicUploadStatus("error", error?.message || I18n.t("studio.uploadFailed"));
       reportUploadError("Audio", error);
@@ -1464,6 +1494,7 @@
       renderAtlas();
       queueSave();
     });
+    $("#music-picker-toggle")?.addEventListener("click", () => setMusicPickerExpanded(!musicPickerExpanded));
     $$('[data-music-source]').forEach(button => button.addEventListener("click", () => selectMusicSource(button.dataset.musicSource)));
     $("#music-search")?.addEventListener("input", event => renderCatalog(event.target.value));
     $("#music-upload")?.addEventListener("change", event => { const file = event.target.files[0]; event.target.value = ""; uploadAudio(file); });

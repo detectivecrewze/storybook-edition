@@ -371,6 +371,8 @@ test("Studio soundtrack uses an inline Snoopy-style picker with preview, upload,
   assert.match(html, /data-music-source="upload"/);
   assert.match(html, /data-source-panel="catalog"/);
   assert.match(html, /data-source-panel="upload"/);
+  assert.match(html, /id="music-picker-toggle"[^>]+aria-expanded="true"/);
+  assert.match(html, /id="music-picker-content"/);
   assert.match(html, /id="music-catalog-preview"/);
   assert.match(html, /id="music-upload"/);
   assert.match(html, /id="music-upload-status"/);
@@ -379,6 +381,8 @@ test("Studio soundtrack uses an inline Snoopy-style picker with preview, upload,
   assert.match(html, /data-track-move="down"/);
   assert.ok(app.includes("function toggleMusicCatalogPreview"));
   assert.ok(app.includes("function selectMusicSource"));
+  assert.ok(app.includes("function setMusicPickerExpanded"));
+  assert.ok(app.includes("function initializeMusicPicker"));
   assert.ok(app.includes("$$" + "('[data-music-source]').forEach"));
   assert.ok(app.includes("function addCatalogTrack"));
   assert.ok(app.includes("audio.pause(); clearMusicCatalogPreviewState(); syncMusicPreviewButtons();"));
@@ -386,6 +390,8 @@ test("Studio soundtrack uses an inline Snoopy-style picker with preview, upload,
   assert.ok(app.includes("draft.music.tracks.length >= Project.MAX_MUSIC_TRACKS"));
   assert.doesNotMatch(app, /musicLibrarySelection|confirmMusicLibrarySelection|openMusicLibrary/);
   assert.ok(app.includes("swap(draft.music.tracks"));
+  assert.ok(css.includes(".music-picker-toggle"));
+  assert.ok(css.includes(".music-picker-content[hidden]"));
   assert.ok(css.includes(".music-source-tabs"));
   assert.ok(css.includes(".music-inline-grid"));
   assert.ok(!css.includes(".music-library-dialog"));
