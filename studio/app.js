@@ -632,13 +632,16 @@
     if (confirm) { confirm.textContent = I18n.t("studio.musicConfirm", { count: selected }); confirm.disabled = selected === 0; }
     updateMusicSlotSummary();
   }
+  function clearMusicCatalogPreviewState() {
+    musicPreviewTrackId = "";
+    const status = $("#music-preview-status");
+    if (status) status.textContent = "";
+  }
   function stopMusicCatalogPreview({ clearSource = true } = {}) {
     const audio = $("#music-catalog-preview");
     if (!audio) return;
     audio.pause();
-    if (clearSource) { audio.removeAttribute("src"); audio.load(); musicPreviewTrackId = ""; }
-    const status = $("#music-preview-status");
-    if (status && clearSource) status.textContent = "";
+    if (clearSource) { audio.removeAttribute("src"); audio.load(); clearMusicCatalogPreviewState(); }
   }
   function syncMusicPreviewButtons() { renderCatalog(currentMusicFilter()); }
   async function toggleMusicCatalogPreview(track) {
@@ -646,7 +649,7 @@
     const status = $("#music-preview-status");
     if (!audio || !track?.audioUrl) return;
     const id = musicCatalogId(track);
-    if (musicPreviewTrackId === id && !audio.paused) { audio.pause(); syncMusicPreviewButtons(); return; }
+    if (musicPreviewTrackId === id && !audio.paused) { audio.pause(); clearMusicCatalogPreviewState(); syncMusicPreviewButtons(); return; }
     if (musicPreviewTrackId !== id) { audio.pause(); audio.src = track.audioUrl; audio.load(); musicPreviewTrackId = id; }
     if (status) status.textContent = I18n.t("studio.musicPreviewLoading", { title: track.title });
     try { await audio.play(); if (status) status.textContent = I18n.t("studio.musicPreviewNow", { title: track.title }); }
@@ -1495,7 +1498,7 @@
     const musicDialog = $("#music-library-dialog");
     if (musicDialog) { musicDialog.addEventListener("cancel", event => { event.preventDefault(); closeMusicLibrary(); }); musicDialog.addEventListener("click", event => { if (event.target === musicDialog) closeMusicLibrary(); }); }
     const musicPreview = $("#music-catalog-preview");
-    if (musicPreview) { musicPreview.addEventListener("play", syncMusicPreviewButtons); musicPreview.addEventListener("pause", syncMusicPreviewButtons); musicPreview.addEventListener("ended", () => { musicPreviewTrackId = ""; syncMusicPreviewButtons(); }); musicPreview.addEventListener("error", () => { musicPreviewTrackId = ""; const status = $("#music-preview-status"); if (status) status.textContent = I18n.t("studio.musicPreviewError"); syncMusicPreviewButtons(); }); }
+    if (musicPreview) { musicPreview.addEventListener("play", syncMusicPreviewButtons); musicPreview.addEventListener("pause", syncMusicPreviewButtons); musicPreview.addEventListener("ended", () => { clearMusicCatalogPreviewState(); syncMusicPreviewButtons(); }); musicPreview.addEventListener("error", () => { musicPreviewTrackId = ""; const status = $("#music-preview-status"); if (status) status.textContent = I18n.t("studio.musicPreviewError"); syncMusicPreviewButtons(); }); }
     $("#previous-step").addEventListener("click", () => goToStep(currentStep - 1)); $("#next-step").addEventListener("click", () => { syncAll(); goToStep(currentStep + 1); }); $$("[data-step-target]").forEach(button => button.addEventListener("click", () => { syncAll(); goToStep(Number(button.dataset.stepTarget)); }));
     $$("[data-preview-step]").forEach(button => button.addEventListener("click", () => openPreview(PREVIEW_TARGETS[Number(button.dataset.previewStep)], button)));
     $$("[data-example-step]").forEach(button => button.addEventListener("click", () => openPreview(PREVIEW_TARGETS[Number(button.dataset.exampleStep)], button, { example: true })));

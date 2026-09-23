@@ -375,6 +375,8 @@ test("Studio soundtrack previews catalog audio, batch-selects up to three songs,
   assert.match(html, /data-track-move="up"/);
   assert.match(html, /data-track-move="down"/);
   assert.match(app, /function toggleMusicCatalogPreview/);
+  assert.match(app, /audio\.pause\(\); clearMusicCatalogPreviewState\(\); syncMusicPreviewButtons/);
+  assert.match(app, /addEventListener\("ended", \(\) => \{ clearMusicCatalogPreviewState\(\)/);
   assert.match(app, /function confirmMusicLibrarySelection/);
   assert.match(app, /Project.MAX_MUSIC_TRACKS - draft.music.tracks.length/);
   assert.match(app, /draft.music.tracks.length \+ musicLibrarySelection.size/);
