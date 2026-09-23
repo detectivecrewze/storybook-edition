@@ -368,11 +368,17 @@ test("Studio soundtrack previews catalog audio, batch-selects up to three songs,
   const html = read("studio/index.html"); const app = read("studio/app.js"); const css = read("studio/styles.css");
   assert.match(html, /id="music-library-dialog"/);
   assert.match(html, /id="music-catalog-preview"/);
+  const libraryDialog = html.slice(html.indexOf('id="music-library-dialog"'), html.indexOf('id="preset-confirm-dialog"'));
+  assert.match(libraryDialog, /id="music-upload"/);
+  assert.match(libraryDialog, /id="music-upload-status"/);
+  assert.equal((html.match(/id="music-upload"/g) || []).length, 1);
   assert.match(html, /data-track-move="up"/);
   assert.match(html, /data-track-move="down"/);
   assert.match(app, /function toggleMusicCatalogPreview/);
   assert.match(app, /function confirmMusicLibrarySelection/);
   assert.match(app, /Project.MAX_MUSIC_TRACKS - draft.music.tracks.length/);
+  assert.match(app, /draft.music.tracks.length \+ musicLibrarySelection.size/);
+  assert.match(css, /@media\(max-width:760px\).*?music-library-dialog\{inset:0;width:100%;max-width:none;height:100dvh/s);
   assert.match(app, /swap\(draft\.music\.tracks/);
   assert.match(css, /.music-library-dialog/);
   const soundtrack = html.slice(html.indexOf('class="wizard-step soundtrack-step"'), html.indexOf('data-step="7"'));

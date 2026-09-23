@@ -618,8 +618,10 @@
     if (summary) summary.textContent = I18n.t("studio.musicSlots", { count, max: Project.MAX_MUSIC_TRACKS });
     const upload = $("#music-upload");
     const uploadLabel = upload?.closest("label");
-    if (upload) upload.disabled = count >= Project.MAX_MUSIC_TRACKS;
-    if (uploadLabel) uploadLabel.classList.toggle("is-disabled", count >= Project.MAX_MUSIC_TRACKS);
+    const reserved = $("#music-library-dialog")?.open ? musicLibrarySelection.size : 0;
+    const isFull = count + reserved >= Project.MAX_MUSIC_TRACKS;
+    if (upload) upload.disabled = isFull;
+    if (uploadLabel) uploadLabel.classList.toggle("is-disabled", isFull);
   }
   function updateMusicLibraryStatus() {
     const selected = musicLibrarySelection.size;
@@ -628,6 +630,7 @@
     const confirm = $("#confirm-music-library");
     if (status) status.textContent = I18n.t("studio.musicSelectionStatus", { selected, available: remaining });
     if (confirm) { confirm.textContent = I18n.t("studio.musicConfirm", { count: selected }); confirm.disabled = selected === 0; }
+    updateMusicSlotSummary();
   }
   function stopMusicCatalogPreview({ clearSource = true } = {}) {
     const audio = $("#music-catalog-preview");
@@ -667,7 +670,7 @@
     if (!dialog || !draft) return;
     syncAll(); musicLibrarySelection = new Set(); musicLibraryRestoreFocus = trigger || document.activeElement;
     const search = $("#music-search"); if (search) search.value = "";
-    renderCatalog(); updateMusicLibraryStatus();
+    musicUploadStatus("", ""); renderCatalog(); updateMusicLibraryStatus();
     dialog.showModal(); document.documentElement.classList.add("is-music-library-open"); document.body.classList.add("is-music-library-open");
     requestAnimationFrame(() => search?.focus({ preventScroll: true }));
   }
@@ -1249,7 +1252,34 @@
       reportUploadError("Foto lokasi", error);
     }
   }
-  async function uploadAudio(file) { if (!file) return; if (draft.music.tracks.length >= Project.MAX_MUSIC_TRACKS) return alert(I18n.t("studio.maxTracks")); if (file.size > 20 * 1024 * 1024) return alert(I18n.t("studio.maxAudio")); try { console.info("[Storybook Studio] Preparing audio", { projectId, size: file.size, type: file.type }); const result = await api.upload(file, "audio"); draft.music.tracks.push({ id: Project.makeId("track"), sourceType: "upload", catalogId: "", audioUrl: result.url, coverUrl: "", title: file.name.replace(/\.[^.]+$/, ""), artist: "", quote: "" }); renderMusic(); queueSave(); } catch (error) { reportUploadError("Audio", error); } }
+  function musicUploadStatus(state, message = "") {
+    const status = $("#music-upload-status");
+    const input = $("#music-upload");
+    const label = input?.closest("label");
+    if (status) { status.className = state ? "is-" + state : ""; status.textContent = message; }
+    const usedSlots = (draft?.music?.tracks?.length || 0) + musicLibrarySelection.size;
+    const disabled = state === "uploading" || usedSlots >= Project.MAX_MUSIC_TRACKS;
+    if (input) input.disabled = disabled;
+    if (label) { label.classList.toggle("is-uploading", state === "uploading"); label.classList.toggle("is-disabled", disabled); }
+  }
+  async function uploadAudio(file) {
+    if (!file) return;
+    const usedSlots = draft.music.tracks.length + musicLibrarySelection.size;
+    if (usedSlots >= Project.MAX_MUSIC_TRACKS) { musicUploadStatus("error", I18n.t("studio.maxTracks")); return; }
+    if (file.size > 20 * 1024 * 1024) { musicUploadStatus("error", I18n.t("studio.maxAudio")); return; }
+    musicUploadStatus("uploading", I18n.t("studio.musicUploading"));
+    try {
+      console.info("[Storybook Studio] Preparing audio", { projectId, size: file.size, type: file.type });
+      const result = await api.upload(file, "audio");
+      if (!result?.url) throw new Error(I18n.t("studio.uploadFailed"));
+      draft.music.tracks.push({ id: Project.makeId("track"), sourceType: "upload", catalogId: "", audioUrl: result.url, coverUrl: "", title: file.name.replace(/\.[^.]+$/, ""), artist: "", quote: "" });
+      musicUploadStatus("ready", I18n.t("studio.musicUploaded"));
+      renderMusic(); renderCatalog(currentMusicFilter()); queueSave({ immediatePreview: true });
+    } catch (error) {
+      musicUploadStatus("error", error?.message || I18n.t("studio.uploadFailed"));
+      reportUploadError("Audio", error);
+    }
+  }
   function roundedCanvasRect(context, x, y, width, height, radius) {
     const safeRadius = Math.min(radius, width / 2, height / 2);
     context.beginPath();
