@@ -166,7 +166,7 @@
         if (e?.originalEvent) {
           root.L?.DomEvent?.stopPropagation?.(e);
         }
-        const popupWasOpen = activeIndex === index && markers[index]?.isPopupOpen?.();
+        const popupWasOpen = activeIndex === index && markers[index]?.isPopupOpen?.() && map?.getZoom() >= 15;
         cancelAnimation();
         if (popupWasOpen) {
           openLocationPopup(index, { compact: false });
@@ -191,19 +191,19 @@
       marker?.openPopup();
       later(() => {
         if (destroyed || !map || !marker?.isPopupOpen?.()) return;
-        const popup = map.getPopup()?.getElement?.();
         const container = map.getContainer?.();
+        const popup = marker?.getPopup?.()?.getElement?.() || map?._popup?.getElement?.() || container?.querySelector?.(".leaflet-popup");
         if (!popup || !container) return;
         const frameBounds = container.getBoundingClientRect();
         const popupBounds = popup.getBoundingClientRect();
-        const minHeadroom = container.clientWidth <= 600 ? 12 : 16;
+        const minHeadroom = container.clientWidth <= 600 ? 32 : 36;
         const topOverflow = frameBounds.top + minHeadroom - popupBounds.top;
-        const bottomOverflow = popupBounds.bottom - (frameBounds.bottom - 12);
+        const bottomOverflow = popupBounds.bottom - (frameBounds.bottom - 14);
         // Leaflet autoPan remains disabled. This is a measured, one-time
         // correction after our comic card has its final rendered height.
         if (topOverflow > 0) map.panBy([0, -topOverflow], { animate: false });
         else if (bottomOverflow > 0) map.panBy([0, bottomOverflow], { animate: false });
-      }, 0);
+      }, 40);
     }
 
     function getCameraCenterForPin(location, zoom) {
@@ -213,10 +213,9 @@
       // Place the pin in the lower portion of the map so the comic popup
       // has ample headroom above it and never touches or clips the top edge.
       const isMobile = size.x <= 600;
-      const ratio = isMobile ? 0.20 : 0.24;
-      const minOffset = isMobile ? 65 : 88;
-      const maxOffset = isMobile ? 95 : 130;
-      const offsetY = Math.min(maxOffset, Math.max(minOffset, Math.round(size.y * ratio)));
+      const bottomClearance = isMobile ? 65 : 85;
+      const targetPinY = Math.max(Math.round(size.y * 0.65), size.y - bottomClearance);
+      const offsetY = Math.max(isMobile ? 120 : 145, targetPinY - Math.round(size.y / 2));
       const cameraPoint = targetPoint.subtract([0, offsetY]);
       return map.unproject(cameraPoint, zoom);
     }
@@ -246,7 +245,7 @@
       const location = locations[activeIndex];
       current.textContent = `${activeIndex + 1} / ${locations.length}`;
       updateActiveMarker(activeIndex);
-      const targetZoom = 12;
+      const targetZoom = 15;
       const cameraCenter = getCameraCenterForPin(location, targetZoom);
 
       if (selectTimeout) {
@@ -323,7 +322,7 @@
         timers.add(t);
       });
 
-      const flyToPin = (index, zoom = 13, duration = 1.4) => new Promise(resolve => {
+      const flyToPin = (index, zoom = 15, duration = 1.4) => new Promise(resolve => {
         if (aborted || destroyed || !map) return resolve();
         activeIndex = index;
         current.textContent = `${index + 1} / ${locations.length}`;
@@ -358,7 +357,7 @@
 
         for (let i = 0; i < locations.length; i++) {
           if (aborted || destroyed) return;
-          await flyToPin(i, 12, 1.4);
+          await flyToPin(i, 15, 1.4);
           if (aborted || destroyed) return;
           if (i < locations.length - 1 || locations.length === 1) {
             await delay(1600);
@@ -384,6 +383,10 @@
 
     const revealActiveStory = () => {
       if (!popupCompact || !markers[activeIndex]?.isPopupOpen?.()) return false;
+      if (map && map.getZoom() < 15) {
+        select(activeIndex);
+        return true;
+      }
       openLocationPopup(activeIndex, { compact: false });
       return true;
     };
