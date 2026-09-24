@@ -223,9 +223,9 @@
     function draw() {
       stopCurrent(); const item = items[index]; let media;
       if (item.mediaType === "video") {
-        media = document.createElement("video"); media.controls = true; media.playsInline = true; media.preload = "metadata"; media.src = item.mediaUrl;
-        media.addEventListener("play", () => { resumeMusic = !storyAudio.paused; if (resumeMusic) storyAudio.pause(); });
-        media.addEventListener("pause", () => { if (resumeMusic) { storyAudio.play().catch(() => {}); resumeMusic = false; } });
+        media = document.createElement("video"); media.autoplay = true; media.loop = true; media.muted = true; media.defaultMuted = true; media.playsInline = true; media.controls = false; media.preload = "auto"; media.setAttribute("autoplay", ""); media.setAttribute("loop", ""); media.setAttribute("muted", ""); media.setAttribute("playsinline", ""); media.setAttribute("webkit-playsinline", ""); media.src = item.mediaUrl; media.addEventListener("loadeddata", () => { media.play().catch(() => {}); }, { once: true }); media.play().catch(() => {});
+
+
       } else { media = document.createElement("img"); media.loading = "eager"; media.alt = item.title || "Memory"; media.src = item.mediaUrl; }
       mediaHost.append(media); $("h3", shell).textContent = item.title || `Memory ${index + 1}`; const captionNode = $("p", shell); captionNode.textContent = item.caption || ""; captionNode.style.display = item.caption ? "" : "none"; $(".gallery-count", shell).textContent = `${index + 1} / ${items.length}`;
       $$(".gallery-dots button", shell).forEach((dot, dotIndex) => dot.classList.toggle("is-active", dotIndex === index));

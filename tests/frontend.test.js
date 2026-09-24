@@ -84,6 +84,18 @@ test("gift renderer is theme-neutral and customer media is constructed inside ro
   assert.match(app, /get\("preview"\) === "1"/);
 });
 
+test("gallery videos autoplay silently in a loop as live photos without interrupting soundtrack", () => {
+  const app = read("app.js");
+  const styles = read("styles.css");
+  assert.match(app, /item\.mediaType === "video"/);
+  assert.match(app, /media\.autoplay = true/);
+  assert.match(app, /media\.loop = true/);
+  assert.match(app, /media\.muted = true/);
+  assert.match(app, /media\.playsInline = true/);
+  assert.match(app, /media\.controls = false/);
+  assert.match(styles, /\.gallery-media video\s*\{[^}]*object-fit:\s*cover/);
+});
+
 test("menu character decorations are theme-driven and remain lazy until the menu renders", () => {
   const html = read("gift/index.html"); const app = read("app.js"); const themes = read("shared/themes.js");
   const giftBody = html.slice(html.indexOf("</head>") + "</head>".length);

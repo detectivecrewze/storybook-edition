@@ -51,7 +51,14 @@
       const noteScroll = element("div", "atlas-popup-note-scroll");
       noteScroll.tabIndex = 0;
       noteScroll.setAttribute("aria-label", language === "en" ? "Location story" : "Cerita lokasi");
-      noteScroll.append(element("p", "atlas-popup-note", location.note));
+      const paragraphs = String(location.note).split(/\r?\n\s*\r?\n/).map(p => p.trim()).filter(Boolean);
+      if (paragraphs.length > 1) {
+        paragraphs.forEach(paragraph => {
+          noteScroll.append(element("p", "atlas-popup-note", paragraph));
+        });
+      } else {
+        noteScroll.append(element("p", "atlas-popup-note", location.note));
+      }
       root.L?.DomEvent?.disableClickPropagation?.(noteScroll);
       root.L?.DomEvent?.disableScrollPropagation?.(noteScroll);
       copy.append(noteScroll);

@@ -219,9 +219,9 @@
     const source = item.mediaUrl;
     if (mediaDeliveryErrors.has(source)) { host.textContent = "MEDIA BELUM TERSEDIA"; host.classList.add("is-error"); return; }
     const media = document.createElement(item.mediaType === "video" ? "video" : "img");
-    if (item.mediaType === "video") { media.muted = true; media.playsInline = true; media.preload = "metadata"; }
+    if (item.mediaType === "video") { media.autoplay = true; media.loop = true; media.muted = true; media.defaultMuted = true; media.playsInline = true; media.preload = "auto"; media.setAttribute("autoplay", ""); media.setAttribute("loop", ""); media.setAttribute("muted", ""); media.setAttribute("playsinline", ""); media.setAttribute("webkit-playsinline", ""); }
     media.addEventListener("load", () => updateMediaDeliveryState(host, source, false), { once: true });
-    media.addEventListener("loadeddata", () => updateMediaDeliveryState(host, source, false), { once: true });
+    media.addEventListener("loadeddata", () => { updateMediaDeliveryState(host, source, false); if (item.mediaType === "video") media.play().catch(() => {}); }, { once: true });
     media.addEventListener("error", () => { host.replaceChildren(document.createTextNode("MEDIA BELUM TERSEDIA")); updateMediaDeliveryState(host, source, true); }, { once: true });
     media.src = source; host.append(media);
   }
@@ -451,20 +451,22 @@
     draft.atlas.locations.forEach((location, index) => {
       const fragment = $("#atlas-template").content.cloneNode(true); const card = $("article", fragment);
       card.dataset.id = location.id;
-      const label = $(".atlas-label", card); const locationInput = $(".atlas-location-input", card); const note = $(".atlas-note", card); const status = $(".atlas-status", card); const preview = $(".atlas-photo-preview", card); const removePhotoBtn = $(".remove-atlas-photo", card);
+      const label = $(".atlas-label", card); const locationInput = $(".atlas-location-input", card); const note = $(".atlas-note", card); const noteCount = $(".atlas-note-count", card); const status = $(".atlas-status", card); const preview = $(".atlas-photo-preview", card); const removePhotoBtn = $(".remove-atlas-photo", card);
       const numEl = $(".atlas-index-num", card); if (numEl) numEl.textContent = String(index + 1);
       $("[data-atlas-help]", card)?.addEventListener("click", event => openAtlasHelp(event.currentTarget));
       const moveUp = $('[data-move="up"]', card); if (moveUp) moveUp.disabled = index === 0;
       const moveDown = $('[data-move="down"]', card); if (moveDown) moveDown.disabled = index === draft.atlas.locations.length - 1;
       label.value = location.label; locationInput.value = Maps.validCoordinates(location.latitude, location.longitude) ? Maps.formatCoordinates(location.latitude, location.longitude) : location.mapsUrl; note.value = location.note;
+      const syncNoteCount = () => { if (noteCount) noteCount.textContent = String(note.value.length); };
+      syncNoteCount();
       setImagePreview(preview, { mediaType: "image", mediaUrl: location.photoUrl });
       if (removePhotoBtn) removePhotoBtn.hidden = !location.photoUrl;
       const getActiveLocation = () => draft.atlas.locations.find(entry => entry.id === location.id) || draft.atlas.locations[index] || location;
       const updateStatus = state => { const loc = getActiveLocation(); const result = atlasStatus(loc, state); status.className = `atlas-status is-${result.kind}`; status.textContent = `${result.kind === "valid" ? "✓" : result.kind === "invalid" ? "!" : "i"} ${result.text}`; };
       label.addEventListener("input", event => { const loc = getActiveLocation(); location.label = event.target.value; if (loc) loc.label = event.target.value; updateStatus(); queueSave(); });
       label.addEventListener("blur", () => { const loc = getActiveLocation(); location.label = label.value.trim(); if (loc) loc.label = label.value.trim(); queueSave(); });
-      note.addEventListener("input", event => { const loc = getActiveLocation(); location.note = event.target.value; if (loc) loc.note = event.target.value; queueSave(); });
-      note.addEventListener("blur", () => { const loc = getActiveLocation(); location.note = note.value.trim(); if (loc) loc.note = note.value.trim(); queueSave(); });
+      note.addEventListener("input", event => { const loc = getActiveLocation(); location.note = event.target.value; if (loc) loc.note = event.target.value; syncNoteCount(); queueSave(); });
+      note.addEventListener("blur", () => { const loc = getActiveLocation(); location.note = note.value.trim(); if (loc) loc.note = note.value.trim(); syncNoteCount(); queueSave(); });
       let resolveTimer = 0;
       const resolveLocation = (formatField = false) => {
         resolveTimer = 0; const value = locationInput.value.trim();
