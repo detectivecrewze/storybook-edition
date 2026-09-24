@@ -204,7 +204,9 @@ h1:focus, h2:focus, h3:focus, [tabindex="-1"]:focus { outline: none !important; 
 .progress-row { display: grid; grid-template-columns: 36px minmax(0,1fr) 36px; align-items: center; gap: 8px; color: var(--theme-muted); font-size: .68rem; font-weight: 750; }
 .seek { width: 100%; accent-color: var(--theme-primary); }
 .player-controls { display: flex; justify-content: center; align-items: center; gap: 18px; }
-.play-button { width: 58px; height: 58px; background: var(--theme-primary); color: white; }
+.play-button { width: 58px; height: 58px; display: inline-flex; align-items: center; justify-content: center; padding: 0; background: var(--theme-primary); color: white; }
+.play-button svg { display: block; width: 22px; height: 22px; fill: currentColor; }
+.play-button .play-icon { margin-left: 2px; }
 .playlist { display: grid; gap: 7px; }
 .playlist button { min-height: 52px; border: 1px solid color-mix(in srgb,var(--theme-ink) 20%,transparent); background: white; padding: 8px 12px; display: grid; grid-template-columns: 36px 1fr; grid-template-rows: auto auto; text-align: left; cursor: pointer; }
 .playlist button > span { grid-row: span 2; color: var(--theme-primary); font-weight: 900; align-self: center; }
