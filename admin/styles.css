@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "Torney Comic";
+  src: url("/assets/fonts/torney-comic.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 :root {
   --red: #c9182b;
   --dark: #25171c;
@@ -6,7 +14,7 @@
   --ink: #17191f;
   --muted: #756970;
   --yellow: #f3c84b;
-  font-family: "DM Sans", Arial, sans-serif;
+  font-family: "Torney Comic", Arial, sans-serif;
   color: var(--ink);
   background: #eee7e1;
 }

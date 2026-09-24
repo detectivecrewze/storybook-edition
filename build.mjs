@@ -25,6 +25,7 @@ const directories = [
   "admin",
   "rooms",
   "assets/data",
+  "assets/fonts",
   "assets/themes",
   "assets/vendor",
   "assets/spiderman",

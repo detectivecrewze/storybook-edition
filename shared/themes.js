@@ -23,7 +23,7 @@
         muted: "#6d6670"
       }),
       studio: Object.freeze({ topbar: "#23171b", sidebar: "#2d1b21" }),
-      fonts: Object.freeze({ display: "Bangers, Impact, sans-serif", body: "DM Sans, Arial, sans-serif", handwritten: "Caveat, cursive" }),
+      fonts: Object.freeze({ display: "Bangers, Impact, sans-serif", body: "Torney Comic, Arial, sans-serif", handwritten: "Caveat, cursive" }),
       textures: Object.freeze({ surface: "/assets/themes/spiderman/red-web-paper.webp", paper: "/assets/themes/spiderman/paper-grain.webp" }),
       assets: Object.freeze({
         giftBox: "/assets/themes/spiderman/spiderman-box.webp",
@@ -82,7 +82,7 @@
         muted: "#686b72"
       }),
       studio: Object.freeze({ topbar: "#09111c", sidebar: "#0b1522" }),
-      fonts: Object.freeze({ display: "Bangers, Impact, sans-serif", body: "DM Sans, Arial, sans-serif", handwritten: "Caveat, cursive" }),
+      fonts: Object.freeze({ display: "Bangers, Impact, sans-serif", body: "Torney Comic, Arial, sans-serif", handwritten: "Caveat, cursive" }),
       textures: Object.freeze({ surface: "/assets/themes/batman/gotham-night-paper.webp", paper: "/assets/themes/batman/paper-grain.webp" }),
       assets: Object.freeze({
         giftBox: "/assets/themes/batman/batman-box.webp",

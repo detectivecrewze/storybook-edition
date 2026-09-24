@@ -1,3 +1,11 @@
+@font-face {
+  font-family: "Torney Comic";
+  src: url("/assets/fonts/torney-comic.otf") format("opentype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+
 :root {
   --theme-primary: #c9182b;
   --theme-primary-dark: #7b0d1b;
@@ -8,7 +16,7 @@
   --theme-ink: #17191f;
   --theme-muted: #6d6670;
   --font-display: Bangers, Impact, sans-serif;
-  --font-body: "DM Sans", Arial, sans-serif;
+  --font-body: "Torney Comic", Arial, sans-serif;
   --font-hand: Caveat, cursive;
   --gallery-paper: #fffdf7;
   --gallery-media-paper: #fff9ef;

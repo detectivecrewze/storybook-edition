@@ -1391,7 +1391,7 @@
     context.globalAlpha = 1;
     context.fillStyle = palette.paper; roundedCanvasRect(context, 56, 54, 968, 1242, 42); context.fill();
     context.strokeStyle = palette.ink; context.lineWidth = 8; context.stroke();
-    context.fillStyle = palette.ink; context.font = '900 28px "DM Sans", sans-serif'; context.textAlign = "center"; context.textBaseline = "middle"; context.fillText(draft.settings.language === "en" ? "A LITTLE STORY FOR" : "CERITA KECIL UNTUK", 540, 142);
+    context.fillStyle = palette.ink; context.font = '900 28px "Torney Comic", sans-serif'; context.textAlign = "center"; context.textBaseline = "middle"; context.fillText(draft.settings.language === "en" ? "A LITTLE STORY FOR" : "CERITA KECIL UNTUK", 540, 142);
     context.font = '400 72px Bangers, Impact, sans-serif'; context.fillStyle = palette.primary; context.fillText(fitQrText(context, recipient, 760), 540, 218);
     drawQrSticker(context, artwork?.hero, 860, 190, 204, .08);
 
@@ -1400,10 +1400,10 @@
     drawQrHeartSeal(context, 540, 640, 54, palette.primary, "#fffdf5");
     drawQrSticker(context, artwork?.stickers?.[0], 146, 442, 138, -.12);
     drawQrSticker(context, artwork?.stickers?.[1], 928, 882, 136, .11);
-    context.fillStyle = palette.ink; context.font = '900 25px "DM Sans", sans-serif'; context.letterSpacing = "2px"; context.fillText(scanText, 540, 1022); context.letterSpacing = "0px";
+    context.fillStyle = palette.ink; context.font = '900 25px "Torney Comic", sans-serif'; context.letterSpacing = "2px"; context.fillText(scanText, 540, 1022); context.letterSpacing = "0px";
     context.fillStyle = palette.muted; context.font = '600 33px Caveat, cursive'; context.fillText(fitQrText(context, fromText + sender, 780), 540, 1087);
     context.fillStyle = palette.accent; context.fillRect(232, 1142, 616, 6);
-    context.fillStyle = palette.ink; context.font = '800 19px "DM Sans", sans-serif'; context.fillText(draft.settings.language === "en" ? "KEEP THIS LITTLE CHAPTER CLOSE" : "SIMPAN BAB KECIL INI DEKATMU", 540, 1190);
+    context.fillStyle = palette.ink; context.font = '800 19px "Torney Comic", sans-serif'; context.fillText(draft.settings.language === "en" ? "KEEP THIS LITTLE CHAPTER CLOSE" : "SIMPAN BAB KECIL INI DEKATMU", 540, 1190);
     return canvas;
   }
   async function buildQrCard(url, version) {
