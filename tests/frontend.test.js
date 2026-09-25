@@ -410,3 +410,15 @@ test("Studio soundtrack uses an inline Snoopy-style picker with preview, upload,
   const soundtrack = html.slice(html.indexOf('class="wizard-step soundtrack-step"'), html.indexOf('data-step="7"'));
   assert.doesNotMatch(soundtrack, /♫|🎵|🎶/u);
 });
+
+test("letter experience has no skip button and remains fully displayed once opened", () => {
+  const app = read("app.js");
+  const css = read("styles.css");
+  assert.doesNotMatch(app, /data-i18n="gift\.fullLetter"/);
+  assert.doesNotMatch(app, /Tampilkan seluruh surat/);
+  assert.match(app, /let letterOpened = false;/);
+  assert.match(app, /if \(letterOpened\)/);
+  assert.match(app, /envelope\.hidden = true/);
+  assert.match(app, /paper\.hidden = false/);
+  assert.doesNotMatch(css, /\.letter-paper \.text-button/);
+});

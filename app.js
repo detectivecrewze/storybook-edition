@@ -23,6 +23,7 @@
   let lastTrigger = null;
   const opened = new Set();
   let atlasVisited = false;
+  let letterOpened = false;
   function isFirstAtlasVisit() {
     // Keep the opening journey special on a fresh gift load, but do not replay
     // it when someone returns to Atlas from this page's story menu.
@@ -293,15 +294,55 @@
   }
   function renderLetter() {
     let timer = 0; let revealTimer = 0; const shell = document.createElement("div"); shell.className = "letter-experience";
-    shell.innerHTML = `<button class="envelope" type="button" aria-label="Open letter"><span class="envelope-flap"></span><span class="envelope-seal">✦</span></button><article class="letter-paper" hidden><h3></h3><div class="letter-body"></div><p class="letter-signoff"></p><button class="text-button" type="button" data-i18n="gift.fullLetter">Tampilkan seluruh surat</button></article>`;
-    const paper = $(".letter-paper", shell); const body = $(".letter-body", shell); const signoff = $(".letter-signoff", paper);
+    shell.innerHTML = `<button class="envelope" type="button" aria-label="Open letter"><span class="envelope-flap"></span><span class="envelope-seal">✦</span></button><article class="letter-paper" hidden><h3></h3><div class="letter-body"></div><p class="letter-signoff"></p></article>`;
+    const envelope = $(".envelope", shell); const paper = $(".letter-paper", shell); const body = $(".letter-body", shell); const signoff = $(".letter-signoff", paper);
     const bodyText = (project.letter?.paragraphs || []).join("\n\n"); const signoffText = project.letter?.signoff || "";
     const pauseTicks = bodyText && signoffText ? 10 : 0; const totalLength = bodyText.length + pauseTicks + signoffText.length;
     let cursor = 0;
-    const showFull = () => { clearInterval(timer); body.replaceChildren(...(project.letter?.paragraphs || []).map(value => { const p = document.createElement("p"); p.textContent = value; return p; })); signoff.textContent = signoffText; $(".text-button", paper).hidden = true; };
-    $(".envelope", shell).addEventListener("click", () => { $(".envelope", shell).classList.add("is-open"); revealTimer = setTimeout(() => { $(".envelope", shell).hidden = true; paper.hidden = false; if (matchMedia("(prefers-reduced-motion: reduce)").matches) return showFull(); if (totalLength === 0) return showFull(); timer = setInterval(() => { cursor++; if (cursor <= bodyText.length) { body.textContent = bodyText.slice(0, cursor); } else if (cursor <= bodyText.length + pauseTicks) { body.textContent = bodyText; signoff.textContent = ""; } else { body.textContent = bodyText; const signoffCursor = cursor - (bodyText.length + pauseTicks); signoff.textContent = signoffText.slice(0, signoffCursor); } if (cursor >= totalLength) showFull(); }, 18); }, 480); });
-    $("h3", paper).textContent = project.letter?.greeting || ""; signoff.textContent = ""; $(".text-button", paper).addEventListener("click", showFull); I18n.apply(shell);
-    roomContent.append(shell); return () => { clearInterval(timer); clearTimeout(revealTimer); };
+    const showFull = () => {
+      letterOpened = true;
+      clearInterval(timer);
+      body.replaceChildren(...(project.letter?.paragraphs || []).map(value => {
+        const p = document.createElement("p");
+        p.textContent = value;
+        return p;
+      }));
+      signoff.textContent = signoffText;
+    };
+    $("h3", paper).textContent = project.letter?.greeting || "";
+    if (letterOpened) {
+      envelope.hidden = true;
+      paper.hidden = false;
+      showFull();
+    } else {
+      signoff.textContent = "";
+      envelope.addEventListener("click", () => {
+        letterOpened = true;
+        envelope.classList.add("is-open");
+        revealTimer = setTimeout(() => {
+          envelope.hidden = true;
+          paper.hidden = false;
+          if (matchMedia("(prefers-reduced-motion: reduce)").matches || totalLength === 0) return showFull();
+          timer = setInterval(() => {
+            cursor++;
+            if (cursor <= bodyText.length) {
+              body.textContent = bodyText.slice(0, cursor);
+            } else if (cursor <= bodyText.length + pauseTicks) {
+              body.textContent = bodyText;
+              signoff.textContent = "";
+            } else {
+              body.textContent = bodyText;
+              const signoffCursor = cursor - (bodyText.length + pauseTicks);
+              signoff.textContent = signoffText.slice(0, signoffCursor);
+            }
+            if (cursor >= totalLength) showFull();
+          }, 18);
+        }, 480);
+      });
+    }
+    I18n.apply(shell);
+    roomContent.append(shell);
+    return () => { clearInterval(timer); clearTimeout(revealTimer); };
   }
 
   function preloadAtlasScripts() {
@@ -315,7 +356,7 @@
     else setTimeout(idleLoad, 1500);
   }
 
-  function renderAll() { clearOpeningTransition(); if (panelPrefetchHandle) { "cancelIdleCallback" in window ? cancelIdleCallback(panelPrefetchHandle) : clearTimeout(panelPrefetchHandle); panelPrefetchHandle = 0; } roomCleanup(); roomCleanup = () => {}; roomResize = () => {}; storyAudio.pause(); storyAudio.removeAttribute("src"); storyAudio.load(); activeTrackIndex = 0; opened.clear(); atlasVisited = false; $("#open-wrap").classList.remove("is-opening"); $("#greeting-art").removeAttribute("src"); $("#greeting-art").hidden = true; $("#finale-art").removeAttribute("src"); $("#finale-art").hidden = true; $("#finale-skyline").style.backgroundImage = ""; $("#module-grid").replaceChildren(); $("#menu-character-left").replaceChildren(); $("#menu-character-right").replaceChildren(); applyTheme(); renderStaticCopy(); prefetchOpeningPanels(); preloadAtlasScripts(); }
+  function renderAll() { clearOpeningTransition(); if (panelPrefetchHandle) { "cancelIdleCallback" in window ? cancelIdleCallback(panelPrefetchHandle) : clearTimeout(panelPrefetchHandle); panelPrefetchHandle = 0; } roomCleanup(); roomCleanup = () => {}; roomResize = () => {}; storyAudio.pause(); storyAudio.removeAttribute("src"); storyAudio.load(); activeTrackIndex = 0; opened.clear(); atlasVisited = false; letterOpened = false; $("#open-wrap").classList.remove("is-opening"); $("#greeting-art").removeAttribute("src"); $("#greeting-art").hidden = true; $("#finale-art").removeAttribute("src"); $("#finale-art").hidden = true; $("#finale-skyline").style.backgroundImage = ""; $("#module-grid").replaceChildren(); $("#menu-character-left").replaceChildren(); $("#menu-character-right").replaceChildren(); applyTheme(); renderStaticCopy(); prefetchOpeningPanels(); preloadAtlasScripts(); }
 
   async function loadGift() {
     const projectId = Project.projectIdFromPath(location.pathname, location.search) || "sample-demo";
@@ -335,7 +376,7 @@
   $("#enter-story").addEventListener("click", () => { renderMenu(); showScreen("menu"); });
   $("#room-back").addEventListener("click", returnToMenu);
   $("#finale-launch").addEventListener("click", () => { prepareFinale(); showScreen("finale"); });
-  $("#replay-story").addEventListener("click", () => { clearOpeningTransition(); opened.clear(); atlasVisited = false; $("#open-wrap").classList.remove("is-opening"); renderMenu(); showScreen("gate"); });
+  $("#replay-story").addEventListener("click", () => { clearOpeningTransition(); opened.clear(); atlasVisited = false; letterOpened = false; $("#open-wrap").classList.remove("is-opening"); renderMenu(); showScreen("gate"); });
   document.addEventListener("keydown", event => { if (event.key !== "Escape") return; if ($("#room").classList.contains("is-active")) returnToMenu(); else if ($("#finale").classList.contains("is-active")) showScreen("menu"); });
   function previewTarget(context) {
     const target = ["gate", "room", "menu", "finale"].includes(context?.target) ? context.target : "gate";
