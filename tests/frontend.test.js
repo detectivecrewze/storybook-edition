@@ -439,3 +439,19 @@ test("admin generation presents a theme-aware Studio handoff modal", () => {
   assert.match(css, /@media \(max-width: 560px\)/);
   assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
 });
+
+test("Studio remembers a validated magic link across browser restarts", () => {
+  const html = read("studio/index.html"); const app = read("studio/app.js"); const css = read("studio/styles.css");
+  assert.match(app, /function readStoredToken/);
+  assert.match(app, /localStorage\.getItem\(tokenKey\)/);
+  assert.match(app, /function rememberValidatedToken/);
+  assert.match(app, /localStorage\.setItem\(tokenKey, value\)/);
+  assert.match(app, /const payload = await api\.getStudio\(\); rememberValidatedToken\(token\)/);
+  assert.match(app, /function forgetRejectedToken/);
+  assert.match(app, /error\?\.status === 401 \|\| error\?\.status === 403/);
+  assert.match(html, /id="open-device-access"/);
+  assert.match(html, /id="device-access-dialog"/);
+  assert.match(html, /id="confirm-forget-device"/);
+  assert.match(css, /\.topbar-device-button/);
+  assert.doesNotMatch(app, /if \(hashToken\) \{ sessionStorage\.setItem\(tokenKey, hashToken\)/);
+});

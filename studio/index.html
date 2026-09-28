@@ -15,7 +15,7 @@
   <div class="studio-app" id="studio-app" hidden>
     <header class="topbar">
       <div class="brand"><span>FOR YOU, ALWAYS.</span><strong data-i18n="studio.title">Storybook Studio</strong></div>
-      <div class="topbar-actions"><button type="button" class="topbar-guide-button" id="open-studio-guide" aria-label="Studio Guide" data-i18n-aria-label="studio.guideButton"><span class="guide-badge" aria-hidden="true">INFO</span><b data-i18n="studio.guideButton">Guide</b></button><span id="save-state" class="save-state" data-i18n="studio.autosaved">Saved automatically</span><label><span data-i18n="studio.language">Language</span><select id="studio-language"><option value="en">English</option><option value="id">Indonesia</option></select></label></div>
+      <div class="topbar-actions"><button type="button" class="topbar-device-button" id="open-device-access" aria-label="Device access" data-i18n-aria-label="studio.deviceAccessAria"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="3"/><path d="M10 17h4"/></svg><b data-i18n="studio.deviceAccessButton">Device access</b></button><button type="button" class="topbar-guide-button" id="open-studio-guide" aria-label="Studio Guide" data-i18n-aria-label="studio.guideButton"><span class="guide-badge" aria-hidden="true">INFO</span><b data-i18n="studio.guideButton">Guide</b></button><span id="save-state" class="save-state" data-i18n="studio.autosaved">Saved automatically</span><label><span data-i18n="studio.language">Language</span><select id="studio-language"><option value="en">English</option><option value="id">Indonesia</option></select></label></div>
     </header>
     <div class="studio-layout">
       <aside class="step-sidebar"><p class="sidebar-label">STORY BUILDER</p><ol id="step-list">
@@ -137,6 +137,15 @@
     </section>
   </dialog>
 
+
+  <dialog class="preset-confirm-dialog device-access-dialog" id="device-access-dialog" aria-labelledby="device-access-title" aria-describedby="device-access-description">
+    <section class="preset-confirm-card device-access-card">
+      <p class="kicker" data-i18n="studio.deviceAccessKicker">DEVICE ACCESS</p>
+      <h2 id="device-access-title" data-i18n="studio.deviceAccessTitle">Forget Studio access on this device?</h2>
+      <p id="device-access-description" data-i18n="studio.deviceAccessDescription">This browser will remove the saved Studio key. You will need the original magic link to open this project again.</p>
+      <footer><button class="secondary-button" id="cancel-forget-device" type="button" data-i18n="common.cancel">Cancel</button><button class="primary-button delete-confirm-action" id="confirm-forget-device" type="button" data-i18n="studio.deviceAccessForget">Forget this device</button></footer>
+    </section>
+  </dialog>
 
   <dialog class="preset-confirm-dialog" id="preset-confirm-dialog" aria-labelledby="preset-confirm-title" aria-describedby="preset-confirm-description">
     <section class="preset-confirm-card">

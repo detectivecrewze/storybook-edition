@@ -9,8 +9,38 @@
   const projectId = Project.projectIdFromPath(location.pathname, location.search);
   const tokenKey = `storybook:token:${projectId}`;
   const hashToken = new URLSearchParams(location.hash.slice(1)).get("token") || "";
-  if (hashToken) { sessionStorage.setItem(tokenKey, hashToken); history.replaceState({}, "", `${location.pathname}${location.search}`); }
-  const token = hashToken || sessionStorage.getItem(tokenKey) || "";
+
+  function readStoredToken() {
+    try {
+      const persistentToken = localStorage.getItem(tokenKey);
+      if (persistentToken) return persistentToken;
+    } catch {}
+    try { return sessionStorage.getItem(tokenKey) || ""; }
+    catch { return ""; }
+  }
+
+  function rememberValidatedToken(value) {
+    if (!value) return;
+    try {
+      localStorage.setItem(tokenKey, value);
+      sessionStorage.removeItem(tokenKey);
+      return;
+    } catch {}
+    try { sessionStorage.setItem(tokenKey, value); } catch {}
+  }
+
+  function forgetRejectedToken(value) {
+    try { if (localStorage.getItem(tokenKey) === value) localStorage.removeItem(tokenKey); } catch {}
+    try { if (sessionStorage.getItem(tokenKey) === value) sessionStorage.removeItem(tokenKey); } catch {}
+  }
+
+  function clearDeviceToken() {
+    try { localStorage.removeItem(tokenKey); } catch {}
+    try { sessionStorage.removeItem(tokenKey); } catch {}
+  }
+
+  if (hashToken) history.replaceState({}, "", `${location.pathname}${location.search}`);
+  const token = hashToken || readStoredToken();
   const api = new window.StorybookApi(projectId, token);
   let draft;
   let currentStep = 1;
@@ -47,6 +77,7 @@
   let deleteRestoreFocus = null;
   let atlasHelpRestoreFocus = null;
   let studioGuideRestoreFocus = null;
+  let deviceAccessRestoreFocus = null;
   let qrRenderVersion = 0;
   let qrRenderPromise = Promise.resolve(null);
   const qrImageCache = new Map();
@@ -921,6 +952,26 @@
     $("#letter-signoff").value = draft.letter.signoff;
     queueSave({ immediatePreview: true });
   }
+  function openDeviceAccessDialog(trigger) {
+    const dialog = $("#device-access-dialog");
+    if (!dialog) return;
+    deviceAccessRestoreFocus = trigger || document.activeElement;
+    dialog.showModal();
+    requestAnimationFrame(() => $("#cancel-forget-device")?.focus({ preventScroll: true }));
+  }
+  function closeDeviceAccessDialog({ restoreFocus = true } = {}) {
+    const dialog = $("#device-access-dialog");
+    if (dialog?.open) dialog.close();
+    const returnFocus = deviceAccessRestoreFocus;
+    deviceAccessRestoreFocus = null;
+    if (restoreFocus) requestAnimationFrame(() => returnFocus?.focus?.({ preventScroll: true }));
+  }
+  function forgetDeviceAccess() {
+    clearDeviceToken();
+    closeDeviceAccessDialog({ restoreFocus: false });
+    location.replace(`${location.pathname}${location.search}`);
+  }
+
   function closePresetConfirmation({ restoreFocus = true } = {}) {
     const dialog = $("#preset-confirm-dialog");
     if (!dialog?.open) return;
@@ -1527,6 +1578,14 @@
     $("#publish-button").addEventListener("click", publish);
     $("#copy-gift-url").addEventListener("click", () => giftUrl && navigator.clipboard.writeText(giftUrl));
     $("#download-qr")?.addEventListener("click", downloadQrCard);
+    $("#open-device-access")?.addEventListener("click", event => openDeviceAccessDialog(event.currentTarget));
+    $("#cancel-forget-device")?.addEventListener("click", () => closeDeviceAccessDialog());
+    $("#confirm-forget-device")?.addEventListener("click", forgetDeviceAccess);
+    const deviceAccessDialog = $("#device-access-dialog");
+    if (deviceAccessDialog) {
+      deviceAccessDialog.addEventListener("cancel", event => { event.preventDefault(); closeDeviceAccessDialog(); });
+      deviceAccessDialog.addEventListener("click", event => { if (event.target === deviceAccessDialog) closeDeviceAccessDialog(); });
+    }
     $("#cancel-preset-confirm")?.addEventListener("click", () => closePresetConfirmation());
     $("#confirm-preset")?.addEventListener("click", confirmPreset);
     const presetDialog = $("#preset-confirm-dialog");
@@ -1591,7 +1650,7 @@
     I18n.setLocale("en");
     if (!projectId) return setState("Incomplete Studio link", "Project ID not found.", false);
     if (!token) return setState("Invalid magic link", "Please reopen the original Studio link containing the token.", false);
-    try { const payload = await api.getStudio(); draft = Project.normalizeProject(payload.project, projectId); if (!draft.settings?.language || (draft.settings.language === "id" && !draft.identity?.recipient && !draft.identity?.sender && draft.status === "draft" && (!draft.updatedAt || draft.updatedAt === draft.createdAt))) { Project.changeLanguage(draft, "en"); } const isStaticLocal = ["localhost", "127.0.0.1"].includes(location.hostname) && location.port !== "3100"; giftUrl = isStaticLocal ? `${location.origin}/gift/index.html?project=${encodeURIComponent(projectId)}` : (payload.giftUrl || `${location.origin}/gift/${projectId}`); published = draft.status === "published"; catalog = await fetch("/assets/data/music.json").then(response => response.ok ? response.json() : []).catch(() => []); ensurePreviewTriggers(); bind(); const fullPreview = $("#gift-preview"); if (fullPreview) { fullPreview.addEventListener("load", () => { fullPreviewLoaded = true; sendPreview({ immediate: true }); }); fullPreview.src = previewGiftSrc(); } renderFields(); $("#studio-state").hidden = true; $("#studio-app").hidden = false; saveIndicator("saved"); try { if (!localStorage.getItem(`storybook:guide:${projectId}`) && !localStorage.getItem("storybook:guide:seen")) { requestAnimationFrame(() => openStudioGuide()); } } catch {} } catch (error) { setState("Studio cannot be opened", error.message, true); }
+    try { const payload = await api.getStudio(); rememberValidatedToken(token); draft = Project.normalizeProject(payload.project, projectId); if (!draft.settings?.language || (draft.settings.language === "id" && !draft.identity?.recipient && !draft.identity?.sender && draft.status === "draft" && (!draft.updatedAt || draft.updatedAt === draft.createdAt))) { Project.changeLanguage(draft, "en"); } const isStaticLocal = ["localhost", "127.0.0.1"].includes(location.hostname) && location.port !== "3100"; giftUrl = isStaticLocal ? `${location.origin}/gift/index.html?project=${encodeURIComponent(projectId)}` : (payload.giftUrl || `${location.origin}/gift/${projectId}`); published = draft.status === "published"; catalog = await fetch("/assets/data/music.json").then(response => response.ok ? response.json() : []).catch(() => []); ensurePreviewTriggers(); bind(); const fullPreview = $("#gift-preview"); if (fullPreview) { fullPreview.addEventListener("load", () => { fullPreviewLoaded = true; sendPreview({ immediate: true }); }); fullPreview.src = previewGiftSrc(); } renderFields(); $("#studio-state").hidden = true; $("#studio-app").hidden = false; saveIndicator("saved"); try { if (!localStorage.getItem(`storybook:guide:${projectId}`) && !localStorage.getItem("storybook:guide:seen")) { requestAnimationFrame(() => openStudioGuide()); } } catch {} } catch (error) { if (error?.status === 401 || error?.status === 403) forgetRejectedToken(token); setState("Studio cannot be opened", error.message, true); }
   }
   initialize();
 })();
