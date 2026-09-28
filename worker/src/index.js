@@ -221,6 +221,7 @@ async function createProject(env, sourceInput, idempotencyInput, initialProject)
   return {
     created,
     projectId: credentials.projectId,
+    themeId: normalizeThemeId(record.themeId),
     ...projectLinks(env, credentials.projectId, credentials.editToken)
   };
 }

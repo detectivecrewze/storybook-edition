@@ -29,7 +29,7 @@ test("internal generator is authenticated and idempotent", async () => {
   assert.equal((await call(environment, "/api/internal/projects", { method: "POST", token: "wrong", body: { source: "pakasir", idempotencyKey: "order-1" } })).response.status, 403);
   const first = await call(environment, "/api/internal/projects", { method: "POST", token: environment.INTERNAL_GENERATOR_SECRET, body: { source: "pakasir", idempotencyKey: "order-1" } });
   const second = await call(environment, "/api/internal/projects", { method: "POST", token: environment.INTERNAL_GENERATOR_SECRET, body: { source: "pakasir", idempotencyKey: "order-1" } });
-  assert.equal(first.response.status, 201); assert.equal(second.response.status, 200); assert.equal(first.payload.projectId, second.payload.projectId); assert.equal(first.payload.studioUrl, second.payload.studioUrl); assert.match(first.payload.studioUrl, /\/studio\/gift-[a-f0-9]{16}#token=/);
+  assert.equal(first.response.status, 201); assert.equal(second.response.status, 200); assert.equal(first.payload.projectId, second.payload.projectId); assert.equal(first.payload.themeId, "spiderman"); assert.equal(first.payload.studioUrl, second.payload.studioUrl); assert.match(first.payload.studioUrl, /\/studio\/gift-[a-f0-9]{16}#token=/);
   const studio = await call(environment, `/api/studio/${first.payload.projectId}`, { token: tokenFrom(first.payload.studioUrl) });
   assert.equal(studio.payload.project.schemaVersion, 2); assert.equal(studio.payload.project.modules.find(module => module.type === "atlas").enabled, false); assert.deepEqual(studio.payload.project.opening.panelImages, ["", "", "", ""]);
 });

@@ -1,8 +1,137 @@
-<!doctype html><html lang="id"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="gift-api-base" content=""><title>Storybook Admin</title><link rel="preload" href="/assets/fonts/torney-comic.otf" as="font" type="font/otf" crossorigin><link rel="stylesheet" href="/admin/styles.css"></head><body>
-  <main class="login-screen" id="login-screen"><form id="login-form" class="login-card"><p class="eyebrow">OWNER ACCESS</p><h1>Storybook<br>Control Room</h1><p>Kelola seluruh project Storybook Edition dari satu tempat.</p><label>Admin secret<input id="admin-secret" type="password" autocomplete="current-password" required></label><p id="login-error" class="error"></p><button class="primary" type="submit">Buka dashboard</button></form></main>
-  <div id="admin-app" hidden><header><div><small>FOR YOU, ALWAYS.</small><strong>Storybook Admin</strong></div><nav><button id="refresh-projects">Refresh</button><button id="logout">Keluar</button></nav></header><main class="dashboard"><section class="hero"><div><p class="eyebrow">STORYBOOK EDITION</p><h1>Semua cerita,<br>satu control room.</h1><p>Generate Studio link, pantau status, arsipkan, atau hapus project.</p></div><button class="primary" id="generate-project">+ Generate Studio Link</button></section><section class="stats"><article><span>Total</span><strong id="stat-total">0</strong></article><article><span>Draft</span><strong id="stat-draft">0</strong></article><article><span>Published</span><strong id="stat-published">0</strong></article><article><span>Archived</span><strong id="stat-archived">0</strong></article></section><section class="projects"><div class="filters"><input id="project-search" type="search" placeholder="Cari nama, project, preset, atau tema..."><select id="status-filter"><option value="all">Semua status</option><option value="draft">Draft</option><option value="published">Published</option><option value="archived">Archived</option></select></div><div id="loading" hidden>Memuat project...</div><div class="project-grid" id="project-grid"></div><p id="empty" hidden>Belum ada project yang cocok.</p></section></main></div>
-  <dialog id="result-dialog"><button class="close" type="button">×</button><p class="eyebrow">PROJECT READY</p><h2>Studio link sudah dibuat</h2><textarea id="created-studio-url" readonly></textarea><div><button id="copy-created">Salin link</button><a id="open-created" target="_blank" rel="noreferrer">Buka Studio</a></div></dialog>
-  <dialog id="delete-dialog"><button class="close" type="button">×</button><p class="eyebrow">PERMANENT DELETE</p><h2>Hapus project?</h2><p>Draft, project, dan semua media R2 akan dihapus permanen.</p><code id="delete-project-id"></code><input id="delete-confirmation" autocomplete="off" placeholder="Ketik project ID"><button class="danger" id="confirm-delete" disabled>Hapus permanen</button></dialog>
-  <template id="project-card-template"><article class="project-card"><div class="badges"><span class="status"></span><span class="theme"></span><span class="occasion"></span></div><small class="project-id"></small><h3 class="recipient"></h3><p>Dari <strong class="sender"></strong></p><dl><div><dt>Updated</dt><dd class="updated"></dd></div><div><dt>Media</dt><dd class="media-count"></dd></div><div><dt>Source</dt><dd class="source"></dd></div></dl><div class="actions"><button class="copy-studio">Copy Studio</button><a class="open-studio" target="_blank">Open Studio</a><a class="open-gift" target="_blank">Gift</a><button class="archive"></button><button class="delete">Delete</button></div></article></template>
-  <div class="toast" id="toast" hidden></div><script src="/runtime-config.js"></script><script src="/shared/themes.js"></script><script src="/shared/project.js"></script><script src="/admin/app.js"></script></body></html>
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="gift-api-base" content="">
+  <title>Storybook Admin</title>
+  <link rel="preload" href="/assets/fonts/torney-comic.otf" as="font" type="font/otf" crossorigin>
+  <link rel="stylesheet" href="/admin/styles.css">
+</head>
+<body>
+  <main class="login-screen" id="login-screen">
+    <form id="login-form" class="login-card">
+      <p class="eyebrow">OWNER ACCESS</p>
+      <h1>Storybook<br>Control Room</h1>
+      <p>Kelola seluruh project Storybook Edition dari satu tempat.</p>
+      <label>Admin secret<input id="admin-secret" type="password" autocomplete="current-password" required></label>
+      <p id="login-error" class="error"></p>
+      <button class="primary" type="submit">Buka dashboard</button>
+    </form>
+  </main>
 
+  <div id="admin-app" hidden>
+    <header>
+      <div><small>FOR YOU, ALWAYS.</small><strong>Storybook Admin</strong></div>
+      <nav><button id="refresh-projects">Refresh</button><button id="logout">Keluar</button></nav>
+    </header>
+    <main class="dashboard">
+      <section class="hero">
+        <div>
+          <p class="eyebrow">STORYBOOK EDITION</p>
+          <h1>Semua cerita,<br>satu control room.</h1>
+          <p>Generate Studio link, pantau status, arsipkan, atau hapus project.</p>
+        </div>
+        <button class="primary" id="generate-project">
+          <span class="generate-icon" aria-hidden="true">+</span>
+          <span id="generate-project-label">Generate Studio Link</span>
+        </button>
+      </section>
+      <section class="stats">
+        <article><span>Total</span><strong id="stat-total">0</strong></article>
+        <article><span>Draft</span><strong id="stat-draft">0</strong></article>
+        <article><span>Published</span><strong id="stat-published">0</strong></article>
+        <article><span>Archived</span><strong id="stat-archived">0</strong></article>
+      </section>
+      <section class="projects">
+        <div class="filters">
+          <input id="project-search" type="search" placeholder="Cari nama, project, preset, atau tema...">
+          <select id="status-filter">
+            <option value="all">Semua status</option>
+            <option value="draft">Draft</option>
+            <option value="published">Published</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
+        <div id="loading" hidden>Memuat project...</div>
+        <div class="project-grid" id="project-grid"></div>
+        <p id="empty" hidden>Belum ada project yang cocok.</p>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="result-dialog" class="result-dialog" data-theme="spiderman" aria-labelledby="result-title" aria-describedby="result-description">
+    <div class="result-dialog__shell">
+      <div class="result-dialog__art" aria-hidden="true">
+        <span class="result-dialog__burst"></span>
+        <img id="created-theme-art" src="" alt="">
+        <span class="result-dialog__sound">READY!</span>
+      </div>
+      <section class="result-dialog__content">
+        <button class="close result-dialog__close" type="button" aria-label="Tutup hasil generate">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+        </button>
+        <p class="result-dialog__eyebrow">PROJECT READY</p>
+        <div class="result-dialog__badges">
+          <span id="created-theme-label">Spider-Man Theme</span>
+          <code id="created-project-id">gift</code>
+        </div>
+        <h2 id="result-title">Studio link siap digunakan.</h2>
+        <p id="result-description" class="result-dialog__description">Kirim link ini ke pembeli agar mereka dapat mulai mengisi Storybook.</p>
+        <label class="result-link">
+          <span>Studio link</span>
+          <input id="created-studio-url" type="text" readonly spellcheck="false">
+        </label>
+        <div class="result-dialog__actions">
+          <button id="copy-created" class="result-action result-action--primary" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>
+            <span id="copy-created-label">Copy Studio Link</span>
+          </button>
+          <a id="open-created" class="result-action result-action--secondary" target="_blank" rel="noopener noreferrer">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 5h5v5M19 5l-8 8"/><path d="M19 13v5a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h5"/></svg>
+            <span>Open Studio Link</span>
+          </a>
+        </div>
+        <p class="result-dialog__note">Link berisi akses privat untuk mengedit gift. Simpan dan bagikan hanya kepada pembeli.</p>
+      </section>
+    </div>
+  </dialog>
+
+  <dialog id="delete-dialog">
+    <button class="close" type="button">×</button>
+    <p class="eyebrow">PERMANENT DELETE</p>
+    <h2>Hapus project?</h2>
+    <p>Draft, project, dan semua media R2 akan dihapus permanen.</p>
+    <code id="delete-project-id"></code>
+    <input id="delete-confirmation" autocomplete="off" placeholder="Ketik project ID">
+    <button class="danger" id="confirm-delete" disabled>Hapus permanen</button>
+  </dialog>
+
+  <template id="project-card-template">
+    <article class="project-card">
+      <div class="badges"><span class="status"></span><span class="theme"></span><span class="occasion"></span></div>
+      <small class="project-id"></small>
+      <h3 class="recipient"></h3>
+      <p>Dari <strong class="sender"></strong></p>
+      <dl>
+        <div><dt>Updated</dt><dd class="updated"></dd></div>
+        <div><dt>Media</dt><dd class="media-count"></dd></div>
+        <div><dt>Source</dt><dd class="source"></dd></div>
+      </dl>
+      <div class="actions">
+        <button class="copy-studio">Copy Studio</button>
+        <a class="open-studio" target="_blank" rel="noopener noreferrer">Open Studio</a>
+        <a class="open-gift" target="_blank" rel="noopener noreferrer">Gift</a>
+        <button class="archive"></button>
+        <button class="delete">Delete</button>
+      </div>
+    </article>
+  </template>
+
+  <div class="toast" id="toast" hidden></div>
+  <script src="/runtime-config.js"></script>
+  <script src="/shared/themes.js"></script>
+  <script src="/shared/project.js"></script>
+  <script src="/admin/app.js"></script>
+</body>
+</html>

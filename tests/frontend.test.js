@@ -422,3 +422,20 @@ test("letter experience has no skip button and remains fully displayed once open
   assert.match(app, /paper\.hidden = false/);
   assert.doesNotMatch(css, /\.letter-paper \.text-button/);
 });
+
+test("admin generation presents a theme-aware Studio handoff modal", () => {
+  const html = read("admin/index.html");
+  const app = read("admin/app.js");
+  const css = read("admin/styles.css");
+  assert.match(html, /id="result-dialog"[^>]+data-theme="spiderman"/);
+  assert.match(html, /id="copy-created-label">Copy Studio Link/);
+  assert.match(html, /id="open-created"[^>]+rel="noopener noreferrer"/);
+  assert.match(html, /id="created-project-id"/);
+  assert.match(app, /showCreatedProject\(result\.project \|\| result\)/);
+  assert.match(app, /dialog\.dataset\.theme = theme\.id/);
+  assert.match(app, /setGenerateBusy\(true\)/);
+  assert.match(app, /document\.execCommand\("copy"\)/);
+  assert.match(css, /#result-dialog\[data-theme="batman"\]/);
+  assert.match(css, /@media \(max-width: 560px\)/);
+  assert.match(css, /@media \(prefers-reduced-motion: reduce\)/);
+});
