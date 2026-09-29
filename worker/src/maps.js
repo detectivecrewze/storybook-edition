@@ -1,4 +1,7 @@
+import s2Geometry from "s2-geometry";
+
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+const { S2 } = s2Geometry;
 
 export function validCoordinates(latitude, longitude) {
   const lat = Number(latitude);
@@ -40,6 +43,19 @@ export function extractGoogleMapsCoordinates(value) {
     }
   }
   return null;
+}
+
+export function extractGoogleMapsFtidCoordinates(value) {
+  try {
+    const url = value instanceof URL ? value : new URL(String(value || ""));
+    const match = String(url.searchParams.get("ftid") || "").match(/^0x([0-9a-f]{1,16}):0x[0-9a-f]+$/i);
+    if (!match) return null;
+    const cellId = BigInt(`0x${match[1]}`).toString();
+    const coordinates = S2.idToLatLng(cellId);
+    return pair(coordinates?.lat, coordinates?.lng);
+  } catch {
+    return null;
+  }
 }
 
 export function extractGoogleMapsPreviewCoordinates(value) {
@@ -94,6 +110,8 @@ export async function resolveGoogleMapsShortUrl(value, fetcher = fetch) {
     label ||= placeLabelFromUrl(current);
     const coordinates = extractGoogleMapsCoordinates(current.toString());
     if (coordinates) return { ...coordinates, ...(label ? { label } : {}) };
+    const ftidCoordinates = extractGoogleMapsFtidCoordinates(current);
+    if (ftidCoordinates) return { ...ftidCoordinates, ...(label ? { label } : {}) };
     const response = await fetcher(current.toString(), {
       method: "GET",
       redirect: "manual",

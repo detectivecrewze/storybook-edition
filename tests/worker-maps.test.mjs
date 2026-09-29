@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { extractGoogleMapsCoordinates, extractGoogleMapsPreviewCoordinates, isAllowedGoogleMapsRedirect, isShortGoogleMapsUrl, resolveGoogleMapsShortUrl } from "../worker/src/maps.js";
+import { extractGoogleMapsCoordinates, extractGoogleMapsFtidCoordinates, extractGoogleMapsPreviewCoordinates, isAllowedGoogleMapsRedirect, isShortGoogleMapsUrl, resolveGoogleMapsShortUrl } from "../worker/src/maps.js";
 
 test("worker map resolver accepts Google domains and rejects unrelated redirect hosts", () => {
   assert.equal(isShortGoogleMapsUrl("https://maps.app.goo.gl/example"), true);
@@ -16,6 +16,25 @@ test("worker map resolver stops as soon as a safe redirect contains coordinates"
     return new Response(null, { status: 302, headers: { Location: "https://www.google.com/maps/search/?api=1&query=-6.1754,106.8272" } });
   });
   assert.deepEqual(result, { latitude: -6.1754, longitude: 106.8272 });
+  assert.equal(calls, 1);
+});
+
+test("worker map resolver derives coordinates from a Google ftid before anti-bot blocks the next request", async () => {
+  const redirected = "https://maps.google.com/?q=Kampung+Makan,+Jakarta&ftid=0x2e69f0b34acfdb09:0x4c17a705106763c1&g_st=ic";
+  assert.deepEqual(extractGoogleMapsFtidCoordinates(redirected), {
+    latitude: -6.220061030687462,
+    longitude: 106.73981756757684
+  });
+  let calls = 0;
+  const result = await resolveGoogleMapsShortUrl("https://maps.app.goo.gl/uFAEvcaeRixfJtMT9?g_st=ic", async () => {
+    calls += 1;
+    return new Response(null, { status: 302, headers: { Location: redirected } });
+  });
+  assert.deepEqual(result, {
+    latitude: -6.220061030687462,
+    longitude: 106.73981756757684,
+    label: "Kampung Makan"
+  });
   assert.equal(calls, 1);
 });
 
