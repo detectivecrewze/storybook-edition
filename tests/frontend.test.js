@@ -174,6 +174,7 @@ test("production routes and response headers support stable public links", () =>
 test("Atlas failure states preserve saved stories without external map links", () => {
   const app = read("app.js"); const atlas = read("rooms/atlas.js"); const css = read("rooms/atlas.css");
   assert.doesNotMatch(app + atlas, /google\.com\/maps\/search/i);
+  assert.doesNotMatch(atlas, /L\.polyline|atlas-web-route/);
   assert.match(app, /atlas-static-fallback/);
   assert.match(atlas, /atlas-fallback-list/);
   assert.match(css, /\.atlas-static-fallback/);

@@ -73,7 +73,6 @@
 .atlas-control,.atlas-fit { min-width: 44px; min-height: 44px; border: 3px solid var(--theme-ink); border-radius: 999px; background: var(--theme-paper); color: var(--theme-ink); box-shadow: 3px 4px 0 var(--theme-ink); font-weight: 900; cursor: pointer; }
 .atlas-fit { padding: 0 20px; background: var(--theme-accent); }
 .atlas-current { min-width: 65px; text-align: center; color: var(--theme-paper); font-weight: 900; }
-.atlas-web-route { filter: drop-shadow(0 1px 3px rgba(0,0,0,0.45)); }
 @media (min-width:768px) {
   .atlas-popup-card { width: 242px; }
   .atlas-comic-popup .leaflet-popup-content-wrapper { border-radius: 16px; box-shadow: 5px 6px 0 var(--atlas-popup-shadow); }
@@ -108,4 +107,4 @@
   .atlas-popup-title { font-size: 1.1rem; }
   .atlas-popup-note-scroll { max-height: 75px; }
 }
-@media (prefers-reduced-motion:reduce) { .atlas-pin-head, .atlas-web-route, .atlas-map-link { transition: none !important; } .atlas-pin-shadow,.atlas-popup-reveal-arrow { animation: none !important; } }
+@media (prefers-reduced-motion:reduce) { .atlas-pin-head,.atlas-map-link { transition:none!important; } .atlas-pin-shadow,.atlas-popup-reveal-arrow { animation:none!important; } }

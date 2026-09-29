@@ -142,18 +142,6 @@
     });
     tileLayer.addTo(map);
 
-    let route = null;
-    if (locations.length >= 2) {
-      route = root.L.polyline(locations.map(location => [location.latitude, location.longitude]), {
-        color: "#c0392b",
-        weight: 3,
-        opacity: 0.9,
-        dashArray: "8 6",
-        lineCap: "round",
-        className: "atlas-web-route"
-      }).addTo(map);
-    }
-
     const markers = locations.map((location, index) => {
       const icon = root.L.divIcon({
         className: "atlas-pin-shell",
