@@ -41,11 +41,15 @@ test("Studio gives media and Atlas controls a visible, resilient editing path", 
 });
 
 test("Atlas help is contextual, localized, and replaces the oversized overview tip", () => {
-  const html = read("studio/index.html"); const app = read("studio/app.js"); const css = read("studio/styles.css");
+  const html = read("studio/index.html"); const app = read("studio/app.js"); const css = read("studio/styles.css"); const api = read("shared/api.js");
   assert.match(html, /id="atlas-help-dialog"/); assert.match(html, /data-atlas-help/);
+  assert.match(html, /id="atlas-picker-dialog"/); assert.match(html, /data-atlas-picker/);
   assert.doesNotMatch(html, /class="atlas-studio-note"/);
   assert.match(app, /function openAtlasHelp/); assert.match(app, /function closeAtlasHelp/);
-  assert.match(css, /\.atlas-help-trigger/); assert.match(css, /\.atlas-help-dialog/);
+  assert.match(app, /api\.resolveMapUrl\(value\)/); assert.match(app, /function openAtlasPicker/);
+  assert.match(app, /!label\.value\.trim\(\).*result\.label/s);
+  assert.match(api, /resolveMapUrl\(url\)/);
+  assert.match(css, /\.atlas-help-trigger/); assert.match(css, /\.atlas-help-dialog/); assert.match(css, /\.atlas-picker-dialog/);
 });
 
 test("gift opening keeps the full gift box as its only clean click target", () => {

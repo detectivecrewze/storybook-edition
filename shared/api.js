@@ -26,6 +26,7 @@
     getHealth() { return this.mock ? Promise.resolve({ ok: true, schemaVersion: root.StorybookProject?.SCHEMA_VERSION || 1, themeIds: Object.keys(root.StorybookThemes?.THEMES || {}) }) : jsonRequest("/api/health"); }
     getStudio() { return this.mock ? this.mock.getStudio(this.projectId, this.token) : jsonRequest(`/api/studio/${encodeURIComponent(this.projectId)}`, { headers: tokenHeaders(this.token) }); }
     saveStudio(project, status = "draft") { return this.mock ? this.mock.saveStudio(this.projectId, this.token, project, status) : jsonRequest(`/api/studio/${encodeURIComponent(this.projectId)}`, { method: "PUT", headers: tokenHeaders(this.token), body: JSON.stringify({ project, status }) }); }
+    resolveMapUrl(url) { return this.mock ? this.mock.resolveMapUrl(this.projectId, this.token, url) : jsonRequest("/api/maps/resolve", { method: "POST", headers: tokenHeaders(this.token), body: JSON.stringify({ projectId: this.projectId, url }) }); }
     upload(file, kind) {
       console.info("[Storybook Studio] Upload started", { projectId: this.projectId, kind, size: file?.size || 0, type: file?.type || "", mock: Boolean(this.mock) });
       if (this.mock) return this.mock.upload(this.projectId, this.token, file, kind).then(result => { console.info("[Storybook Studio] Upload completed", { projectId: this.projectId, kind, mock: true }); return result; });

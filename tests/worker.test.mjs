@@ -59,6 +59,31 @@ test("upload, archive, restore, admin search, and permanent delete work", async 
   const removed = await call(environment, `/api/admin/projects/${id}`, { method: "DELETE", token: environment.ADMIN_SECRET }); assert.equal(removed.payload.removedMedia, 1); assert.equal((await call(environment, `/api/gift/${id}`)).response.status, 404);
 });
 
+test("authenticated Atlas resolver follows only Google Maps redirects and caches coordinates", async () => {
+  const environment = env();
+  const created = await call(environment, "/api/admin/projects", { method: "POST", token: environment.ADMIN_SECRET, body: { idempotencyKey: "maps-resolver-1" } });
+  const id = created.payload.projectId;
+  const token = tokenFrom(created.payload.studioUrl);
+  const originalFetch = globalThis.fetch;
+  let outboundRequests = 0;
+  globalThis.fetch = async () => {
+    outboundRequests += 1;
+    return new Response(null, { status: 302, headers: { Location: "https://www.google.com/maps/place/Test/@-6.2001,106.8167,16z" } });
+  };
+  try {
+    assert.equal((await call(environment, "/api/maps/resolve", { method: "POST", body: { projectId: id, url: "https://maps.app.goo.gl/test-link" } })).response.status, 401);
+    assert.equal((await call(environment, "/api/maps/resolve", { method: "POST", token, body: { projectId: id, url: "https://example.com/not-maps" } })).response.status, 400);
+    const first = await call(environment, "/api/maps/resolve", { method: "POST", token, body: { projectId: id, url: "https://maps.app.goo.gl/test-link" } });
+    assert.equal(first.response.status, 200);
+    assert.deepEqual({ latitude: first.payload.latitude, longitude: first.payload.longitude }, { latitude: -6.2001, longitude: 106.8167 });
+    const second = await call(environment, "/api/maps/resolve", { method: "POST", token, body: { projectId: id, url: "https://maps.app.goo.gl/test-link" } });
+    assert.equal(second.response.status, 200);
+    assert.equal(outboundRequests, 1);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("health exposes the Storybook contract and CORS rejects unknown origins", async () => {
   const environment = env(); const health = await call(environment, "/api/health"); assert.equal(health.payload.service, "storybook-gift-api"); assert.equal(health.payload.schemaVersion, 2); assert.deepEqual(health.payload.languages, ["id", "en"]); assert.deepEqual(health.payload.themeIds, ["spiderman", "batman"]); assert.equal((await call(environment, "/api/health", { origin: "https://evil.test" })).response.status, 403);
 });

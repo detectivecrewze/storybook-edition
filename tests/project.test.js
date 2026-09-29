@@ -106,6 +106,12 @@ test("location input accepts a pasted coordinate pair and formats it safely", ()
   assert.equal(Maps.formatCoordinates(-6.2, 106.8), "-6.20000, 106.80000");
 });
 
+test("Google Maps labels are extracted from full place links without treating coordinates as names", () => {
+  assert.equal(Maps.extractPlaceLabel("https://www.google.com/maps/place/Mieyabe+Noodle+and+Dimsum/@-7.65,112.53,17z"), "Mieyabe Noodle and Dimsum");
+  assert.equal(Maps.extractPlaceLabel("https://maps.google.com?q=Mieyabe+Noodle+and+Dimsum,+Mojokerto"), "Mieyabe Noodle and Dimsum");
+  assert.equal(Maps.extractPlaceLabel("https://www.google.com/maps?q=-7.65,112.53"), "");
+});
+
 test("publish validation requires content only for active modules and at least two modules", () => {
   const draft = Project.emptyProject("gift-validation");
   draft.identity = { recipient: "Nadia", sender: "Aldo", eventDate: "" };

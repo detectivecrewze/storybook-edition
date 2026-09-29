@@ -76,6 +76,11 @@
   let pendingDelete = null;
   let deleteRestoreFocus = null;
   let atlasHelpRestoreFocus = null;
+  let atlasPickerRestoreFocus = null;
+  let atlasPickerLocationId = "";
+  let atlasPickerMap = null;
+  let atlasPickerMarker = null;
+  let atlasPickerPoint = null;
   let studioGuideRestoreFocus = null;
   let deviceAccessRestoreFocus = null;
   let qrRenderVersion = 0;
@@ -414,7 +419,8 @@
     dragSort(host, draft.gallery.items, () => { syncAll(); renderGallery(); });
   }
   function atlasStatus(location, state = "auto") {
-    if (state === "short") return { kind: "invalid", text: I18n.t("studio.locationShortLink") };
+    if (state === "resolving") return { kind: "resolving", text: I18n.t("studio.locationResolving") };
+    if (state === "resolve-failed") return { kind: "invalid", text: I18n.t("studio.locationResolveFailed") };
     if (state === "invalid") return { kind: "invalid", text: I18n.t("studio.locationInvalid") };
     if (!Maps.validCoordinates(location.latitude, location.longitude)) return { kind: "idle", text: I18n.t("studio.locationEmpty") };
     if (!location.label) return { kind: "idle", text: I18n.t("studio.locationHeadingEmpty") };
@@ -431,6 +437,66 @@
     dialog.close();
     const returnFocus = atlasHelpRestoreFocus; atlasHelpRestoreFocus = null;
     if (restoreFocus) requestAnimationFrame(() => returnFocus?.focus?.({ preventScroll: true }));
+  }
+  function updateAtlasPickerPoint(latitude, longitude) {
+    if (!Maps.validCoordinates(latitude, longitude)) return;
+    atlasPickerPoint = { latitude: Number(latitude), longitude: Number(longitude) };
+    const coordinate = $("#atlas-picker-coordinate");
+    if (coordinate) coordinate.textContent = Maps.formatCoordinates(latitude, longitude);
+    const confirm = $("#confirm-atlas-picker");
+    if (confirm) confirm.disabled = false;
+    if (atlasPickerMap && window.L) {
+      if (!atlasPickerMarker) {
+        atlasPickerMarker = window.L.marker([latitude, longitude], { draggable: true }).addTo(atlasPickerMap);
+        atlasPickerMarker.on("dragend", event => {
+          const point = event.target.getLatLng();
+          updateAtlasPickerPoint(point.lat, point.lng);
+        });
+      } else atlasPickerMarker.setLatLng([latitude, longitude]);
+    }
+  }
+  function openAtlasPicker(locationId, trigger) {
+    const dialog = $("#atlas-picker-dialog");
+    const mapNode = $("#atlas-picker-map");
+    if (!dialog || !mapNode || !window.L) return;
+    const locationItem = draft.atlas.locations.find(entry => entry.id === locationId);
+    atlasPickerRestoreFocus = trigger || document.activeElement;
+    atlasPickerLocationId = locationId;
+    atlasPickerPoint = null;
+    $("#confirm-atlas-picker").disabled = true;
+    $("#atlas-picker-coordinate").textContent = "";
+    dialog.showModal();
+    requestAnimationFrame(() => {
+      const hasPoint = Maps.validCoordinates(locationItem?.latitude, locationItem?.longitude);
+      const center = hasPoint ? [Number(locationItem.latitude), Number(locationItem.longitude)] : [-2.5489, 118.0149];
+      atlasPickerMap = window.L.map(mapNode, { zoomControl: true }).setView(center, hasPoint ? 15 : 5);
+      window.L.tileLayer("https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png", { maxZoom: 20, attribution: "&copy; OpenStreetMap contributors" }).addTo(atlasPickerMap);
+      atlasPickerMap.on("click", event => updateAtlasPickerPoint(event.latlng.lat, event.latlng.lng));
+      if (hasPoint) updateAtlasPickerPoint(center[0], center[1]);
+      setTimeout(() => atlasPickerMap?.invalidateSize(), 60);
+      $("#close-atlas-picker")?.focus({ preventScroll: true });
+    });
+  }
+  function closeAtlasPicker({ restoreFocus = true } = {}) {
+    const dialog = $("#atlas-picker-dialog");
+    if (!dialog?.open) return;
+    atlasPickerMap?.remove();
+    atlasPickerMap = null; atlasPickerMarker = null; atlasPickerPoint = null; atlasPickerLocationId = "";
+    dialog.close();
+    const returnFocus = atlasPickerRestoreFocus; atlasPickerRestoreFocus = null;
+    if (restoreFocus) requestAnimationFrame(() => returnFocus?.focus?.({ preventScroll: true }));
+  }
+  function confirmAtlasPicker() {
+    if (!atlasPickerPoint || !atlasPickerLocationId) return;
+    const locationItem = draft.atlas.locations.find(entry => entry.id === atlasPickerLocationId);
+    if (!locationItem) return closeAtlasPicker();
+    locationItem.latitude = atlasPickerPoint.latitude;
+    locationItem.longitude = atlasPickerPoint.longitude;
+    locationItem.mapsUrl = Maps.canonicalGoogleMapsUrl(atlasPickerPoint.latitude, atlasPickerPoint.longitude);
+    closeAtlasPicker({ restoreFocus: false });
+    renderAtlas();
+    queueSave();
+    requestAnimationFrame(() => $(`[data-id="${locationItem.id}"] .atlas-location-input`)?.focus({ preventScroll: true }));
   }
   function openStudioGuide(trigger) {
     const dialog = $("#studio-guide-dialog"); if (!dialog) return;
@@ -485,6 +551,7 @@
       const label = $(".atlas-label", card); const locationInput = $(".atlas-location-input", card); const note = $(".atlas-note", card); const noteCount = $(".atlas-note-count", card); const status = $(".atlas-status", card); const preview = $(".atlas-photo-preview", card); const removePhotoBtn = $(".remove-atlas-photo", card);
       const numEl = $(".atlas-index-num", card); if (numEl) numEl.textContent = String(index + 1);
       $("[data-atlas-help]", card)?.addEventListener("click", event => openAtlasHelp(event.currentTarget));
+      $("[data-atlas-picker]", card)?.addEventListener("click", event => openAtlasPicker(location.id, event.currentTarget));
       const moveUp = $('[data-move="up"]', card); if (moveUp) moveUp.disabled = index === 0;
       const moveDown = $('[data-move="down"]', card); if (moveDown) moveDown.disabled = index === draft.atlas.locations.length - 1;
       label.value = location.label; locationInput.value = Maps.validCoordinates(location.latitude, location.longitude) ? Maps.formatCoordinates(location.latitude, location.longitude) : location.mapsUrl; note.value = location.note;
@@ -493,14 +560,14 @@
       setImagePreview(preview, { mediaType: "image", mediaUrl: location.photoUrl });
       if (removePhotoBtn) removePhotoBtn.hidden = !location.photoUrl;
       const getActiveLocation = () => draft.atlas.locations.find(entry => entry.id === location.id) || draft.atlas.locations[index] || location;
-      const updateStatus = state => { const loc = getActiveLocation(); const result = atlasStatus(loc, state); status.className = `atlas-status is-${result.kind}`; status.textContent = `${result.kind === "valid" ? "✓" : result.kind === "invalid" ? "!" : "i"} ${result.text}`; };
+      const updateStatus = state => { const loc = getActiveLocation(); const result = atlasStatus(loc, state); status.className = `atlas-status is-${result.kind}`; status.textContent = `${result.kind === "valid" ? "✓" : result.kind === "invalid" ? "!" : result.kind === "resolving" ? "…" : "i"} ${result.text}`; };
       label.addEventListener("input", event => { const loc = getActiveLocation(); location.label = event.target.value; if (loc) loc.label = event.target.value; updateStatus(); queueSave(); });
       label.addEventListener("blur", () => { const loc = getActiveLocation(); location.label = label.value.trim(); if (loc) loc.label = label.value.trim(); queueSave(); });
       note.addEventListener("input", event => { const loc = getActiveLocation(); location.note = event.target.value; if (loc) loc.note = event.target.value; syncNoteCount(); queueSave(); });
       note.addEventListener("blur", () => { const loc = getActiveLocation(); location.note = note.value.trim(); if (loc) loc.note = note.value.trim(); syncNoteCount(); queueSave(); });
-      let resolveTimer = 0;
-      const resolveLocation = (formatField = false) => {
-        resolveTimer = 0; const value = locationInput.value.trim();
+      let resolveTimer = 0; let resolveRequest = 0;
+      const resolveLocation = async (formatField = false) => {
+        resolveTimer = 0; const value = locationInput.value.trim(); const requestNumber = ++resolveRequest;
         const loc = getActiveLocation();
         if (!value) {
           location.latitude = null; location.longitude = null; location.mapsUrl = "";
@@ -510,7 +577,26 @@
         if (Maps.isShortMapsUrl(value)) {
           location.latitude = null; location.longitude = null; location.mapsUrl = value;
           if (loc) { loc.latitude = null; loc.longitude = null; loc.mapsUrl = value; }
-          updateStatus("short"); queueSave(); return;
+          updateStatus("resolving");
+          try {
+            const result = await api.resolveMapUrl(value);
+            if (requestNumber !== resolveRequest || locationInput.value.trim() !== value) return;
+            if (!Maps.validCoordinates(result?.latitude, result?.longitude)) throw new Error("Invalid coordinates");
+            const canonicalUrl = result.canonicalUrl || Maps.canonicalGoogleMapsUrl(result.latitude, result.longitude);
+            location.latitude = result.latitude; location.longitude = result.longitude; location.mapsUrl = canonicalUrl;
+            if (loc) { loc.latitude = result.latitude; loc.longitude = result.longitude; loc.mapsUrl = canonicalUrl; }
+            if (!label.value.trim() && String(result.label || "").trim()) {
+              label.value = String(result.label).trim().slice(0, 100);
+              location.label = label.value;
+              if (loc) loc.label = label.value;
+            }
+            locationInput.value = Maps.formatCoordinates(result.latitude, result.longitude);
+            updateStatus(); queueSave();
+          } catch {
+            if (requestNumber !== resolveRequest || locationInput.value.trim() !== value) return;
+            updateStatus("resolve-failed"); queueSave();
+          }
+          return;
         }
         const result = Maps.extractCoordinates(value);
         if (!result) {
@@ -524,10 +610,17 @@
           loc.latitude = result.latitude; loc.longitude = result.longitude;
           loc.mapsUrl = Maps.canonicalGoogleMapsUrl(result.latitude, result.longitude);
         }
+        const suggestedLabel = Maps.extractPlaceLabel(value);
+        if (!label.value.trim() && suggestedLabel) {
+          label.value = suggestedLabel;
+          location.label = suggestedLabel;
+          if (loc) loc.label = suggestedLabel;
+        }
         if (formatField) locationInput.value = Maps.formatCoordinates(result.latitude, result.longitude);
         updateStatus(); queueSave();
       };
       locationInput.addEventListener("input", () => {
+        resolveRequest += 1;
         const raw = locationInput.value.trim();
         const direct = Maps.extractCoordinates(raw);
         if (direct) {
@@ -594,6 +687,9 @@
         renderAtlas(); queueSave();
       }));
       updateStatus(); I18n.apply(card); host.append(fragment);
+      if (!Maps.validCoordinates(location.latitude, location.longitude) && Maps.isShortMapsUrl(locationInput.value)) {
+        resolveTimer = setTimeout(() => resolveLocation(true), 0);
+      }
     });
     dragSort(host, draft.atlas.locations, () => { syncAll(); renderAtlas(); });
   }
@@ -1606,6 +1702,14 @@
     if (atlasHelpDialog) {
       atlasHelpDialog.addEventListener("cancel", event => { event.preventDefault(); closeAtlasHelp(); });
       atlasHelpDialog.addEventListener("click", event => { if (event.target === atlasHelpDialog) closeAtlasHelp(); });
+    }
+    $("#close-atlas-picker")?.addEventListener("click", () => closeAtlasPicker());
+    $("#cancel-atlas-picker")?.addEventListener("click", () => closeAtlasPicker());
+    $("#confirm-atlas-picker")?.addEventListener("click", confirmAtlasPicker);
+    const atlasPickerDialog = $("#atlas-picker-dialog");
+    if (atlasPickerDialog) {
+      atlasPickerDialog.addEventListener("cancel", event => { event.preventDefault(); closeAtlasPicker(); });
+      atlasPickerDialog.addEventListener("click", event => { if (event.target === atlasPickerDialog) closeAtlasPicker(); });
     }
     $("#open-studio-guide")?.addEventListener("click", event => openStudioGuide(event.currentTarget));
     $("#close-studio-guide")?.addEventListener("click", () => closeStudioGuide());

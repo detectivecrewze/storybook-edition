@@ -8,6 +8,7 @@ import {
   publicProject,
   validatePublishedProject
 } from "./project.js";
+import { canonicalGoogleMapsUrl, isShortGoogleMapsUrl, resolveGoogleMapsShortUrl } from "./maps.js";
 
 const encoder = new TextEncoder();
 const PROJECT_PREFIX = "project:";
@@ -367,6 +368,37 @@ async function handleUpload(request, env) {
   return json(request, env, { url: absoluteUrl(env.MEDIA_BASE_URL, `/${key}`), key, kind }, 201, { "Cache-Control": "no-store" });
 }
 
+async function handleResolveMapUrl(request, env) {
+  const body = await readJson(request);
+  const projectId = String(body.projectId || "").trim().toLowerCase();
+  const sourceUrl = String(body.url || "").trim();
+  const record = await requireProject(env, projectId);
+  if (record.status === "archived") throw new HttpError(410, "Project sedang diarsipkan.");
+  await authorizeProject(request, env, record, true);
+  if (!isShortGoogleMapsUrl(sourceUrl)) throw new HttpError(400, "Gunakan link Share Google Maps yang valid.");
+  if (sourceUrl.length > 2048) throw new HttpError(400, "Link Google Maps terlalu panjang.");
+
+  const cacheKey = `maps-resolve:v2:${await sha256(sourceUrl)}`;
+  const cached = await env.GIFT_KV.get(cacheKey, "json");
+  if (cached?.latitude !== undefined && cached?.longitude !== undefined) {
+    return json(request, env, cached, 200, { "Cache-Control": "private, no-store" });
+  }
+
+  let coordinates;
+  try {
+    coordinates = await resolveGoogleMapsShortUrl(sourceUrl);
+  } catch (error) {
+    console.warn("Google Maps short link could not be resolved", { projectId, reason: error?.message || "unknown" });
+    throw new HttpError(422, "Link belum dapat dibaca. Gunakan tombol pilih titik di peta.");
+  }
+  const result = {
+    ...coordinates,
+    canonicalUrl: canonicalGoogleMapsUrl(coordinates.latitude, coordinates.longitude)
+  };
+  await env.GIFT_KV.put(cacheKey, JSON.stringify(result), { expirationTtl: 30 * 24 * 60 * 60 });
+  return json(request, env, result, 200, { "Cache-Control": "private, no-store" });
+}
+
 async function adminProjectSummary(env, record) {
   const editToken = await deriveEditToken(env, record.projectId);
   const derivedHash = await sha256(editToken);
@@ -516,6 +548,7 @@ async function route(request, env) {
   if (request.method === "GET" && match) return handleGetStudio(request, env, decodeURIComponent(match[1]).toLowerCase());
   if (request.method === "PUT" && match) return handleSaveStudio(request, env, decodeURIComponent(match[1]).toLowerCase());
   if (request.method === "POST" && path === "/api/upload") return handleUpload(request, env);
+  if (request.method === "POST" && path === "/api/maps/resolve") return handleResolveMapUrl(request, env);
   if (request.method === "GET" && path === "/api/admin/projects") return handleAdminListProjects(request, env);
   if (request.method === "POST" && path === "/api/admin/projects") return handleAdminCreateProject(request, env);
   match = path.match(/^\/api\/admin\/projects\/([^/]+)$/);

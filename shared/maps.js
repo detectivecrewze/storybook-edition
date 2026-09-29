@@ -28,6 +28,21 @@
     return validCoordinates(latitude, longitude) ? { latitude, longitude } : null;
   }
 
+  function extractPlaceLabel(value) {
+    const source = String(value || "").trim();
+    if (!source) return "";
+    try {
+      const url = new URL(source);
+      let candidate = String(url.searchParams.get("q") || url.searchParams.get("query") || "").trim();
+      if (!candidate) {
+        const match = decodeURIComponent(url.pathname).match(/\/maps\/place\/([^/@]+)/i);
+        candidate = match ? match[1].replace(/\+/g, " ") : "";
+      }
+      if (!candidate || extractCoordinates(candidate)) return "";
+      return candidate.split(",")[0].trim().slice(0, 100);
+    } catch { return ""; }
+  }
+
   function extractGoogleMapsCoordinates(value) {
     const source = String(value || "").trim();
     if (!source || isShortMapsUrl(source)) return null;
@@ -75,7 +90,7 @@
     return `https://www.google.com/maps/search/?api=1&query=${Number(latitude)},${Number(longitude)}`;
   }
 
-  const api = { finite, validCoordinates, isShortMapsUrl, extractGoogleMapsCoordinates, extractCoordinates, formatCoordinates, canonicalGoogleMapsUrl };
+  const api = { finite, validCoordinates, isShortMapsUrl, extractGoogleMapsCoordinates, extractCoordinates, extractPlaceLabel, formatCoordinates, canonicalGoogleMapsUrl };
   if (typeof module === "object" && module.exports) module.exports = api;
   root.StorybookMaps = api;
 })(typeof globalThis !== "undefined" ? globalThis : this);
