@@ -119,9 +119,15 @@ test("Atlas resources are preloaded silently and JS remains lazy until the room 
   assert.match(html, /rel="preload"[^>]+leaflet/i);
   // app.js must still contain the conditional loadResource calls for JS (lazy fallback).
   assert.match(app, /\/assets\/vendor\/leaflet\/leaflet\.js/);
+  assert.match(app, /\/assets\/vendor\/maplibre\/maplibre-gl-6\.11\.2\.mjs/);
+  assert.match(app, /\/assets\/vendor\/maplibre\/leaflet-maplibre-gl\.js/);
+  assert.match(html, /rel="modulepreload"[^>]+maplibre-gl-6\.11\.2\.mjs/i);
   assert.match(app, /\/rooms\/atlas\.js/);
   assert.match(build, /"rooms"/);
   assert.equal(fs.existsSync(path.join(root, "assets/vendor/leaflet/leaflet.js")), true);
+  assert.equal(fs.existsSync(path.join(root, "assets/vendor/maplibre/maplibre-gl-6.11.2.mjs")), true);
+  assert.equal(fs.existsSync(path.join(root, "assets/vendor/maplibre/maplibre-gl-worker-6.11.2.mjs")), true);
+  assert.equal(fs.existsSync(path.join(root, "assets/vendor/maplibre/leaflet-maplibre-gl.js")), true);
   assert.equal(fs.existsSync(path.join(root, "rooms/atlas.js")), true);
 });
 
@@ -167,6 +173,7 @@ test("production routes and response headers support stable public links", () =>
   const byName = Object.fromEntries(globalHeaders.map(header => [header.key, header.value]));
   assert.equal(byName["X-Frame-Options"], undefined);
   assert.match(byName["Content-Security-Policy"], /frame-ancestors 'self' https:\/\/for-you-always\.my\.id/);
+  assert.match(byName["Content-Security-Policy"], /connect-src[^;]*https:\/\/tiles\.openfreemap\.org/);
   assert.match(byName["Permissions-Policy"], /camera=\(\)/);
   assert.doesNotMatch(read("gift/index.html"), /\sonload=/i);
 });
@@ -347,33 +354,34 @@ test("Studio maintains light neutral workspace background and Themes.applyTheme 
   assert.doesNotMatch(themes, /document\.body\.style\.backgroundColor/);
 });
 
-test("Atlas opens its cinematic tour on each fresh gift load and skips in-page revisits", () => {
-  const app = read("app.js");
-  const atlas = read("rooms/atlas.js");
-  assert.match(app, /function isFirstAtlasVisit/);
-  assert.match(app, /cinematic:\s*firstVisit/);
-  assert.match(app, /atlasVisited\s*=\s*false/);
-  assert.doesNotMatch(app, /storybook:atlas-seen|sessionStorage\.getItem\(storageKey\)/);
-  assert.match(atlas, /const cinematic\s*=/);
-  assert.match(atlas, /cinematic && !reducedMotion && !cinematicCancelled/);
+test("Atlas keeps the real map and uses a theme-driven character entrance once per fresh gift load", () => {
+  const app = read("app.js"); const atlas = read("rooms/atlas.js"); const css = read("rooms/atlas.css"); const themes = read("shared/themes.js");
+  assert.match(app, /function isFirstAtlasVisit/); assert.match(app, /cinematic:\s*firstVisit/); assert.match(app, /experience:\s*theme\.atlasExperience/);
+  assert.match(app, /atlasVisited\s*=\s*false/); assert.doesNotMatch(app, /storybook:atlas-seen|sessionStorage\.getItem\(storageKey\)/);
+  assert.match(atlas, /root\.L\.map/); assert.match(atlas, /root\.L\.maplibreGL/); assert.match(atlas, /tiles\.openfreemap\.org\/styles\/liberty/); assert.doesNotMatch(atlas, /root\.L\.polyline|L\.polyline/);
+  assert.match(atlas, /function runOpeningAnimation/); assert.match(atlas, /function moveCharacterTo/); assert.match(atlas, /motion === "swing"/); assert.match(atlas, /motion === "glide"/);
+  assert.match(atlas, /atlas-character-layer/); assert.match(atlas, /atlas-game-intro/); assert.match(atlas, /Ulangi pembuka/);
+  assert.match(atlas, /function contextualStart/); assert.match(atlas, /function buildMotionPath/); assert.match(atlas, /function buildWalkingOpeningPath/); assert.match(atlas, /function runCharacterFlyThrough/);
+  assert.match(atlas, /characterAnchorIndex/); assert.match(atlas, /spriteReadyPromise/); assert.match(atlas, /fromIndex/);
+  assert.match(themes, /sprites: Object\.freeze/); assert.match(themes, /motionProfile: Object\.freeze/); assert.match(themes, /openingMode: "walk"/);
+  assert.ok(atlas.includes("let activeIndex = -1")); assert.ok(atlas.includes("`0 / ${locations.length}`")); assert.ok(atlas.includes("activeIndex < 0 ? 0 : activeIndex + 1"));
+  assert.ok(atlas.includes("function hideCharacter")); assert.match(atlas, /hideCharacter\(\{ resetAnchor = false \} = \{\}\)/); assert.match(atlas, /arrival: true/);
+  assert.match(themes, /atlasExperience/); assert.match(themes, /motion: "swing"/); assert.match(themes, /motion: "glide"/);
+  assert.match(css, /atlas-character-layer/); assert.match(css, /atlas-game-intro/); assert.match(css, /prefers-reduced-motion:reduce/);
+  assert.doesNotMatch(atlas, /themeId\s*===|case\s+["']spiderman|if\s*\([^)]*spiderman/i);
 });
 
-test("Atlas location popups are a theme-neutral comic dossier with protected personal notes", () => {
+test("Atlas location popups remain a theme-neutral comic dossier with protected personal notes", () => {
   const atlas = read("rooms/atlas.js"); const css = read("rooms/atlas.css"); const html = read("studio/index.html");
   const spiderTheme = read("assets/themes/spiderman/theme.css"); const batmanTheme = read("assets/themes/batman/theme.css");
   assert.match(atlas, /atlas-popup-kicker/); assert.match(atlas, /const order = String\(index \+ 1\)\.padStart\(2, "0"\)/);
-  assert.match(atlas, /location\?\.title \|\| location\?\.label/); assert.match(atlas, /compact: true/);
-  assert.match(atlas, /Next · buka ceritanya/); assert.match(atlas, /revealActiveStory/);
-  assert.match(atlas, /if \(!compact && location\.note\)/); assert.match(atlas, /openLocationPopup\(index, \{ compact: false \}\)/);
-  assert.doesNotMatch(atlas, /TITIK KENANGAN|MEMORY POINT/);
+  assert.match(atlas, /location\?\.title \|\| location\?\.label/); assert.match(atlas, /if \(!compact && location\.note\)/);
   assert.match(atlas, /atlas-popup-visual is-placeholder/); assert.match(atlas, /disableScrollPropagation/);
   assert.match(atlas, /function openLocationPopup/); assert.match(atlas, /getBoundingClientRect/);
-  assert.doesNotMatch(atlas, /themeId\s*===|case\s+["']spiderman|if\s*\([^)]*spiderman/i);
   assert.match(css, /aspect-ratio:4 \/ 3/); assert.match(css, /font-family:var\(--font-hand,cursive\)/); assert.match(css, /overscroll-behavior:contain/);
-  assert.match(css, /atlas-pin-ring/); assert.match(css, /atlas-pin-tail/);
-  assert.doesNotMatch(atlas, /atlas-popup-maps-link/);
+  assert.match(css, /atlas-pin-ring/); assert.match(css, /atlas-pin-tail/); assert.doesNotMatch(atlas, /atlas-popup-maps-link/);
   assert.match(spiderTheme, /--atlas-popup-decal/); assert.match(batmanTheme, /--atlas-popup-decal/);
-  assert.doesNotMatch(html, /class="atlas-title"/); assert.match(html, /class="atlas-label"/); assert.match(css, /atlas-popup-card\.is-cinematic/); assert.match(css, /atlas-popup-reveal-arrow/);
+  assert.doesNotMatch(html, /class="atlas-title"/); assert.match(html, /class="atlas-label"/);
 });
 
 

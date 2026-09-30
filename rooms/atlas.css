@@ -7,7 +7,7 @@
 .atlas-map-frame { position: relative; overflow: hidden; border: 4px solid var(--theme-ink); border-radius: 18px; background: #e8e0d0; box-shadow: 6px 8px 0 color-mix(in srgb,var(--theme-ink) 80%,transparent); }
 .atlas-map { width: 100%; height: clamp(420px,56vh,600px); background: #e8e0d0; }
 .atlas-map .leaflet-container { background: #e8e0d0; }
-.atlas-map .leaflet-tile-pane { filter: sepia(30%) contrast(105%) brightness(92%) saturate(80%); }
+.atlas-map .leaflet-tile { filter: sepia(30%) contrast(105%) brightness(92%) saturate(80%); }
 .atlas-map .leaflet-control-zoom a { color: var(--theme-ink); background: var(--theme-paper); }
 .atlas-map .leaflet-control-attribution { background: rgba(255,250,240,.88); font-size: 10px; }
 .map-noise { position: absolute; inset: 0; pointer-events: none; z-index: 450; opacity: 0.12; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
@@ -71,6 +71,7 @@
 .atlas-comic-popup .atlas-popup-note + .atlas-popup-note { margin-top:8px; }
 .atlas-controls { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
 .atlas-control,.atlas-fit { min-width: 44px; min-height: 44px; border: 3px solid var(--theme-ink); border-radius: 999px; background: var(--theme-paper); color: var(--theme-ink); box-shadow: 3px 4px 0 var(--theme-ink); font-weight: 900; cursor: pointer; }
+.atlas-control:disabled { opacity: .42; cursor: default; transform: none; box-shadow: 1px 2px 0 var(--theme-ink); }
 .atlas-fit { padding: 0 20px; background: var(--theme-accent); }
 .atlas-current { min-width: 65px; text-align: center; color: var(--theme-paper); font-weight: 900; }
 @media (min-width:768px) {
@@ -108,3 +109,33 @@
   .atlas-popup-note-scroll { max-height: 75px; }
 }
 @media (prefers-reduced-motion:reduce) { .atlas-pin-head,.atlas-map-link { transition:none!important; } .atlas-pin-shadow,.atlas-popup-reveal-arrow { animation:none!important; } }
+
+/* Theme-driven choreography layer over the real Leaflet map. */
+.atlas-character-layer{position:absolute;inset:0;z-index:480;overflow:hidden;pointer-events:none}
+.atlas-character{--atlas-facing:1;position:absolute;z-index:2;width:78px;height:112px;user-select:none;transform:translate(-50%,-82%);transform-origin:50% 86%;filter:drop-shadow(4px 7px 2px rgba(0,0,0,.28));will-change:left,top,transform,opacity}
+.atlas-character[hidden],.atlas-motion-trail[hidden]{display:none!important}
+.atlas-character-sprite{display:block;width:100%;height:100%;object-fit:contain;transform:scaleX(var(--atlas-facing));transform-origin:50% 72%;transition:transform .16s ease,filter .16s ease}
+.atlas-character[data-phase="launch"] .atlas-character-sprite{transform:scaleX(var(--atlas-facing)) rotate(-7deg) scale(.92)}
+.atlas-character[data-phase="travel"] .atlas-character-sprite{transform:scaleX(var(--atlas-facing)) rotate(3deg) scale(1.04)}
+.atlas-character[data-phase="turn"] .atlas-character-sprite{transform:scaleX(var(--atlas-facing)) skewY(-4deg) scale(.98)}
+.atlas-character[data-phase="approach"] .atlas-character-sprite{transform:scaleX(var(--atlas-facing)) rotate(-3deg) scale(.94)}
+.atlas-character[data-phase="land"] .atlas-character-sprite{transform:scaleX(var(--atlas-facing)) translateY(6px) scale(1.02)}
+.atlas-character-layer.is-glide .atlas-character{width:106px;height:126px;filter:drop-shadow(7px 8px 3px rgba(0,0,0,.42))}
+.atlas-character-layer.is-glide .atlas-character[data-phase="launch"] .atlas-character-sprite{transform:scaleX(var(--atlas-facing)) rotate(-10deg) scale(.88)}
+.atlas-character-layer.is-glide .atlas-character[data-phase="travel"] .atlas-character-sprite{transform:scaleX(var(--atlas-facing)) rotate(1deg) scale(1.06, .94)}
+.atlas-character-layer.is-glide .atlas-character[data-phase="turn"] .atlas-character-sprite{transform:scaleX(var(--atlas-facing)) skewY(7deg) rotate(7deg)}
+.atlas-character-layer.is-glide .atlas-character[data-phase="approach"] .atlas-character-sprite{transform:scaleX(var(--atlas-facing)) rotate(10deg) scale(.96)}
+.atlas-character-layer.is-glide .atlas-character.is-walking{height:112px;filter:drop-shadow(3px 6px 2px rgba(0,0,0,.34))}
+.atlas-character-layer.is-glide .atlas-character.is-walking .atlas-character-sprite{transform:scaleX(var(--atlas-facing))!important;transition:none}
+.atlas-motion-trail{position:absolute;z-index:1;pointer-events:none;will-change:left,top,height,transform,opacity}
+.atlas-character-layer.is-swing .atlas-motion-trail{width:2px;border-left:2px solid rgba(255,255,255,.9);filter:drop-shadow(1px 1px 0 rgba(0,0,0,.55));transform-origin:top center}
+.atlas-character-layer.is-glide .atlas-motion-trail{width:82px;height:24px;border-radius:50%;background:radial-gradient(ellipse,rgba(13,20,31,.44),rgba(13,20,31,0) 70%);filter:blur(2px)}
+.atlas-character-layer.is-glide:has(.atlas-character.is-walking) .atlas-motion-trail{width:58px;height:13px;background:radial-gradient(ellipse,rgba(13,20,31,.38),rgba(13,20,31,0) 72%);filter:blur(1px)}
+.atlas-game-intro{position:absolute;inset:0;z-index:470;display:grid;align-items:end;padding:24px;background:linear-gradient(90deg,color-mix(in srgb,var(--atlas-popup-edge) 78%,transparent),color-mix(in srgb,var(--atlas-popup-edge) 26%,transparent) 58%,transparent);backdrop-filter:blur(1px);animation:atlas-intro-in .46s cubic-bezier(.2,.75,.25,1) both}
+.atlas-game-intro.is-closing{animation:atlas-intro-out .42s ease both}.atlas-game-intro[hidden]{display:none}
+.atlas-game-intro__panel{width:min(420px,100%);padding:20px 22px;border:3px solid var(--atlas-popup-edge);border-radius:17px;color:var(--atlas-popup-ink);background:var(--atlas-popup-surface);box-shadow:7px 8px 0 var(--atlas-popup-shadow);transform:rotate(-.8deg);animation:atlas-intro-panel-in .58s .12s cubic-bezier(.18,.78,.24,1) both}
+.atlas-game-intro__kicker{color:var(--atlas-popup-accent);font-size:.64rem;font-weight:900;letter-spacing:.16em;text-transform:uppercase}.atlas-game-intro h3{margin:6px 0 7px;font-family:var(--font-display);font-size:clamp(1.7rem,4vw,2.75rem);line-height:.95;letter-spacing:.035em}.atlas-game-intro p{max-width:350px;margin:0;color:var(--atlas-popup-note);font-size:.78rem;font-weight:700;line-height:1.5}.atlas-intro-skip{margin-top:14px;padding:8px 13px;border:2px solid var(--atlas-popup-edge);border-radius:999px;color:var(--atlas-popup-ink);background:transparent;cursor:pointer;font-size:.66rem;font-weight:900;letter-spacing:.07em;text-transform:uppercase}.atlas-replay{min-height:44px;padding:0 17px;border:3px solid var(--theme-ink);border-radius:999px;color:var(--theme-ink);background:var(--theme-accent);box-shadow:3px 4px 0 var(--theme-ink);cursor:pointer;font-size:.68rem;font-weight:900;letter-spacing:.04em;text-transform:uppercase}.atlas-replay:hover,.atlas-replay:focus-visible,.atlas-intro-skip:focus-visible{transform:translateY(-2px);outline:3px solid color-mix(in srgb,var(--theme-accent) 54%,transparent);outline-offset:2px}
+@keyframes atlas-intro-in{from{opacity:0}to{opacity:1}}@keyframes atlas-intro-out{from{opacity:1}to{opacity:0}}@keyframes atlas-intro-panel-in{from{opacity:0;transform:translateY(24px) rotate(-2deg) scale(.96)}to{opacity:1;transform:translateY(0) rotate(-.8deg) scale(1)}}
+@media(max-width:600px){.atlas-character{width:64px;height:94px}.atlas-character-layer.is-glide .atlas-character{width:84px;height:106px}.atlas-game-intro{align-items:center;padding:13px;background:linear-gradient(180deg,color-mix(in srgb,var(--atlas-popup-edge) 28%,transparent),color-mix(in srgb,var(--atlas-popup-edge) 80%,transparent))}.atlas-game-intro__panel{padding:17px;border-radius:14px;box-shadow:5px 6px 0 var(--atlas-popup-shadow)}.atlas-game-intro h3{font-size:2rem}.atlas-game-intro p{font-size:.7rem}.atlas-replay{min-height:42px;padding-inline:13px;font-size:.59rem}}
+@media(max-width:390px){.atlas-replay{flex-basis:100%;max-width:190px}.atlas-game-intro__panel{padding:15px}.atlas-game-intro h3{font-size:1.8rem}}
+@media(prefers-reduced-motion:reduce){.atlas-character,.atlas-character-sprite,.atlas-motion-trail,.atlas-game-intro__panel,.atlas-replay{animation:none!important;transition:none!important}}

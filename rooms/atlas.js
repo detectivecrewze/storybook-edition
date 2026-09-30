@@ -72,11 +72,18 @@
     const language = options.language === "en" ? "en" : "id";
     const reducedMotion = Boolean(options.reducedMotion);
     const cinematic = options.cinematic !== undefined ? Boolean(options.cinematic) : !standaloneVisited;
+    const experience = options.experience || {};
+    const motion = experience.motion === "glide" ? "glide" : "swing";
+    const characterSource = String(experience.character || "");
+    const spriteSources = Object.freeze({ ...(experience.sprites || {}) });
+    const motionProfile = Object.freeze({ ...(experience.motionProfile || {}) });
+    const hasCharacter = Boolean(characterSource || Object.values(spriteSources).some(Boolean));
+    const localized = value => typeof value === "string" ? value : String(value?.[language] || value?.id || value?.en || "");
     standaloneVisited = true;
     const locations = (atlasData?.locations || []).filter(location => locationHeading(location) && isFiniteCoordinate(location.latitude, location.longitude)).slice(0, 10);
-    const timers = new Set(); const listeners = []; let map = null; let tileLayer = null; let activeIndex = 0; let popupCompact = false; let destroyed = false; let tileErrors = 0;
+    const timers = new Set(); const listeners = []; let map = null; let tileLayer = null; let activeIndex = -1; let popupCompact = false; let destroyed = false; let tileErrors = 0; let activeCharacterAnimation = null; let introRunning = false; let introTransitionVersion = 0;
     const on = (target, type, handler, settings) => { target.addEventListener(type, handler, settings); listeners.push(() => target.removeEventListener(type, handler, settings)); };
-    const later = (handler, delay) => { const timer = setTimeout(() => { timers.delete(timer); if (!destroyed) handler(); }, delay); timers.add(timer); };
+    const later = (handler, delay) => { const timer = setTimeout(() => { timers.delete(timer); if (!destroyed) handler(); }, delay); timers.add(timer); return timer; };
     host.replaceChildren();
 
     if (!locations.length || !root.L) {
@@ -96,13 +103,26 @@
     const mapNode = element("div", "atlas-map"); mapNode.setAttribute("aria-label", language === "en" ? "Interactive map of meaningful places" : "Peta interaktif tempat-tempat berarti");
     const noise = element("div", "map-noise");
     const notice = element("div", "atlas-map-notice"); notice.hidden = true;
-    mapFrame.append(mapNode, noise, notice);
+    const characterLayer = element("div", `atlas-character-layer is-${motion}`); characterLayer.setAttribute("aria-hidden", "true");
+    const character = element("div", "atlas-character"); character.hidden = true; character.dataset.phase = "launch"; character.dataset.direction = "right";
+    const characterSprite = element("img", "atlas-character-sprite"); characterSprite.alt = ""; characterSprite.draggable = false;
+    characterSprite.onerror = () => { if (characterSource && characterSprite.getAttribute("src") !== characterSource) characterSprite.src = characterSource; };
+    const motionTrail = element("span", "atlas-motion-trail"); motionTrail.hidden = true; character.append(characterSprite); characterLayer.append(motionTrail, character);
+    const intro = element("div", "atlas-game-intro"); intro.hidden = true;
+    const introPanel = element("div", "atlas-game-intro__panel");
+    const introKicker = element("span", "atlas-game-intro__kicker", language === "en" ? "Atlas mission" : "Misi Atlas");
+    const introTitle = element("h3", "", localized(experience.introTitle) || (language === "en" ? "Choose a memory point" : "Pilih titik kenangan"));
+    const introMessage = element("p", "", localized(experience.introMessage) || (language === "en" ? "Choose a meaningful place to open its story." : "Pilih tempat berarti untuk membuka ceritanya."));
+    const skipIntro = element("button", "atlas-intro-skip", language === "en" ? "Skip entrance" : "Lewati pembuka"); skipIntro.type = "button";
+    introPanel.append(introKicker, introTitle, introMessage, skipIntro); intro.append(introPanel);
+    mapFrame.append(mapNode, noise, characterLayer, notice, intro);
     const controls = element("div", "atlas-controls");
     const previous = element("button", "atlas-control", "←"); previous.type = "button"; previous.setAttribute("aria-label", language === "en" ? "Previous place" : "Lokasi sebelumnya");
-    const current = element("span", "atlas-current", `1 / ${locations.length}`);
+    const current = element("span", "atlas-current", `0 / ${locations.length}`);
     const next = element("button", "atlas-control", "→"); next.type = "button"; next.setAttribute("aria-label", language === "en" ? "Next place" : "Lokasi berikutnya");
     const fit = element("button", "atlas-fit", language === "en" ? "See all places" : "Lihat semua lokasi"); fit.type = "button";
-    controls.append(previous, current, next, fit); shell.append(stats, mapFrame, controls); host.append(shell);
+    const replay = element("button", "atlas-replay", language === "en" ? "Replay entrance" : "Ulangi pembuka"); replay.type = "button";
+    controls.append(previous, current, next, fit, replay); shell.append(stats, mapFrame, controls); host.append(shell); previous.disabled = true; previous.setAttribute("aria-disabled", "true");
 
     const bounds = root.L.latLngBounds(locations.map(location => [location.latitude, location.longitude]));
     const center = bounds.getCenter();
@@ -118,29 +138,25 @@
       scrollWheelZoom: true
     });
 
-    tileLayer = root.L.tileLayer("https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png", {
-      subdomains: "abc",
-      maxZoom: 19,
-      keepBuffer: 2,
-      updateWhenZooming: false,
-      updateWhenIdle: true,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, Tiles style by <a href="https://www.hotosm.org/">Humanitarian OpenStreetMap Team</a>'
+    tileLayer = root.L.maplibreGL({
+      style: "https://tiles.openfreemap.org/styles/liberty",
+      interactive: false
     });
-    tileLayer.on("tileerror", () => {
-      tileErrors += 1;
-      if (tileErrors === 2 && map && !destroyed) {
-        tileLayer.setUrl("https://tile.openstreetmap.de/{z}/{x}/{y}.png");
-      }
-      if (tileErrors < 5 || !notice.hidden) return;
+    tileLayer.addTo(map);
+    const vectorMap = tileLayer.getMaplibreMap();
+    const showMapFailure = () => {
+      if (!notice.hidden) return;
       notice.hidden = false;
-      notice.replaceChildren(element("strong", "", language === "en" ? "Map tiles are unavailable" : "Peta sedang tidak tersedia"), element("span", "", language === "en" ? "Every saved place remains available in the list." : "Semua tempat yang tersimpan tetap tersedia di daftar."));
+      notice.replaceChildren(element("strong", "", language === "en" ? "Map is temporarily unavailable" : "Peta sedang tidak tersedia"), element("span", "", language === "en" ? "Every saved place remains available in the list." : "Semua tempat yang tersimpan tetap tersedia di daftar."));
       const fallback = element("div", "atlas-tile-fallback"); fallback.append(element("h3", "", language === "en" ? "Saved places" : "Tempat tersimpan"));
       const list = element("ol", "atlas-fallback-list");
       locations.forEach((location, index) => { const item = element("li", "atlas-fallback-place"); item.append(element("strong", "", `${String(index + 1).padStart(2, "0")} · ${locationHeading(location)}`)); if (location.note) item.append(element("span", "", location.note)); list.append(item); });
-      fallback.append(list);
-      mapFrame.append(fallback);
+      fallback.append(list); mapFrame.append(fallback);
+    };
+    vectorMap.on("error", () => {
+      tileErrors += 1;
+      if (tileErrors === 1) later(() => { if (!vectorMap.isStyleLoaded?.()) showMapFailure(); }, 2600);
     });
-    tileLayer.addTo(map);
 
     const markers = locations.map((location, index) => {
       const icon = root.L.divIcon({
@@ -155,7 +171,9 @@
         className: "atlas-comic-popup",
         maxWidth: 270,
         minWidth: 190,
-        autoPan: false
+        autoPan: true,
+        keepInView: true,
+        autoPanPadding: [18, 18]
       });
       marker.on("click", (e) => {
         if (e?.originalEvent) {
@@ -169,9 +187,309 @@
         }
         select(index);
       });
+      marker.on("keypress", e => {
+        const key = e?.originalEvent?.key;
+        if (key !== "Enter" && key !== " ") return;
+        root.L?.DomEvent?.stop?.(e);
+        cancelAnimation();
+        select(index);
+      });
       return marker;
     });
 
+    let characterIndex = -1;
+    let characterAnchorIndex = -1;
+    let characterFrozen = false;
+    let characterPoint = null;
+    let activeTrailAnimation = null;
+    let characterMoveToken = 0;
+    const characterPhaseTimers = new Set();
+    const spriteCache = [];
+
+    const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
+
+    function preloadCharacterSprites() {
+      const sources = [...new Set([characterSource, ...Object.values(spriteSources)].filter(Boolean))];
+      return Promise.allSettled(sources.map(source => new Promise(resolve => {
+        const image = new Image();
+        spriteCache.push(image);
+        image.onload = () => { const decoded = image.decode?.(); decoded?.then(resolve).catch(resolve) || resolve(); };
+        image.onerror = resolve;
+        image.src = source;
+      })));
+    }
+
+    const spriteReadyPromise = preloadCharacterSprites();
+
+    function pointForLocation(index) {
+      if (!map || index < 0 || !locations[index]) return null;
+      const location = locations[index];
+      return map.latLngToContainerPoint([location.latitude, location.longitude]);
+    }
+
+    function setCharacterSprite(phase) {
+      const source = String(spriteSources[phase] || characterSource || "");
+      character.dataset.phase = phase;
+      if (!source || characterSprite.getAttribute("src") === source) return;
+      characterSprite.src = source;
+    }
+
+    function setCharacterDirection(direction) {
+      character.dataset.direction = direction < 0 ? "left" : "right";
+      character.style.setProperty("--atlas-facing", direction < 0 ? "-1" : "1");
+    }
+
+    function setCharacterPoint(point) {
+      if (!point || !hasCharacter) return;
+      characterPoint = { x: Number(point.x), y: Number(point.y) };
+      character.style.left = `${characterPoint.x}px`;
+      character.style.top = `${characterPoint.y}px`;
+      character.hidden = false;
+    }
+
+    function hideCharacter({ resetAnchor = false } = {}) {
+      character.hidden = true;
+      motionTrail.hidden = true;
+      if (resetAnchor) {
+        characterAnchorIndex = -1;
+        characterIndex = -1;
+        characterPoint = null;
+      }
+    }
+
+    function syncCharacter() {
+      if (destroyed || character.hidden || characterFrozen || activeCharacterAnimation || !map || characterAnchorIndex < 0) return;
+      setCharacterPoint(pointForLocation(characterAnchorIndex));
+    }
+
+    function clearCharacterPhaseTimers() {
+      characterPhaseTimers.forEach(timer => { clearTimeout(timer); timers.delete(timer); });
+      characterPhaseTimers.clear();
+    }
+
+    function scheduleCharacterPhase(phase, delay) {
+      const timer = setTimeout(() => {
+        characterPhaseTimers.delete(timer);
+        timers.delete(timer);
+        if (!destroyed) setCharacterSprite(phase);
+      }, delay);
+      characterPhaseTimers.add(timer);
+      timers.add(timer);
+    }
+
+    function cancelCharacterAnimation() {
+      characterMoveToken += 1;
+      clearCharacterPhaseTimers();
+      if (activeCharacterAnimation) activeCharacterAnimation.cancel();
+      if (activeTrailAnimation) activeTrailAnimation.cancel();
+      activeCharacterAnimation = null;
+      activeTrailAnimation = null;
+      motionTrail.hidden = true;
+      character.classList.remove("is-moving", "is-arriving", "is-walking");
+    }
+
+    function delay(ms) {
+      return new Promise(resolve => later(resolve, ms));
+    }
+
+    function cubicPoint(start, controlOne, controlTwo, end, progress) {
+      const inverse = 1 - progress;
+      return {
+        x: inverse ** 3 * start.x + 3 * inverse ** 2 * progress * controlOne.x + 3 * inverse * progress ** 2 * controlTwo.x + progress ** 3 * end.x,
+        y: inverse ** 3 * start.y + 3 * inverse ** 2 * progress * controlOne.y + 3 * inverse * progress ** 2 * controlTwo.y + progress ** 3 * end.y
+      };
+    }
+
+    function buildMotionPath(start, end, { opening = false } = {}) {
+      const width = mapNode.clientWidth || 320;
+      const height = mapNode.clientHeight || 420;
+      const lift = Math.max(motion === "swing" ? 72 : 42, height * Number(motionProfile.arcHeight || (motion === "swing" ? .24 : .13)));
+      const direction = end.x >= start.x ? 1 : -1;
+      const controlOne = motion === "swing"
+        ? { x: start.x + (end.x - start.x) * .28, y: Math.min(start.y, end.y) - lift * (opening ? 1.18 : 1) }
+        : { x: start.x + (end.x - start.x) * .34, y: start.y + (end.y - start.y) * .12 - lift };
+      const controlTwo = motion === "swing"
+        ? { x: start.x + (end.x - start.x) * .72, y: Math.min(start.y, end.y) - lift * .62 }
+        : { x: start.x + (end.x - start.x) * .72, y: end.y - lift * .28 };
+      const samples = opening ? [0, .16, .34, .55, .76, 1] : [0, .18, .42, .68, .86, 1];
+      return { direction, points: samples.map(progress => ({ ...cubicPoint(start, controlOne, controlTwo, end, progress), progress })), width, height };
+    }
+
+    function contextualStart(targetIndex, fromIndex) {
+      const target = pointForLocation(targetIndex);
+      const width = mapNode.clientWidth || 320;
+      const height = mapNode.clientHeight || 420;
+      const padding = motion === "swing" ? 76 : 112;
+      const targetLocation = locations[targetIndex];
+      const sourceLocation = fromIndex >= 0 && locations[fromIndex] ? locations[fromIndex] : center;
+      let horizontal = Number(sourceLocation.lng ?? sourceLocation.longitude) - Number(targetLocation.longitude);
+      let vertical = -(Number(sourceLocation.lat ?? sourceLocation.latitude) - Number(targetLocation.latitude));
+      if (Math.abs(horizontal) + Math.abs(vertical) < .00001) {
+        horizontal = targetIndex % 2 === 0 ? -1 : 1;
+        vertical = motion === "glide" ? -1 : .35;
+      }
+      if (motion === "glide" && fromIndex < 0) {
+        return { x: horizontal >= 0 ? width + padding : -padding, y: -padding * .65 };
+      }
+      if (Math.abs(horizontal) >= Math.abs(vertical)) {
+        return {
+          x: horizontal >= 0 ? width + padding : -padding,
+          y: clamp(target.y + Math.sign(vertical || 1) * height * (motion === "swing" ? .16 : .08), height * .16, height * .76)
+        };
+      }
+      return {
+        x: clamp(target.x + Math.sign(horizontal || 1) * width * .2, width * .12, width * .88),
+        y: vertical >= 0 ? height + padding : -padding
+      };
+    }
+
+    function openingEndpoints() {
+      const width = mapNode.clientWidth || 320;
+      const height = mapNode.clientHeight || 420;
+      const seed = Math.abs(Math.round(locations.reduce((total, location) => total + location.latitude * 1000 + location.longitude * 1000, 0)));
+      const leftToRight = (seed + (motion === "glide" ? 1 : 0)) % 2 === 0;
+      const startX = leftToRight ? -110 : width + 110;
+      const endX = leftToRight ? width + 110 : -110;
+      if (motion === "swing") {
+        return { start: { x: startX, y: height * .7 }, end: { x: endX, y: height * .34 } };
+      }
+      return { start: { x: startX, y: -82 }, end: { x: endX, y: height * .62 } };
+    }
+
+    function buildWalkingOpeningPath(start, end) {
+      const baseline = clamp((mapNode.clientHeight || 420) * .35, 104, 178);
+      const samples = [0, .16, .34, .54, .74, 1];
+      return {
+        kind: "walk",
+        direction: end.x >= start.x ? 1 : -1,
+        width: mapNode.clientWidth || 320,
+        height: mapNode.clientHeight || 420,
+        points: samples.map(progress => ({ x: start.x + (end.x - start.x) * progress, y: baseline, progress }))
+      };
+    }
+
+    function frameRotation(points, index, kind = "flight") {
+      if (kind === "walk") return 0;
+      const before = points[Math.max(0, index - 1)];
+      const after = points[Math.min(points.length - 1, index + 1)];
+      const angle = Math.atan2(after.y - before.y, after.x - before.x) * 180 / Math.PI;
+      return clamp(angle * (motion === "swing" ? .48 : .3), motion === "swing" ? -28 : -15, motion === "swing" ? 28 : 15);
+    }
+
+    function animateMotionTrail(path, duration) {
+      motionTrail.hidden = false;
+      if (!motionTrail.animate) return;
+      if (motion === "swing") {
+        const anchor = { x: clamp((path.points[0].x + path.points.at(-1).x) * .5, 22, path.width - 22), y: -10 };
+        const frames = path.points.map((point, index) => {
+          const deltaX = point.x - anchor.x;
+          const deltaY = point.y - anchor.y;
+          return {
+            left: `${anchor.x}px`, top: `${anchor.y}px`, height: `${Math.hypot(deltaX, deltaY)}px`,
+            transform: `rotate(${Math.atan2(deltaX, deltaY) * -180 / Math.PI}deg)`,
+            opacity: index === 0 || index === path.points.length - 1 ? 0 : .78,
+            offset: point.progress
+          };
+        });
+        activeTrailAnimation = motionTrail.animate(frames, { duration, easing: "linear", fill: "both" });
+      } else {
+        const frames = path.points.map((point, index) => ({
+          left: `${point.x}px`, top: `${point.y + 18}px`,
+          transform: `translate(-50%,-50%) rotate(${frameRotation(path.points, index, path.kind)}deg) scale(${path.kind === "walk" ? 1 : index === 0 ? .65 : 1})`,
+          opacity: index === 0 || index === path.points.length - 1 ? 0 : .5,
+          offset: point.progress
+        }));
+        activeTrailAnimation = motionTrail.animate(frames, { duration, easing: "linear", fill: "both" });
+      }
+    }
+
+    async function animateCharacterPath(path, { duration, arrival = false, targetIndex = -1 } = {}) {
+      if (!hasCharacter || !path?.points?.length) return true;
+      cancelCharacterAnimation();
+      const moveToken = characterMoveToken;
+      characterFrozen = true;
+      setCharacterDirection(path.direction);
+      setCharacterSprite(path.kind === "walk" ? "travel" : "launch");
+      setCharacterPoint(path.points[0]);
+      character.classList.add("is-moving");
+      character.classList.toggle("is-walking", path.kind === "walk");
+      if (path.kind !== "walk") {
+        scheduleCharacterPhase("travel", duration * .14);
+        scheduleCharacterPhase("turn", duration * .46);
+        scheduleCharacterPhase("approach", duration * .74);
+      }
+      const frames = path.points.map((point, index) => ({
+        left: `${point.x}px`, top: `${point.y}px`,
+        transform: path.kind === "walk"
+          ? "translate(-50%,-82%) rotate(0deg) scale(1)"
+          : `translate(-50%,-82%) rotate(${frameRotation(path.points, index, path.kind)}deg) scale(${index === 0 ? .88 : index === path.points.length - 1 ? 1 : 1.04})`,
+        opacity: arrival ? 1 : (index === 0 || index === path.points.length - 1 ? 0 : 1),
+        offset: point.progress
+      }));
+      animateMotionTrail(path, duration);
+      const animation = character.animate(frames, { duration, easing: "linear", fill: "both" });
+      activeCharacterAnimation = animation;
+      try { await animation.finished; } catch { return false; }
+      if (destroyed || moveToken !== characterMoveToken || activeCharacterAnimation !== animation) return false;
+      animation.cancel();
+      activeCharacterAnimation = null;
+      activeTrailAnimation?.cancel();
+      activeTrailAnimation = null;
+      motionTrail.hidden = true;
+      clearCharacterPhaseTimers();
+      const destination = path.points.at(-1);
+      setCharacterPoint(destination);
+      if (!arrival) {
+        characterFrozen = false;
+        character.classList.remove("is-moving", "is-walking");
+        hideCharacter({ resetAnchor: true });
+        return true;
+      }
+      characterIndex = targetIndex;
+      characterAnchorIndex = targetIndex;
+      setCharacterSprite("land");
+      character.classList.remove("is-moving");
+      character.classList.add("is-arriving");
+      await delay(Number(motionProfile.arrivalHold || (motion === "swing" ? 190 : 220)));
+      if (destroyed || moveToken !== characterMoveToken) return false;
+      const fade = character.animate([{ opacity: 1, transform: "translate(-50%,-82%) scale(1)" }, { opacity: 0, transform: "translate(-50%,-78%) scale(.82)" }], { duration: 190, easing: "ease-out", fill: "both" });
+      activeCharacterAnimation = fade;
+      try { await fade.finished; } catch { return false; }
+      if (moveToken !== characterMoveToken) return false;
+      fade.cancel();
+      activeCharacterAnimation = null;
+      characterFrozen = false;
+      character.classList.remove("is-arriving");
+      hideCharacter();
+      return true;
+    }
+
+    function moveCharacterTo(index, { fromIndex = -1 } = {}) {
+      const targetIndex = (index + locations.length) % locations.length;
+      const target = pointForLocation(targetIndex);
+      if (!target || !hasCharacter || reducedMotion) {
+        characterIndex = targetIndex;
+        characterAnchorIndex = targetIndex;
+        hideCharacter();
+        return Promise.resolve(true);
+      }
+      const logicalFrom = fromIndex >= 0 ? fromIndex : characterAnchorIndex;
+      const start = contextualStart(targetIndex, logicalFrom);
+      const path = buildMotionPath(start, target);
+      const distance = Math.hypot(target.x - start.x, target.y - start.y);
+      const minimum = Number(motionProfile.minDuration || (motion === "swing" ? 980 : 1080));
+      const maximum = Number(motionProfile.maxDuration || (motion === "swing" ? 1450 : 1550));
+      const duration = clamp(distance * (motion === "swing" ? 2.35 : 2.55), minimum, maximum);
+      return animateCharacterPath(path, { duration, arrival: true, targetIndex });
+    }
+
+    function runCharacterFlyThrough() {
+      if (!hasCharacter || reducedMotion) return Promise.resolve(true);
+      const { start, end } = openingEndpoints();
+      const path = motionProfile.openingMode === "walk" ? buildWalkingOpeningPath(start, end) : buildMotionPath(start, end, { opening: true });
+      const duration = Number(motionProfile.openingDuration || (motion === "swing" ? 2900 : 3100));
+      return animateCharacterPath(path, { duration, arrival: false });
+    }
     function updateActiveMarker(index) {
       markers.forEach((marker, i) => {
         const head = marker.getElement?.()?.querySelector(".atlas-pin-head") || document.getElementById(`atlas-pin-head-${i}`);
@@ -194,8 +512,8 @@
         const minHeadroom = container.clientWidth <= 600 ? 32 : 36;
         const topOverflow = frameBounds.top + minHeadroom - popupBounds.top;
         const bottomOverflow = popupBounds.bottom - (frameBounds.bottom - 14);
-        // Leaflet autoPan remains disabled. This is a measured, one-time
-        // correction after our comic card has its final rendered height.
+        // After Leaflet keeps the popup within the horizontal bounds, make one
+        // vertical correction after the comic card has its final rendered height.
         if (topOverflow > 0) map.panBy([0, -topOverflow], { animate: false });
         else if (bottomOverflow > 0) map.panBy([0, bottomOverflow], { animate: false });
       }, 40);
@@ -234,11 +552,28 @@
     let selectTimeout = null;
     let selectMoveHandler = null;
 
+    function updateNavigationState() {
+      current.textContent = activeIndex < 0 ? `0 / ${locations.length}` : `${activeIndex + 1} / ${locations.length}`;
+      previous.disabled = activeIndex < 0;
+      previous.setAttribute("aria-disabled", activeIndex < 0 ? "true" : "false");
+    }
+
+    function setOverviewState({ fitMap = false, animate = false } = {}) {
+      activeIndex = -1;
+      popupCompact = false;
+      updateNavigationState();
+      updateActiveMarker(-1);
+      map?.closePopup();
+      hideCharacter({ resetAnchor: true });
+      if (fitMap) fitAll(animate);
+    }
+
     function select(index, animate = true) {
       if (destroyed || !map || locations.length === 0) return;
+      const fromIndex = activeIndex;
       activeIndex = (index + locations.length) % locations.length;
       const location = locations[activeIndex];
-      current.textContent = `${activeIndex + 1} / ${locations.length}`;
+      updateNavigationState();
       updateActiveMarker(activeIndex);
       const targetZoom = 15;
       const cameraCenter = getCameraCenterForPin(location, targetZoom);
@@ -254,6 +589,7 @@
 
       if (!reducedMotion && animate) {
         map.closePopup();
+        characterFrozen = true;
         map.flyTo(cameraCenter, targetZoom, {
           duration: 0.8,
           easeLinearity: 0.25
@@ -268,7 +604,9 @@
             selectTimeout = null;
           }
           if (!destroyed && map && activeIndex === targetIndex) {
-            openLocationPopup(targetIndex);
+            moveCharacterTo(targetIndex, { fromIndex }).then(completed => {
+              if (completed && !destroyed && activeIndex === targetIndex) openLocationPopup(targetIndex);
+            });
           }
         };
 
@@ -277,103 +615,74 @@
         timers.add(selectTimeout);
       } else {
         map.setView(cameraCenter, targetZoom);
-        openLocationPopup(activeIndex);
+        moveCharacterTo(activeIndex, { fromIndex }).then(completed => { if (completed) openLocationPopup(activeIndex); });
       }
     }
 
     let cinematicCancelled = false;
-    let cancelAnimation = () => { cinematicCancelled = true; };
 
-    function runJourneyAnimation() {
-      if (cinematicCancelled || !cinematic || reducedMotion || locations.length === 0) {
-        fitAll(false);
-        if (locations.length === 1) {
-          openLocationPopup(0);
-          updateActiveMarker(0);
-        } else {
-          updateActiveMarker(-1);
-          map.closePopup();
-        }
+    function finishIntro({ immediate = false } = {}) {
+      const transitionVersion = ++introTransitionVersion;
+      introRunning = false;
+      shell.classList.remove("is-atlas-intro-playing");
+      if (immediate || reducedMotion) {
+        intro.classList.remove("is-closing");
+        intro.hidden = true;
         return;
       }
+      intro.classList.add("is-closing");
+      later(() => {
+        if (transitionVersion !== introTransitionVersion) return;
+        intro.hidden = true;
+        intro.classList.remove("is-closing");
+      }, 420);
+    }
 
-      let aborted = false;
-      let moveTimeout = null;
+    function clearSelectionMotion() {
+      if (selectTimeout) { clearTimeout(selectTimeout); selectTimeout = null; }
+      if (selectMoveHandler && map) { map.off("moveend", selectMoveHandler); selectMoveHandler = null; }
+    }
 
-      cancelAnimation = () => {
-        cinematicCancelled = true;
-        aborted = true;
-        if (moveTimeout) { clearTimeout(moveTimeout); moveTimeout = null; }
-        if (selectTimeout) { clearTimeout(selectTimeout); selectTimeout = null; }
-        if (selectMoveHandler && map) {
-          map.off("moveend", selectMoveHandler);
-          selectMoveHandler = null;
-        }
-        map?.off("moveend");
-      };
+    function cancelAnimation() {
+      cinematicCancelled = true;
+      finishIntro({ immediate: true });
+      cancelCharacterAnimation();
+      clearSelectionMotion();
+      characterFrozen = false;
+      hideCharacter();
+    }
 
-      const delay = ms => new Promise(res => {
-        const t = setTimeout(res, ms);
-        timers.add(t);
-      });
+    function skipOpening() {
+      cinematicCancelled = true;
+      cancelCharacterAnimation();
+      finishIntro({ immediate: true });
+      characterFrozen = false;
+      setOverviewState({ fitMap: true, animate: false });
+    }
 
-      const flyToPin = (index, zoom = 15, duration = 1.4) => new Promise(resolve => {
-        if (aborted || destroyed || !map) return resolve();
-        activeIndex = index;
-        current.textContent = `${index + 1} / ${locations.length}`;
-        updateActiveMarker(index);
-        const cameraCenter = getCameraCenterForPin(locations[index], zoom);
-        map.flyTo(cameraCenter, zoom, {
-          duration,
-          easeLinearity: 0.25
+    function runOpeningAnimation() {
+      cinematicCancelled = false;
+      clearSelectionMotion();
+      cancelCharacterAnimation();
+      setOverviewState({ fitMap: true, animate: false });
+      introTransitionVersion += 1;
+      introRunning = true;
+      intro.classList.remove("is-closing");
+      intro.hidden = false;
+      shell.classList.add("is-atlas-intro-playing");
+      characterFrozen = true;
+      if (reducedMotion) { skipOpening(); return; }
+      later(() => {
+        if (destroyed || cinematicCancelled || !introRunning) return;
+        runCharacterFlyThrough().then(completed => {
+          if (!completed || destroyed || cinematicCancelled || !introRunning) return;
+          later(() => {
+            if (destroyed || cinematicCancelled || !introRunning) return;
+            setOverviewState();
+            finishIntro();
+          }, 360);
         });
-
-        const onMoveEnd = () => {
-          map.off("moveend", onMoveEnd);
-          if (!aborted && !destroyed && map) {
-            openLocationPopup(index, { compact: true });
-          }
-          resolve();
-        };
-        map.once("moveend", onMoveEnd);
-        moveTimeout = setTimeout(() => {
-          map.off("moveend", onMoveEnd);
-          if (!aborted && !destroyed && map) {
-            openLocationPopup(index, { compact: true });
-          }
-          resolve();
-        }, Math.round(duration * 1000) + 300);
-        timers.add(moveTimeout);
-      });
-
-      (async () => {
-        await delay(250);
-        if (aborted || destroyed) return;
-
-        for (let i = 0; i < locations.length; i++) {
-          if (aborted || destroyed) return;
-          await flyToPin(i, 15, 1.4);
-          if (aborted || destroyed) return;
-          if (i < locations.length - 1 || locations.length === 1) {
-            await delay(1600);
-          }
-        }
-
-        if (aborted || destroyed) return;
-
-        if (locations.length >= 2) {
-          await delay(1000);
-          if (aborted || destroyed || !map) return;
-          map.closePopup();
-          updateActiveMarker(-1);
-          map.flyToBounds(bounds, {
-            padding: [40, 40],
-            maxZoom: 14,
-            duration: 1.5,
-            easeLinearity: 0.25
-          });
-        }
-      })();
+      }, 780);
     }
 
     const revealActiveStory = () => {
@@ -385,46 +694,44 @@
       openLocationPopup(activeIndex, { compact: false });
       return true;
     };
-    on(previous, "click", () => { cancelAnimation(); if (!revealActiveStory()) select(activeIndex - 1); });
-    on(next, "click", () => { cancelAnimation(); if (!revealActiveStory()) select(activeIndex + 1); });
-    on(fit, "click", () => { cancelAnimation(); fitAll(true); updateActiveMarker(-1); map.closePopup(); });
+    on(previous, "click", () => { cancelAnimation(); if (activeIndex >= 0 && !revealActiveStory()) select(activeIndex - 1); });
+    on(next, "click", () => { cancelAnimation(); if (!revealActiveStory()) select(activeIndex < 0 ? 0 : activeIndex + 1); });
+    on(fit, "click", () => { cancelAnimation(); setOverviewState({ fitMap: true, animate: true }); });
+    on(replay, "click", runOpeningAnimation);
+    on(skipIntro, "click", skipOpening);
+    map.on("move zoom", syncCharacter);
     on(shell, "keydown", event => {
       cancelAnimation();
-      if (event.key === "ArrowLeft") { event.preventDefault(); select(activeIndex - 1); }
-      else if (event.key === "ArrowRight") { event.preventDefault(); select(activeIndex + 1); }
+      if (event.key === "ArrowLeft" && activeIndex >= 0) { event.preventDefault(); select(activeIndex - 1); }
+      else if (event.key === "ArrowRight") { event.preventDefault(); select(activeIndex < 0 ? 0 : activeIndex + 1); }
     });
 
-    // Wait for the first tile to paint before sizing the map and starting the
-    // cinematic tour. This prevents the blank-map flash that iOS Safari shows
-    // when invalidateSize fires before any tile is on screen.
+    // Wait for the vector style to paint before sizing the map and starting the
+    // entrance. This prevents the blank-map flash that iOS Safari can show.
     let startedMap = false;
     const onFirstTile = () => {
       if (startedMap || destroyed) return;
       startedMap = true;
       map.invalidateSize({ pan: false, animate: false });
-      if (cinematic && !reducedMotion && !cinematicCancelled) {
-        runJourneyAnimation();
-      } else {
-        fitAll(false);
-        if (locations.length === 1) {
-          openLocationPopup(0);
-          updateActiveMarker(0);
-        } else {
-          updateActiveMarker(-1);
-          map.closePopup();
-        }
-      }
+      vectorMap.resize();
+      const startExperience = () => {
+        if (destroyed) return;
+        if (cinematic && !reducedMotion && !cinematicCancelled) runOpeningAnimation();
+        else { characterFrozen = false; setOverviewState({ fitMap: true, animate: false }); }
+      };
+      Promise.race([spriteReadyPromise, new Promise(resolve => later(resolve, 1000))]).then(startExperience);
     };
-    tileLayer.once("tileload", onFirstTile);
-    // Fallback: if tiles take more than 1.2 s (e.g. offline), start anyway.
-    later(onFirstTile, 1200);
+    vectorMap.once("idle", onFirstTile);
+    // Fallback: keep the room usable when the network is slow or unavailable.
+    later(() => { vectorMap.resize(); onFirstTile(); }, 2400);
 
     const dispose = () => {
       cancelAnimation();
+      cancelCharacterAnimation();
       destroyed = true; timers.forEach(clearTimeout); timers.clear(); listeners.splice(0).forEach(remove => remove());
       if (tileLayer) tileLayer.off(); if (map) { map.off(); map.remove(); map = null; } host.replaceChildren();
     };
-    dispose.resize = () => { if (!destroyed && map) map.invalidateSize({ pan: false, animate: false }); };
+    dispose.resize = () => { if (!destroyed && map) { map.invalidateSize({ pan: false, animate: false }); later(syncCharacter, 0); } };
     return dispose;
   }
 

@@ -11,6 +11,7 @@ const mimeTypes = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".webp": "image/webp",
   ".gif": "image/gif",
@@ -47,7 +48,7 @@ function serveStatic(response, pathname) {
     const extension = path.extname(filePath).toLowerCase();
     response.writeHead(200, {
       "Content-Type": mimeTypes[extension] || "application/octet-stream",
-      "Cache-Control": [".html", ".js", ".css"].includes(extension) ? "no-cache" : "public, max-age=604800",
+      "Cache-Control": [".html", ".js", ".mjs", ".css"].includes(extension) ? "no-cache" : "public, max-age=604800",
       "X-Content-Type-Options": "nosniff",
       "Referrer-Policy": "same-origin",
       "Content-Security-Policy": "frame-ancestors 'self' https://for-you-always.my.id"

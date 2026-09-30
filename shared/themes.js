@@ -25,6 +25,20 @@
       studio: Object.freeze({ topbar: "#23171b", sidebar: "#2d1b21" }),
       fonts: Object.freeze({ display: "Bangers, Impact, sans-serif", body: "Torney Comic, Arial, sans-serif", handwritten: "Caveat, cursive" }),
       textures: Object.freeze({ surface: "/assets/themes/spiderman/red-web-paper.webp", paper: "/assets/themes/spiderman/paper-grain.webp" }),
+      atlasExperience: Object.freeze({
+        character: "/assets/themes/spiderman/spiderman-character.gif",
+        motion: "swing",
+        sprites: Object.freeze({
+          launch: "/assets/themes/spiderman/spiderman-character.webp",
+          travel: "/assets/themes/spiderman/spiderman-character.gif",
+          turn: "/assets/themes/spiderman/spiderman-character.gif",
+          approach: "/assets/themes/spiderman/spiderman-character.webp",
+          land: "/assets/themes/spiderman/spiderman-character.webp"
+        }),
+        motionProfile: Object.freeze({ arcHeight: .26, minDuration: 1050, maxDuration: 1500, openingDuration: 3000, arrivalHold: 190 }),
+        introTitle: Object.freeze({ id: "Siap berayun?", en: "Ready to swing?" }),
+        introMessage: Object.freeze({ id: "Pilih satu tempat berarti. Spider-Man akan membawamu menuju ceritanya.", en: "Choose a meaningful place. Spider-Man will take you to its story." })
+      }),
       assets: Object.freeze({
         giftBox: "/assets/themes/spiderman/spiderman-box.webp",
         favicon: "/assets/themes/spiderman/spiderman-character.gif",
@@ -84,6 +98,20 @@
       studio: Object.freeze({ topbar: "#09111c", sidebar: "#0b1522" }),
       fonts: Object.freeze({ display: "Bangers, Impact, sans-serif", body: "Torney Comic, Arial, sans-serif", handwritten: "Caveat, cursive" }),
       textures: Object.freeze({ surface: "/assets/themes/batman/gotham-night-paper.webp", paper: "/assets/themes/batman/paper-grain.webp" }),
+      atlasExperience: Object.freeze({
+        character: "/assets/themes/batman/menu-hero-left.webp",
+        motion: "glide",
+        sprites: Object.freeze({
+          launch: "/assets/themes/batman/menu-hero-left.webp",
+          travel: "/assets/themes/batman/menu-hero-left.webp",
+          turn: "/assets/themes/batman/menu-hero-left.webp",
+          approach: "/assets/themes/batman/menu-hero-left.webp",
+          land: "/assets/themes/batman/menu-hero-left.webp"
+        }),
+        motionProfile: Object.freeze({ openingMode: "walk", arcHeight: .14, minDuration: 1150, maxDuration: 1600, openingDuration: 3400, arrivalHold: 220 }),
+        introTitle: Object.freeze({ id: "Gotham menunggumu", en: "Gotham awaits" }),
+        introMessage: Object.freeze({ id: "Pilih satu tempat berarti. Batman akan menuntunmu menuju ceritanya.", en: "Choose a meaningful place. Batman will guide you to its story." })
+      }),
       assets: Object.freeze({
         giftBox: "/assets/themes/batman/batman-box.webp",
         favicon: "/assets/themes/batman/menu-hero-left.webp",

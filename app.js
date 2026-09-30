@@ -112,6 +112,17 @@
     });
     loadedResources.set(key, promise); return promise;
   }
+  let mapLibrePromise = null;
+  function loadMapLibre() {
+    if (window.maplibregl && window.L?.maplibreGL) return Promise.resolve();
+    if (mapLibrePromise) return mapLibrePromise;
+    mapLibrePromise = (window.maplibregl
+      ? Promise.resolve()
+      : import("/assets/vendor/maplibre/maplibre-gl-6.11.2.mjs").then(module => { module.setWorkerUrl("/assets/vendor/maplibre/maplibre-gl-worker-6.11.2.mjs"); window.maplibregl = module; }))
+      .then(() => window.L?.maplibreGL ? undefined : loadResource("/assets/vendor/maplibre/leaflet-maplibre-gl.js", "script"))
+      .catch(error => { mapLibrePromise = null; throw error; });
+    return mapLibrePromise;
+  }
   function availableTracks() { return project?.music?.tracks?.filter(track => track.audioUrl) || []; }
   function loadStoryTrack(index, autoplay = false) {
     const tracks = availableTracks(); if (!tracks.length) return;
@@ -247,11 +258,12 @@
     Promise.all([
       window.L ? Promise.resolve() : loadResource("/assets/vendor/leaflet/leaflet.js", "script"),
       window.StorybookAtlasRoom ? Promise.resolve() : loadResource("/rooms/atlas.js", "script")
-    ]).then(() => {
+    ]).then(() => loadMapLibre()).then(() => {
       if (disposed) return;
       roomContent.replaceChildren();
-      cleanup = window.StorybookAtlasRoom.mount(roomContent, project.atlas, { language: project.settings.language, reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches, cinematic: firstVisit });
-    }).catch(() => {
+      cleanup = window.StorybookAtlasRoom.mount(roomContent, project.atlas, { language: project.settings.language, reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches, cinematic: firstVisit, experience: theme.atlasExperience });
+    }).catch(error => {
+      console.error("Atlas resources failed to load", error);
       if (disposed) return;
       const fallback = document.createElement("section"); fallback.className = "atlas-static-fallback";
       const title = document.createElement("h3"); title.textContent = project.settings.language === "en" ? "Your places are still safe" : "Tempat kalian tetap tersimpan";
@@ -349,7 +361,8 @@
     // Preload Leaflet and atlas room JS in the background so no script inject
     // happens when the user taps the Atlas chapter (eliminating the refresh feel on iOS).
     const idleLoad = () => {
-      if (!window.L) loadResource("/assets/vendor/leaflet/leaflet.js", "script").catch(() => {});
+      if (!window.L) loadResource("/assets/vendor/leaflet/leaflet.js", "script").then(() => loadMapLibre()).catch(() => {});
+      else loadMapLibre().catch(() => {});
       if (!window.StorybookAtlasRoom) loadResource("/rooms/atlas.js", "script").catch(() => {});
     };
     if ("requestIdleCallback" in window) requestIdleCallback(idleLoad, { timeout: 3000 });
